@@ -48,10 +48,11 @@ if _,exists :=accounts[req.Username];exists{
 	return 
 }
 
-req.Balance=0
+req.Balance=0.00
 accounts[req.Username]=req
 
 w.Header().Set("Content-Type","application/json")
+	w.WriteHeader(http.StatusCreated)
 json.NewEncoder(w).Encode(req)
 
 }
