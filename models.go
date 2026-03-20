@@ -1,7 +1,11 @@
 package main
 
-type Account struct{
+type Account struct {
+	Username string  `json:"username"`
+	Balance  float64 `json:"balance"`
+}
 
-	 Username string `json:"username"`
-	 Balance float64 `json:"balance"`
+type Deposit struct{
+	Username string  `json:"username"`
+	Amount float64  `json:"amount"`
 }
