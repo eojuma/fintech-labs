@@ -86,8 +86,8 @@ func Deposits(w http.ResponseWriter, r *http.Request) {
 	account.Balance += req.Amount
 	accounts[req.Username] = account
 
-	fmt.Println("Deposited:", req.Amount, "to", req.Username)
-	fmt.Println("The New Balance is:", account.Balance)
+	fmt.Println("Deposited Ksh.:", req.Amount, "to", req.Username)
+	fmt.Println("The New Balance is Ksh.:", account.Balance)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -113,7 +113,7 @@ func Withdrawals(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Amount <= 99.00 {
+	if req.Amount <100.00 {
 		http.Error(w, "Minimum withdrawal is Ksh.100", http.StatusBadRequest)
 		return
 	}
@@ -131,8 +131,8 @@ func Withdrawals(w http.ResponseWriter, r *http.Request) {
 	account.Balance -= req.Amount
 	accounts[req.Username] = account
 
-	fmt.Println("Withdrew:", req.Amount, "from", req.Username)
-	fmt.Println("The New Balance is:", account.Balance)
+	fmt.Println("Withdrew Ksh.:", req.Amount, "from", req.Username)
+	fmt.Println("The New Balance is Ksh.:", account.Balance)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
