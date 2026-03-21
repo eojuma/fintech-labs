@@ -11,10 +11,11 @@ var accounts = make(map[string]Account)
 func main() {
 	http.HandleFunc("/account", CreateAccount)
 	http.HandleFunc("/deposit", Deposits)
-	fmt.Println("Server running on http://8080/deposit")
+	http.HandleFunc("/withdraw",Withdrawals)
+	fmt.Println("Server running on http://8080")
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
-		fmt.Println("Server down", err)
+		fmt.Println("The server is down", err)
 	}
 }
 
@@ -70,8 +71,8 @@ func Deposits(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Username is required", http.StatusBadRequest)
 		return
 	}
-	if req.Amount <= 0.00 {
-		http.Error(w, "Amount must be greater that zero", http.StatusBadRequest)
+	if req.Amount <=49.00 {
+		http.Error(w, "Amount must be greater than Ksh.50", http.StatusBadRequest)
 		return
 	}
 
@@ -85,8 +86,53 @@ func Deposits(w http.ResponseWriter, r *http.Request) {
 	account.Balance += req.Amount
 	accounts[req.Username] = account
 
-	fmt.Println("Deposited: ", req.Amount, "to", req.Username)
-	fmt.Println("New Balance is: ", account.Balance)
+	fmt.Println("Deposited:", req.Amount, "to", req.Username)
+	fmt.Println("The New Balance is:", account.Balance)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(account)
+}
+
+func Withdrawals(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+	if r.Method != http.MethodPost {
+		http.Error(w, "Only POST is allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req Withdrawal
+
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	if req.Username == "" {
+		http.Error(w, "Username is required", http.StatusBadRequest)
+		return
+	}
+
+	if req.Amount <= 99.00 {
+		http.Error(w, "Minimum withdrawal is Ksh.100", http.StatusBadRequest)
+		return
+	}
+
+	account, exist := accounts[req.Username]
+
+	if !exist {
+		http.Error(w, "Account not found", http.StatusNotFound)
+		return
+	}
+	if account.Balance < req.Amount {
+		http.Error(w, "Insufficient balance", http.StatusBadRequest)
+		return
+	}
+	account.Balance -= req.Amount
+	accounts[req.Username] = account
+
+	fmt.Println("Withdrew:", req.Amount, "from", req.Username)
+	fmt.Println("The New Balance is:", account.Balance)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
