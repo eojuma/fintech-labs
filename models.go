@@ -9,3 +9,8 @@ type Deposit struct{
 	Username string  `json:"username"`
 	Amount float64  `json:"amount"`
 }
+
+type Withdrawal struct{
+	Username string `json:"username"`
+	Amount float64 	`json:"amount"`
+}
