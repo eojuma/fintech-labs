@@ -7,15 +7,17 @@ import (
 )
 
 var accounts = make(map[string]Account)
+var transactions = make(map[string][]Transaction)
 
 const MinDeposit = 50.00
-const minWithdrawal = 100.00
+const MinWithdrawal = 100.00
 
 func main() {
 	http.HandleFunc("/account", CreateAccount)
 	http.HandleFunc("/deposit", Deposits)
 	http.HandleFunc("/withdraw", Withdrawals)
 	http.HandleFunc("/balance", Balances)
+	http.HandleFunc("/transactions", Transactions)
 	fmt.Println("Server running on http://8080")
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
@@ -43,8 +45,9 @@ func CreateAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, exists := accounts[req.Username]; exists {
-		http.Error(w, "Account already exists", http.StatusBadRequest)
+	_, exists := accounts[req.Username]
+	if exists {
+		http.Error(w, "Account already exists", http.StatusConflict) //409
 		return
 	}
 
@@ -94,6 +97,7 @@ func Deposits(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("The New Balance is: Ksh.", account.Balance)
 
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(account)
 }
 
@@ -116,7 +120,7 @@ func Withdrawals(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Amount < minWithdrawal {
+	if req.Amount < MinWithdrawal {
 		http.Error(w, "Minimum withdrawal is Ksh.100", http.StatusBadRequest)
 		return
 	}
@@ -138,6 +142,7 @@ func Withdrawals(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("The New Balance is Ksh.:", account.Balance)
 
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(account)
 }
 
@@ -160,9 +165,43 @@ func Balances(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println("Account", username, ",balance: Ksh.", account.Balance)
+	fmt.Println("Account", username, "balance: Ksh.", account.Balance)
 
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(account)
 
+}
+
+func Transactions(w http.ResponseWriter, r *http.Request) {
+
+	if r.Method != http.MethodGet {
+		http.Error(w, "Only GET is allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	username := r.URL.Query().Get("username")
+
+	if username == "" {
+		http.Error(w, "Username is required", http.StatusBadRequest)
+		return
+	}
+
+	_, exists := accounts[username]
+	if !exists {
+		http.Error(w, "Account not found", http.StatusNotFound)
+		return
+	}
+
+	history := transactions[username]
+
+	if history == nil {
+		history = []Transaction{}
+	}
+
+	fmt.Println("Username", username)
+	fmt.Println("Transactions", history)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(history)
 }
