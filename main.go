@@ -7,6 +7,8 @@ import (
 )
 
 var accounts = make(map[string]Account)
+const MinDeposit=50.00
+const minWithdrawal =100.00
 
 func main() {
 	http.HandleFunc("/account", CreateAccount)
@@ -72,7 +74,7 @@ func Deposits(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Username is required", http.StatusBadRequest)
 		return
 	}
-	if req.Amount <= 49.00 {
+	if req.Amount < MinDeposit {
 		http.Error(w, "Amount must be greater than Ksh.50", http.StatusBadRequest)
 		return
 	}
@@ -113,7 +115,7 @@ func Withdrawals(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Amount < 100.00 {
+	if req.Amount < minWithdrawal {
 		http.Error(w, "Minimum withdrawal is Ksh.100", http.StatusBadRequest)
 		return
 	}
@@ -157,7 +159,7 @@ func Balances(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println("Account", username, "balance: Ksh.", account.Balance)
+	fmt.Println("Account", username, ",balance: Ksh.", account.Balance)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(account)
