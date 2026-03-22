@@ -4,13 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 )
 
 var accounts = make(map[string]Account)
 var transactions = make(map[string][]Transaction)
 
-const MinDeposit = 50.00
-const MinWithdrawal = 100.00
+const MinDeposit = 50
+const MinWithdrawal = 100
 
 func main() {
 	http.HandleFunc("/account", CreateAccount)
@@ -51,7 +52,7 @@ func CreateAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req.Balance = 0.00
+	req.Balance = 0
 	accounts[req.Username] = req
 
 	w.Header().Set("Content-Type", "application/json")
@@ -92,6 +93,16 @@ func Deposits(w http.ResponseWriter, r *http.Request) {
 
 	account.Balance += req.Amount
 	accounts[req.Username] = account
+
+	history:=Transaction{
+		Username:req.Username,
+		Type:"Deposit",
+		Amount:req.Amount,
+		Balance:account.Balance,
+		Time:time.Now().UTC(),
+	}
+
+	transactions[req.Username]=append(transactions[req.Username],history)
 
 	fmt.Println("Deposited Ksh.:", req.Amount, "to", req.Username)
 	fmt.Println("The New Balance is: Ksh.", account.Balance)
@@ -138,6 +149,17 @@ func Withdrawals(w http.ResponseWriter, r *http.Request) {
 	account.Balance -= req.Amount
 	accounts[req.Username] = account
 
+	history:=Transaction{
+		Username:req.Username,
+		Type:"Withdrawal",
+		Amount:req.Amount,
+		Balance:account.Balance,
+		Time:time.Now().UTC(),
+	}
+
+	transactions[req.Username]=append(transactions[req.Username],history)
+
+	
 	fmt.Println("Withdrew: Ksh.", req.Amount, "from", req.Username)
 	fmt.Println("The New Balance is Ksh.:", account.Balance)
 
@@ -205,3 +227,5 @@ func Transactions(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(history)
 }
+
+
