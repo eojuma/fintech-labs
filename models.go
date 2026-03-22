@@ -14,3 +14,11 @@ type Withdrawal struct {
 	Username string  `json:"username"`
 	Amount   float64 `json:"amount"`
 }
+
+type Transaction struct {
+	Username string  `json:"username"`
+	Type     string  `json:"type"`
+	Amount   float64 `json:"amount"`
+	Balance  float64 `json:"balance"`
+	Time     string  `json:"time"`
+}
