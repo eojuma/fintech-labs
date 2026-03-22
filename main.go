@@ -7,8 +7,9 @@ import (
 )
 
 var accounts = make(map[string]Account)
-const MinDeposit=50.00
-const minWithdrawal =100.00
+
+const MinDeposit = 50.00
+const minWithdrawal = 100.00
 
 func main() {
 	http.HandleFunc("/account", CreateAccount)
