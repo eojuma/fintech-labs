@@ -11,7 +11,8 @@ var accounts = make(map[string]Account)
 func main() {
 	http.HandleFunc("/account", CreateAccount)
 	http.HandleFunc("/deposit", Deposits)
-	http.HandleFunc("/withdraw",Withdrawals)
+	http.HandleFunc("/withdraw", Withdrawals)
+	http.HandleFunc("/balance",Balances)
 	fmt.Println("Server running on http://8080")
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
@@ -71,7 +72,7 @@ func Deposits(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Username is required", http.StatusBadRequest)
 		return
 	}
-	if req.Amount <=49.00 {
+	if req.Amount <= 49.00 {
 		http.Error(w, "Amount must be greater than Ksh.50", http.StatusBadRequest)
 		return
 	}
@@ -87,10 +88,9 @@ func Deposits(w http.ResponseWriter, r *http.Request) {
 	accounts[req.Username] = account
 
 	fmt.Println("Deposited Ksh.:", req.Amount, "to", req.Username)
-	fmt.Println("The New Balance is Ksh.:", account.Balance)
+	fmt.Println("The New Balance is: Ksh.", account.Balance)
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(account)
 }
 
@@ -113,7 +113,7 @@ func Withdrawals(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Amount <100.00 {
+	if req.Amount < 100.00 {
 		http.Error(w, "Minimum withdrawal is Ksh.100", http.StatusBadRequest)
 		return
 	}
@@ -131,10 +131,35 @@ func Withdrawals(w http.ResponseWriter, r *http.Request) {
 	account.Balance -= req.Amount
 	accounts[req.Username] = account
 
-	fmt.Println("Withdrew Ksh.:", req.Amount, "from", req.Username)
+	fmt.Println("Withdrew: Ksh.", req.Amount, "from", req.Username)
 	fmt.Println("The New Balance is Ksh.:", account.Balance)
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(account)
+}
+
+func Balances(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Only GET is allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	username := r.URL.Query().Get("username")
+
+	if username == "" {
+		http.Error(w, "Username is required", http.StatusBadRequest)
+		return
+	}
+	account, exists := accounts[username]
+
+	if !exists {
+		http.Error(w, "Account not found", http.StatusNotFound)
+		return
+	}
+
+	fmt.Println("Account", username, "balance: Ksh.", account.Balance)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(account)
+
 }
