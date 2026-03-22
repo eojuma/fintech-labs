@@ -12,7 +12,7 @@ func main() {
 	http.HandleFunc("/account", CreateAccount)
 	http.HandleFunc("/deposit", Deposits)
 	http.HandleFunc("/withdraw", Withdrawals)
-	http.HandleFunc("/balance",Balances)
+	http.HandleFunc("/balance", Balances)
 	fmt.Println("Server running on http://8080")
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
