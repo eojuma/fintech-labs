@@ -2,23 +2,23 @@ package main
 
 type Account struct {
 	Username string  `json:"username"`
-	Balance  float64 `json:"balance"`
+	Balance  int64 `json:"balance"`
 }
 
 type Deposit struct {
 	Username string  `json:"username"`
-	Amount   float64 `json:"amount"`
+	Amount   int64 `json:"amount"`
 }
 
 type Withdrawal struct {
 	Username string  `json:"username"`
-	Amount   float64 `json:"amount"`
+	Amount   int64 `json:"amount"`
 }
 
 type Transaction struct {
 	Username string  `json:"username"`
 	Type     string  `json:"type"`
-	Amount   float64 `json:"amount"`
-	Balance  float64 `json:"balance"`
-	Time     string  `json:"time"`
+	Amount   int64 `json:"amount"`
+	Balance  int64 `json:"balance"`
+	Time     time.Time  `json:"time"`
 }
