@@ -28,7 +28,8 @@ The project will grow step by step:
 2. Deposit money endpoint
 3. Withdraw money endpoint
 4. Check balance endpoint
-5. Improve structure and add persistence
+5. Log the transaction history 
+6. Improve structure and add persistence
 
 ## Note
 
