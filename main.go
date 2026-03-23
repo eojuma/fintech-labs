@@ -104,7 +104,7 @@ func Deposits(w http.ResponseWriter, r *http.Request) {
 
 	transactions[req.Username]=append(transactions[req.Username],history)
 
-	fmt.Println("Deposited Ksh.:", req.Amount, "to", req.Username)
+	fmt.Println("Deposited: Ksh.", req.Amount, "to", req.Username)
 	fmt.Println("The New Balance is: Ksh.", account.Balance)
 
 	w.Header().Set("Content-Type", "application/json")
@@ -159,7 +159,7 @@ func Withdrawals(w http.ResponseWriter, r *http.Request) {
 
 	transactions[req.Username]=append(transactions[req.Username],history)
 
-	
+
 	fmt.Println("Withdrew: Ksh.", req.Amount, "from", req.Username)
 	fmt.Println("The New Balance is Ksh.:", account.Balance)
 
