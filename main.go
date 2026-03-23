@@ -19,6 +19,8 @@ func main() {
 	http.HandleFunc("/withdraw", Withdrawals)
 	http.HandleFunc("/balance", Balances)
 	http.HandleFunc("/transactions", Transactions)
+	http.HandleFunc("/accounts", GetAccounts)
+	http.HandleFunc("/delete", Delete)
 	fmt.Println("Server running on http://8080")
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
@@ -41,8 +43,8 @@ func CreateAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Username == "" {
-		http.Error(w, "Username is required", http.StatusBadRequest)
+	if !ValidUsername(req.Username) {
+		http.Error(w, "A valid username is required", http.StatusBadRequest)
 		return
 	}
 
@@ -53,6 +55,7 @@ func CreateAccount(w http.ResponseWriter, r *http.Request) {
 	}
 
 	req.Balance = 0
+	req.Active = true
 	accounts[req.Username] = req
 
 	w.Header().Set("Content-Type", "application/json")
@@ -75,12 +78,12 @@ func Deposits(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Username == "" {
-		http.Error(w, "Username is required", http.StatusBadRequest)
+	if !ValidUsername(req.Username) {
+		http.Error(w, "A valid username is required", http.StatusBadRequest)
 		return
 	}
 	if req.Amount < MinDeposit {
-		http.Error(w, "Amount must be greater than Ksh.50", http.StatusBadRequest)
+		http.Error(w, "Minimum deposit amount is Ksh.50", http.StatusBadRequest)
 		return
 	}
 
@@ -90,19 +93,23 @@ func Deposits(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Account not found", http.StatusNotFound)
 		return
 	}
+	if !account.Active {
+		http.Error(w, "Account is deactivated", http.StatusForbidden)
+		return
+	}
 
 	account.Balance += req.Amount
 	accounts[req.Username] = account
 
-	history:=Transaction{
-		Username:req.Username,
-		Type:"Deposit",
-		Amount:req.Amount,
-		Balance:account.Balance,
-		Time:time.Now().UTC(),
+	history := Transaction{
+		Username: req.Username,
+		Type:     "Deposit",
+		Amount:   req.Amount,
+		Balance:  account.Balance,
+		Time:     time.Now().UTC(),
 	}
 
-	transactions[req.Username]=append(transactions[req.Username],history)
+	transactions[req.Username] = append(transactions[req.Username], history)
 
 	fmt.Println("Deposited: Ksh.", req.Amount, "to", req.Username)
 	fmt.Println("The New Balance is: Ksh.", account.Balance)
@@ -126,13 +133,13 @@ func Withdrawals(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
-	if req.Username == "" {
-		http.Error(w, "Username is required", http.StatusBadRequest)
+	if !ValidUsername(req.Username) {
+		http.Error(w, "A valid sername is required", http.StatusBadRequest)
 		return
 	}
 
 	if req.Amount < MinWithdrawal {
-		http.Error(w, "Minimum withdrawal is Ksh.100", http.StatusBadRequest)
+		http.Error(w, "Minimum withdrawal amount is Ksh.100", http.StatusBadRequest)
 		return
 	}
 
@@ -146,19 +153,22 @@ func Withdrawals(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Insufficient balance", http.StatusBadRequest)
 		return
 	}
+	if !account.Active {
+		http.Error(w, "Account is deactivated", http.StatusForbidden)
+		return
+	}
 	account.Balance -= req.Amount
 	accounts[req.Username] = account
 
-	history:=Transaction{
-		Username:req.Username,
-		Type:"Withdrawal",
-		Amount:req.Amount,
-		Balance:account.Balance,
-		Time:time.Now().UTC(),
+	history := Transaction{
+		Username: req.Username,
+		Type:     "Withdrawal",
+		Amount:   req.Amount,
+		Balance:  account.Balance,
+		Time:     time.Now().UTC(),
 	}
 
-	transactions[req.Username]=append(transactions[req.Username],history)
-
+	transactions[req.Username] = append(transactions[req.Username], history)
 
 	fmt.Println("Withdrew: Ksh.", req.Amount, "from", req.Username)
 	fmt.Println("The New Balance is Ksh.:", account.Balance)
@@ -176,8 +186,8 @@ func Balances(w http.ResponseWriter, r *http.Request) {
 
 	username := r.URL.Query().Get("username")
 
-	if username == "" {
-		http.Error(w, "Username is required", http.StatusBadRequest)
+	if !ValidUsername(username) {
+		http.Error(w, "A valid username is required", http.StatusBadRequest)
 		return
 	}
 	account, exists := accounts[username]
@@ -204,8 +214,8 @@ func Transactions(w http.ResponseWriter, r *http.Request) {
 
 	username := r.URL.Query().Get("username")
 
-	if username == "" {
-		http.Error(w, "Username is required", http.StatusBadRequest)
+	if !ValidUsername(username) {
+		http.Error(w, "A valid username is required", http.StatusBadRequest)
 		return
 	}
 
@@ -228,4 +238,43 @@ func Transactions(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(history)
 }
 
+func Delete(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		http.Error(w, "Only DELETE is allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	username := r.URL.Query().Get("username")
+	if !ValidUsername(username) {
+		http.Error(w, "A valid username is required", http.StatusBadRequest)
+		return
+	}
+	account, exists := accounts[username]
+	if !exists {
+		http.Error(w, "Account not found", http.StatusNotFound)
+		return
+	}
+	if len(transactions[username]) > 0 {
+		http.Error(w, "Cannot delete account with a transaction history", http.StatusBadRequest)
+		return
+	}
+	account.Active = false
+	accounts[username] = account
 
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"message": "Account deactivated"})
+
+}
+
+func GetAccounts(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Only GET is allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var getAccounts []string
+
+	for _, v := range accounts {
+		getAccounts = append(getAccounts, v.Username)
+	}
+	json.NewEncoder(w).Encode(getAccounts)
+}
