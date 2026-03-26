@@ -35,6 +35,6 @@ func WithdrawalProcess(username string, amount int64) (models.Account, error) {
 		Balance:  account.Balance,
 		Time:     time.Now().UTC(),
 	}
-	transactions[username]=append(transactions[username],history)
-	return account,nil
+	transactions[username] = append(transactions[username], history)
+	return account, nil
 }
