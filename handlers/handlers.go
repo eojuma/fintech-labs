@@ -8,9 +8,33 @@ import (
 	"fintech-labs/services"
 )
 
+func Deposits(w http.ResponseWriter,r *http.Request){
+if r.Method !=http.MethodPost{
+	http.Error(w,"Only POST is allowed",http.StatusMethodNotAllowed)
+	return
+}
+
+var req models.Deposit
+
+err:=json.NewDecoder(r.Body).Decode(&req)
+
+if err !=nil{
+	http.Error(w,"Invalid request body",http.StatusBadRequest)
+	return
+}
+
+account,err:=services.DepositProcess(req.Username,req.Amount)
+
+if err !=nil{
+	http.Error(w,err.Error(),http.StatusBadRequest)
+	return
+}
+json.NewEncoder(w).Encode(account)
+}
+
 func Withdrawals(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Only GET is allowed", http.StatusMethodNotAllowed)
+		http.Error(w, "Only POST is allowed", http.StatusMethodNotAllowed)
 		return
 	}
 	var req models.Withdrawal
