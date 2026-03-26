@@ -51,3 +51,19 @@ func Withdrawals(w http.ResponseWriter, r *http.Request) {
 	}
 	json.NewEncoder(w).Encode(account)
 }
+
+func Transactions(w http.ResponseWriter,r *http.Request){
+	if r.Method != http.MethodGet{
+		http.Error(w,"Only GET is allowed",http.StatusMethodNotAllowed)
+		return 
+	}
+
+	username:=r.URL.Query().Get("username")
+
+	if !ValidUsername(username){
+		http.Error(w,"A valid username is required",http.StatusBadRequest)
+		return
+	}
+hisotry 
+	
+}
