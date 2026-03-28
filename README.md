@@ -1,41 +1,75 @@
-# Fintech Labs
+💳 Fintech Labs:A persistent ledger and transaction audit logs
 
-This repository contains my journey into fintech development.
+This repository documents my professional journey from building basic Go experiments to developing a persistent, production-ready fintech API.
 
-It is a collection of experiments, practice projects, and small systems built to help me understand how financial technologies work in real-world scenarios.
+📈 The Journey So Far
 
-## 🎯 Purpose
+What started as a collection of practice scripts has evolved into a structured system centered on Data Integrity and User Persistence.
 
-The goal of this repository is to:
-- Learn fintech concepts by building
-- Practice backend development using Go
-- Explore payment systems, APIs, and transactions
-- Gradually grow this into more complete and functional systems
+Phase 1: The Foundation (Original Goals)
 
-## 🛠️ What This Repo Contains
+    Learn fintech concepts by building from scratch.
 
-This repository will include:
-- Simple backend experiments
-- REST APIs
-- Account management system
-- Deposit and withdrawal logic
-- Wallet and transaction simulations
+    Practice backend development using the Go standard library.
 
-## 🚀 Roadmap
+    Explore payment systems and transaction simulations.
 
-The project will grow step by step:
-1. Create account system
-2. Deposit money endpoint
-3. Withdraw money endpoint
-4. Check balance endpoint
-5. Log the transaction history 
-6. Improve structure and add persistence
+Phase 2: Professional Grade (Current State)
 
-## Note
+    GORM & SQLite Integration: Transitioned from temporary memory (maps) to permanent disk storage to prevent data loss.
 
-This is a learning project.  
-Everything here will start simple and improve over time as I learn more about backend and fintech systems.
+    Atomic Transactions: Implemented db.Transaction logic to ensure that money is never "lost in the air" during a crash.
 
----
+    Soft Delete System: Created an "Inactive/Reactivate" flow to preserve financial audit trails—essential for fintech compliance.
 
-*Built while learning, improved through practice.*
+    Clean Architecture: Separated the project into models, services, and handlers for better scalability and team collaboration.
+
+🛠️ Technical Stack
+
+    Language: Go (Golang)
+
+    Database: SQLite (Local persistence)
+
+    ORM: GORM (Object Relational Mapping)
+
+    Environment: Developed on Linux(Ubuntu)
+
+🚀 Getting Started
+
+To run this project locally and see the evolution in action:
+
+    Sync Dependencies:
+    Bash
+
+    go mod tidy
+
+    Initialize & Run:
+    Bash
+
+    go run .
+
+    GORM will automatically perform an AutoMigration and create your transaction.db file locally.
+
+📡 API Reference
+| Endpoint | Method | Purpose |
+| :--- | :--- | :--- |
+| `/balance` | `GET` | Fetch real-time account balance from SQLite. |
+| `/deposit` | `POST` | Securely add funds via GORM transactions. |
+| `/delete` | `DELETE` | Mark an account as **Inactive** (Soft Delete). |
+| `/reactivate` | `POST` | Restore an account to **Active** status. |
+
+
+🛡️ Data Safety & Git Hygiene
+
+We utilize a .gitignore to ensure that local *.db files stay on the developer's machine. This prevents sensitive test data from being pushed to GitHub and avoids merge conflicts between team members.
+
+
+👥 Authors & Contributors
+
+    Evans Juma - [@eojuma](https://github.com/eojuma) - Lead Backend Developer
+
+    Special thanks to Silas Lelei for peer-reviewing,the GORM logic and testing the endpoints during transition from maps to a persistent storage.
+
+📝 Note
+
+This is a living project. It started simple and will continue to improve as I explore more complex DevOps and Cloud-Native technologies for the Kenyan and remote markets.
