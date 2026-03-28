@@ -1,10 +1,14 @@
 package models
-import "time"
+
+import (
+	"gorm.io/gorm"
+)
 
 type Account struct {
-	Username string `json:"username"`
-	Balance  int64  `json:"balance"`
-	Active   bool   `json:"active"`
+	gorm.Model
+	Username string `json:"username" gorm:"uniqueIndex;not null"`
+	Balance  int64  `json:"balance"   gorm:"default:0"`
+	Active   bool   `json:"active"   gorm:"default:true"`
 }
 
 type Deposit struct {
@@ -18,9 +22,9 @@ type Withdrawal struct {
 }
 
 type Transaction struct {
-	Username string    `json:"username"`
-	Type     string    `json:"type"`
-	Amount   int64     `json:"amount"`
-	Balance  int64     `json:"balance"`
-	Time     time.Time `json:"time"`
+	gorm.Model
+	Username string `json:"username"  gorm:"index"`
+	Type     string `json:"type"`
+	Amount   int64  `json:"amount"`
+	Balance  int64  `json:"balance"`
 }
