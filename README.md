@@ -51,11 +51,15 @@ To run this project locally and see the evolution in action:
     GORM will automatically perform an AutoMigration and create your transaction.db file locally.
 
 📡 API Reference
-| Endpoint | Method | Purpose |
+|| Endpoint | Method | Purpose |
 | :--- | :--- | :--- |
+| `/account` | `POST` | Create a new persistent account in SQLite. |
+| `/accounts` | `GET` | List all usernames currently registered in the system. |
 | `/balance` | `GET` | Fetch real-time account balance from SQLite. |
 | `/deposit` | `POST` | Securely add funds via GORM transactions. |
-| `/delete` | `DELETE` | Mark an account as **Inactive** (Soft Delete). |
+| `/withdraw` | `POST` | Deduct funds with "Insufficient Funds" protection. |
+| `/transactions` | `GET` | View the complete audit log (history) for a user. |
+| `/deactivate` | `DELETE` | Mark an account as **Inactive** (Soft Delete). |
 | `/reactivate` | `POST` | Restore an account to **Active** status. |
 
 
