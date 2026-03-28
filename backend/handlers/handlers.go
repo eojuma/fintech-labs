@@ -23,12 +23,13 @@ func Deposits(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	account, err := services.DepositProcess(req.Username, req.Amount)
+	err = services.DepositProcess(req.Username, req.Amount)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	json.NewEncoder(w).Encode(account)
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"message":"Deposit successful."})
 }
 
 func Withdrawals(w http.ResponseWriter, r *http.Request) {
@@ -43,12 +44,13 @@ func Withdrawals(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	account, err := services.WithdrawalProcess(req.Username, req.Amount)
+	err = services.WithdrawalProcess(req.Username, req.Amount)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	json.NewEncoder(w).Encode(account)
+w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"message":"Withdrawal successful."})
 }
 
 func Transactions(w http.ResponseWriter, r *http.Request) {
