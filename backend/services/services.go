@@ -2,9 +2,12 @@ package services
 
 import (
 	"errors"
-	"time"
+	"log"
 
+	"fintech-labs/db"
 	"fintech-labs/models"
+
+	"gorm.io/gorm"
 )
 
 var (
@@ -17,119 +20,137 @@ const (
 	MinWithdrawal = 100
 )
 
-func WithdrawalProcess(username string, amount int64) (models.Account, error) {
-	account, exists := accounts[username]
-
-	if !exists {
-		return models.Account{}, errors.New("Account not found")
+func WithdrawalProcess(username string, amount int64) (error) {
+	var account models.Account
+	if err := db.DB.Where("username=?", username).First(&account).Error; err != nil {
+		log.Printf("Withdrawal failed: User %s not found", username)
+		return errors.New("Account not found")
 	}
-	if !account.Active {
-		return models.Account{}, errors.New("Account inactive")
+
+	if !account.Active{
+		return errors.New("Account is inactivate")
 	}
 	if account.Balance < amount {
-		return models.Account{}, errors.New("Insufficient balance")
+		return errors.New("Insufficient funds")
 	}
 
 	if amount < MinWithdrawal {
-		return models.Account{}, errors.New("Minimun withdrawal is ksh.100")
+		return  errors.New("Minimun withdrawal is ksh.100")
 	}
 
-	account.Balance -= amount
-	accounts[username] = account
 
-	history := models.Transaction{
-		Username: username,
-		Type:     "Withdrawal",
-		Amount:   amount,
-		Balance:  account.Balance,
-		Time:     time.Now().UTC(),
-	}
-	transactions[username] = append(transactions[username], history)
-	return account, nil
+	return db.DB.Transaction(func (tx *gorm.DB)error{
+		account.Balance-=amount
+		if err:=tx.Save(&account).Error;err !=nil{
+			return err
+		}
+		transaction:=models.Transaction{
+			Username: username,
+			Type: "withdrawal",
+			Amount: amount,
+			Balance: account.Balance,
+		}
+		if err :=tx.Create(&transaction).Error;err !=nil{
+			return err
+		}
+		log.Printf("Successfully withdrew %d from %s",amount,username)
+		return nil
+	})
 }
 
-func DepositProcess(username string, amount int64) (models.Account, error) {
-	account, exists := accounts[username]
-
-	if !exists {
-		return models.Account{}, errors.New("Account not found")
-	}
+func DepositProcess(username string, amount int64) (error) {
+var account models.Account
+	
+if err :=db.DB.Where("username=?",username).First(&account).Error;err !=nil{
+	log.Printf("Deposit failed: User %s not found",username)
+	return errors.New("Account not found")
+}
 	if !account.Active {
-		return models.Account{}, errors.New("Account inactive")
+		return errors.New("Account is inactive")
 	}
 	if amount < MinDeposit {
-		return models.Account{}, errors.New("Minimum withdrawal is ksh.50")
+		return errors.New("Minimum deposit is ksh.50")
 	}
 
-	account.Balance += amount
-	accounts[username] = account
+	return db.DB.Transaction(func(tx *gorm.DB) error{
+account.Balance+=amount
+if err:=tx.Save(&account).Error;err !=nil{
+return err
+}
 
-	history := models.Transaction{
+	transaction := models.Transaction{
 		Username: username,
 		Type:     "Deposit",
 		Amount:   amount,
 		Balance:  account.Balance,
-		Time:     time.Now().UTC(),
 	}
-	transactions[username] = append(transactions[username], history)
-	return account, nil
+	if err :=tx.Create(&transaction).Error;err !=nil{
+return err
+	}
+	log.Printf("Successfully deposited %d to %s",amount,username)
+	return nil
+})
 }
 
 func GetTransactions(username string) ([]models.Transaction, error) {
-	if _, exists := accounts[username]; !exists {
-		return nil, errors.New("account not found")
-	}
-
-	history := transactions[username]
-
-	if history == nil {
-		return []models.Transaction{}, nil
+	var history []models.Transaction
+	if err:=db.DB.Where("username=?",username).Order("created_at desc").Find(&history).Error;err !=nil{
+		return nil,err
 	}
 
 	return history, nil
 }
 
-
 func CreateAccountProcess(username string) (models.Account, error) {
-    if _, exists := accounts[username]; exists {
-        return models.Account{}, errors.New("account already exists")
-    }
+var account models.Account
 
-    
-    account := models.Account{
-        Username: username,
-        Balance:  0,
-        Active:   true,
-    }
+err:=db.DB.Where("username=?",username).First(&account).Error
 
-    
-    accounts[username] = account
-    return account, nil
+if err ==nil{
+	return models.Account{},errors.New("Account already exists")
+}
+
+	account = models.Account{
+		Username: username,
+		Balance:  0,
+		Active:   true,
+	}
+if err :=db.DB.Create(&account).Error;err !=nil{
+	return models.Account{},err
+}
+return account,nil
 }
 
 func GetAccountsProcess() []string {
-    var names []string
-    for name := range accounts {
-        names = append(names, name)
-    }
-    return names
+	var names []string
+	err:=db.DB.Model(&models.Account{}).Pluck("username",&names).Error
+
+	if err !=nil{
+		log.Printf("Error fetching accounts: %v",err)
+		return []string{}
+	}
+	return names
 }
 
 func DeleteAccountProcess(username string) error {
-    account, exists := accounts[username]
-    if !exists {
-        return errors.New("account not found")
-    }
-    
-    account.Active = false
-    accounts[username] = account
-    return nil
+result:=db.DB.Model(&models.Account{}).Where("username=?",username).Update("active",false)
+
+if result.Error !=nil{
+	return result.Error
+}
+
+
+if result.RowsAffected==0{
+	return errors.New("Account not found")
+}
+	log.Printf("Account %s has been deactivated",username)
+	return nil
 }
 
 func GetBalanceProcess(username string) (models.Account, error) {
-    account, exists := accounts[username]
-    if !exists {
-        return models.Account{}, errors.New("account not found")
-    }
-    return account, nil
+var account models.Account
+if err:=db.DB.Where("username=?",username).First(&account).Error;err !=nil{
+	return models.Account{},errors.New("Acocunt not found")
+}
+	return account, nil
 }
