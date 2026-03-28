@@ -1,13 +1,15 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"net/http"
 
+	"fintech-labs/db"
 	"fintech-labs/handlers"
 )
 
 func main() {
+	db.InitDB()
 	http.HandleFunc("/account", handlers.CreateAccount)
 	http.HandleFunc("/deposit", handlers.Deposits)
 	http.HandleFunc("/withdraw", handlers.Withdrawals)
@@ -15,9 +17,9 @@ func main() {
 	http.HandleFunc("/transactions", handlers.Transactions)
 	http.HandleFunc("/accounts", handlers.GetAccounts)
 	http.HandleFunc("/delete", handlers.Delete)
-	fmt.Println("Server running on http://8080")
+	log.Println("Server running on http://8080")
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
-		fmt.Println("The server is down", err)
+		log.Fatal("The server is down", err)
 	}
 }
