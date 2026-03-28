@@ -20,14 +20,14 @@ const (
 	MinWithdrawal = 100
 )
 
-func WithdrawalProcess(username string, amount int64) (error) {
+func WithdrawalProcess(username string, amount int64) error {
 	var account models.Account
 	if err := db.DB.Where("username=?", username).First(&account).Error; err != nil {
 		log.Printf("Withdrawal failed: User %s not found", username)
 		return errors.New("Account not found")
 	}
 
-	if !account.Active{
+	if !account.Active {
 		return errors.New("Account is inactivate")
 	}
 	if account.Balance < amount {
@@ -35,36 +35,35 @@ func WithdrawalProcess(username string, amount int64) (error) {
 	}
 
 	if amount < MinWithdrawal {
-		return  errors.New("Minimun withdrawal is ksh.100")
+		return errors.New("Minimun withdrawal is ksh.100")
 	}
 
-
-	return db.DB.Transaction(func (tx *gorm.DB)error{
-		account.Balance-=amount
-		if err:=tx.Save(&account).Error;err !=nil{
+	return db.DB.Transaction(func(tx *gorm.DB) error {
+		account.Balance -= amount
+		if err := tx.Save(&account).Error; err != nil {
 			return err
 		}
-		transaction:=models.Transaction{
+		transaction := models.Transaction{
 			Username: username,
-			Type: "withdrawal",
-			Amount: amount,
-			Balance: account.Balance,
+			Type:     "withdrawal",
+			Amount:   amount,
+			Balance:  account.Balance,
 		}
-		if err :=tx.Create(&transaction).Error;err !=nil{
+		if err := tx.Create(&transaction).Error; err != nil {
 			return err
 		}
-		log.Printf("Successfully withdrew %d from %s",amount,username)
+		log.Printf("Successfully withdrew %d from %s and the current balance is %d ", amount, username, account.Balance)
 		return nil
 	})
 }
 
-func DepositProcess(username string, amount int64) (error) {
-var account models.Account
-	
-if err :=db.DB.Where("username=?",username).First(&account).Error;err !=nil{
-	log.Printf("Deposit failed: User %s not found",username)
-	return errors.New("Account not found")
-}
+func DepositProcess(username string, amount int64) error {
+	var account models.Account
+
+	if err := db.DB.Where("username=?", username).First(&account).Error; err != nil {
+		log.Printf("Deposit failed: User %s not found", username)
+		return errors.New("Account not found")
+	}
 	if !account.Active {
 		return errors.New("Account is inactive")
 	}
@@ -72,97 +71,95 @@ if err :=db.DB.Where("username=?",username).First(&account).Error;err !=nil{
 		return errors.New("Minimum deposit is ksh.50")
 	}
 
-	return db.DB.Transaction(func(tx *gorm.DB) error{
-account.Balance+=amount
-if err:=tx.Save(&account).Error;err !=nil{
-return err
-}
+	return db.DB.Transaction(func(tx *gorm.DB) error {
+		account.Balance += amount
+		if err := tx.Save(&account).Error; err != nil {
+			return err
+		}
 
-	transaction := models.Transaction{
-		Username: username,
-		Type:     "Deposit",
-		Amount:   amount,
-		Balance:  account.Balance,
-	}
-	if err :=tx.Create(&transaction).Error;err !=nil{
-return err
-	}
-	log.Printf("Successfully deposited %d to %s",amount,username)
-	return nil
-})
+		transaction := models.Transaction{
+			Username: username,
+			Type:     "Deposit",
+			Amount:   amount,
+			Balance:  account.Balance,
+		}
+		if err := tx.Create(&transaction).Error; err != nil {
+			return err
+		}
+		log.Printf("Successfully deposited %d to %s and the current balnce is %d ", amount, username, account.Balance)
+		return nil
+	})
 }
 
 func GetTransactions(username string) ([]models.Transaction, error) {
 	var history []models.Transaction
-	if err:=db.DB.Where("username=?",username).Order("created_at desc").Find(&history).Error;err !=nil{
-		return nil,err
+	if err := db.DB.Where("username=?", username).Order("created_at desc").Find(&history).Error; err != nil {
+		return nil, err
 	}
 
 	return history, nil
 }
 
 func CreateAccountProcess(username string) (models.Account, error) {
-var account models.Account
+	var account models.Account
 
-err:=db.DB.Where("username=?",username).First(&account).Error
+	err := db.DB.Where("username=?", username).First(&account).Error
 
-if err ==nil{
-	return models.Account{},errors.New("Account already exists")
-}
+	if err == nil {
+		return models.Account{}, errors.New("Account already exists")
+	}
 
 	account = models.Account{
 		Username: username,
 		Balance:  0,
 		Active:   true,
 	}
-if err :=db.DB.Create(&account).Error;err !=nil{
-	return models.Account{},err
-}
-return account,nil
+	if err := db.DB.Create(&account).Error; err != nil {
+		return models.Account{}, err
+	}
+	return account, nil
 }
 
 func GetAccountsProcess() []string {
 	var names []string
-	err:=db.DB.Model(&models.Account{}).Pluck("username",&names).Error
+	err := db.DB.Model(&models.Account{}).Pluck("username", &names).Error
 
-	if err !=nil{
-		log.Printf("Error fetching accounts: %v",err)
+	if err != nil {
+		log.Printf("Error fetching accounts: %v", err)
 		return []string{}
 	}
 	return names
 }
 
 func DeactivateAccountProcess(username string) error {
-result:=db.DB.Model(&models.Account{}).Where("username=?",username).Update("active",false)
+	result := db.DB.Model(&models.Account{}).Where("username=?", username).Update("active", false)
 
-if result.Error !=nil{
-	return result.Error
-}
+	if result.Error != nil {
+		return result.Error
+	}
 
-
-if result.RowsAffected==0{
-	return errors.New("Account not found")
-}
-	log.Printf("Account %s has been deactivated",username)
+	if result.RowsAffected == 0 {
+		return errors.New("Account not found")
+	}
+	log.Printf("Account %s has been deactivated", username)
 	return nil
 }
 
 func GetBalanceProcess(username string) (models.Account, error) {
-var account models.Account
-if err:=db.DB.Where("username=?",username).First(&account).Error;err !=nil{
-	return models.Account{},errors.New("Acocunt not found")
-}
+	var account models.Account
+	if err := db.DB.Where("username=?", username).First(&account).Error; err != nil {
+		return models.Account{}, errors.New("Acocunt not found")
+	}
 	return account, nil
 }
 
-
-func ReactivateAccountProcess(username string)error{
-	result:=db.DB.Model(&models.Account{}).Where("username=?",username).Update("active",true)
-	if result.Error !=nil{
+func ReactivateAccountProcess(username string) error {
+	result := db.DB.Model(&models.Account{}).Where("username=?", username).Update("active", true)
+	if result.Error != nil {
 		return result.Error
 	}
 
-	if result.RowsAffected==0{
+	if result.RowsAffected == 0 {
 		return errors.New("Account not found")
 	}
 	return nil
