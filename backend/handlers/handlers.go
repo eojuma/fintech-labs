@@ -29,7 +29,7 @@ func Deposits(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message":"Deposit successful."})
+	json.NewEncoder(w).Encode(map[string]string{"message": "Deposit successful."})
 }
 
 func Withdrawals(w http.ResponseWriter, r *http.Request) {
@@ -49,8 +49,8 @@ func Withdrawals(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message":"Withdrawal successful."})
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"message": "Withdrawal successful."})
 }
 
 func Transactions(w http.ResponseWriter, r *http.Request) {
@@ -111,57 +111,82 @@ func CreateAccount(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetAccounts(w http.ResponseWriter, r *http.Request) {
-    if r.Method != http.MethodGet {
-        http.Error(w, "Only GET is allowed", http.StatusMethodNotAllowed)
-        return
-    }
+	if r.Method != http.MethodGet {
+		http.Error(w, "Only GET is allowed", http.StatusMethodNotAllowed)
+		return
+	}
 
-    names := services.GetAccountsProcess()
-    
-    w.Header().Set("Content-Type", "application/json")
-    json.NewEncoder(w).Encode(names)
+	names := services.GetAccountsProcess()
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(names)
 }
 
-func Delete(w http.ResponseWriter, r *http.Request) {
-    if r.Method != http.MethodDelete {
-        http.Error(w, "Only DELETE is allowed", http.StatusMethodNotAllowed)
-        return
-    }
+func Deactivate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		http.Error(w, "Only DELETE is allowed", http.StatusMethodNotAllowed)
+		return
+	}
 
-    username := r.URL.Query().Get("username")
-    if !validator.ValidUsername(username) {
-        http.Error(w, "A valid username is required", http.StatusBadRequest)
-        return
-    }
+	username := r.URL.Query().Get("username")
+	if !validator.ValidUsername(username) {
+		http.Error(w, "A valid username is required", http.StatusBadRequest)
+		return
+	}
 
-    err := services.DeleteAccountProcess(username)
-    if err != nil {
-        http.Error(w, err.Error(), http.StatusNotFound)
-        return
-    }
+	err := services.DeactivateAccountProcess(username)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
 
-    w.WriteHeader(http.StatusNoContent) // 204
+	w.WriteHeader(http.StatusNoContent) // 204
 }
 
 func Balances(w http.ResponseWriter, r *http.Request) {
-    if r.Method != http.MethodGet {
-        http.Error(w, "Only GET is allowed", http.StatusMethodNotAllowed)
-        return
-    }
+	if r.Method != http.MethodGet {
+		http.Error(w, "Only GET is allowed", http.StatusMethodNotAllowed)
+		return
+	}
 
-    username := r.URL.Query().Get("username")
+	username := r.URL.Query().Get("username")
 
-    if !validator.ValidUsername(username) {
-        http.Error(w, "A valid username is required", http.StatusBadRequest)
-        return
-    }
+	if !validator.ValidUsername(username) {
+		http.Error(w, "A valid username is required", http.StatusBadRequest)
+		return
+	}
 
-    account, err := services.GetBalanceProcess(username)
-    if err != nil {
-        http.Error(w, err.Error(), http.StatusNotFound)
-        return
-    }
+	account, err := services.GetBalanceProcess(username)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
 
-    w.Header().Set("Content-Type", "application/json")
-    json.NewEncoder(w).Encode(account)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(account)
+}
+
+func Reactivate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Only POST is allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	username := r.URL.Query().Get("username")
+
+	if !validator.ValidUsername(username) {
+		http.Error(w, "A valid username is required", http.StatusBadRequest)
+		return
+	}
+
+	err:=services.ReactivateAccountProcess(username)
+
+	if err !=nil{
+		http.Error(w,err.Error(),http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type","application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"message":"Account "+username+ " reactivated successfully."})
 }

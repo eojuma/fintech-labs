@@ -132,7 +132,7 @@ func GetAccountsProcess() []string {
 	return names
 }
 
-func DeleteAccountProcess(username string) error {
+func DeactivateAccountProcess(username string) error {
 result:=db.DB.Model(&models.Account{}).Where("username=?",username).Update("active",false)
 
 if result.Error !=nil{
@@ -153,4 +153,17 @@ if err:=db.DB.Where("username=?",username).First(&account).Error;err !=nil{
 	return models.Account{},errors.New("Acocunt not found")
 }
 	return account, nil
+}
+
+
+func ReactivateAccountProcess(username string)error{
+	result:=db.DB.Model(&models.Account{}).Where("username=?",username).Update("active",true)
+	if result.Error !=nil{
+		return result.Error
+	}
+
+	if result.RowsAffected==0{
+		return errors.New("Account not found")
+	}
+	return nil
 }
