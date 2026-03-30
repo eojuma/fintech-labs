@@ -14,6 +14,9 @@ import (
 const (
 	MinDeposit    = 50
 	MinWithdrawal = 100
+	MaxWithdrawal = 40000
+	MaxDeposit = 250000
+	
 )
 
 func WithdrawalProcess(username string, amount int64) error {
@@ -33,9 +36,11 @@ func WithdrawalProcess(username string, amount int64) error {
 	}
 
 	if amount < MinWithdrawal {
-		return errors.New("Minimun withdrawal is ksh.100")
+		return errors.New("Minimun withdrawal is 100")
 	}
-
+if amount > MaxWithdrawal{
+return errors.New("The maximum withdrawal is 40000")
+}
 	return db.DB.Transaction(func(tx *gorm.DB) error {
 		account.Balance -= amount
 		if err := tx.Save(&account).Error; err != nil {
@@ -68,7 +73,10 @@ func DepositProcess(username string, amount int64) error {
 		return errors.New("Account is inactive")
 	}
 	if amount < MinDeposit {
-		return errors.New("Minimum deposit is ksh.50")
+		return errors.New("Minimum deposit is 50")
+	}
+	if amount > MaxDeposit{
+		return errors.New("Maximum deposit is 250000")
 	}
 
 	return db.DB.Transaction(func(tx *gorm.DB) error {
