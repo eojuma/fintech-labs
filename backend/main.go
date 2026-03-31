@@ -18,6 +18,8 @@ func main() {
 	http.HandleFunc("/accounts", handlers.GetAccounts)
 	http.HandleFunc("/deactivate", handlers.Deactivate)
 	http.HandleFunc("/reactivate", handlers.Reactivate)
+	http.Handle("/register", handlers.Register(db.DB))
+
 	log.Println("Server running on http://8080")
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
