@@ -18,10 +18,11 @@ func InitDB() {
 		log.Fatal("Failed to connect to database:", err)
 	}
 
-	err = DB.AutoMigrate(&models.Account{}, &models.Transaction{}, &models.User{})
-
+	// Auto migrate schemas
+	err = DB.AutoMigrate(&models.User{}, &models.Account{}, &models.Transaction{})
 	if err != nil {
-		log.Fatal("Migration failed")
+		log.Fatal("Migration failed:", err)
 	}
-	log.Println("Database initialized.")
+	
+	log.Println("✅ Database initialized successfully")
 }
