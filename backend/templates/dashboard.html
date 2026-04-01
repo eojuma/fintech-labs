@@ -2,88 +2,99 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>FinTech Labs | Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - FinTech Banking</title>
     <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
     <div class="container">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h1>🏦 FinTech Dashboard</h1>
-            <a href="/logout" style="background: #dc3545; color: white; padding: 10px 20px; text-decoration: none; border-radius: 8px;">Logout</a>
+        <div class="header">
+            <h1>🏦 FinTech Banking</h1>
+            <a href="/logout" class="logout-btn">🚪 Logout</a>
         </div>
         
         <div class="card balance-card">
-            <h2>Welcome back, {{.User.Username}}!</h2>
-            <div class="balance-amount">KES {{.Balance}}</div>
-            <p>Account Number: {{.Number}}</p>
-            <p>Status: {{if .Active}}✅ Active{{else}}❌ Inactive{{end}}</p>
+            <h2>Welcome back, {{.Username}}!</h2>
+            <div class="balance-amount">{{.Account.Balance | formatKES}}</div>
+            <div class="account-info">
+                <p><strong>Account Number:</strong> {{.Account.Number}}</p>
+                <p><strong>Status:</strong> 
+                    {{if .Account.Active}}
+                        <span class="status-active">✓ Active</span>
+                    {{else}}
+                        <span class="status-inactive">✗ Inactive</span>
+                    {{end}}
+                </p>
+            </div>
         </div>
-
+        
         <div class="grid">
             <div class="card">
                 <h3>💰 Deposit Money</h3>
-                <form action="/deposit" method="POST">
-                    <input type="number" name="amount" placeholder="Amount (Min: 50, Max: 250,000)" required>
+                <form action="/api/deposit" method="POST">
+                    <div class="form-group">
+                        <input type="number" name="amount" placeholder="Amount (Min: KES 50)" required>
+                        <small style="color: #666;">Min: KES 50 | Max: KES 250,000</small>
+                    </div>
                     <button type="submit" class="btn-deposit">Confirm Deposit</button>
                 </form>
             </div>
-
+            
             <div class="card">
                 <h3>💸 Withdraw Money</h3>
-                <form action="/withdraw" method="POST">
-                    <input type="number" name="amount" placeholder="Amount (Min: 100, Max: 40,000)" required>
+                <form action="/api/withdraw" method="POST">
+                    <div class="form-group">
+                        <input type="number" name="amount" placeholder="Amount (Min: KES 100)" required>
+                        <small style="color: #666;">Min: KES 100 | Max: KES 40,000</small>
+                    </div>
                     <button type="submit" class="btn-withdraw">Confirm Withdrawal</button>
                 </form>
             </div>
         </div>
-
+        
         <div class="card">
-            <h3>📊 Recent Transactions</h3>
-            <div id="transactions">
-                <p>Loading transactions...</p>
-            </div>
+            <h3>📊 Transaction History</h3>
+            {{if .Transactions}}
+                <table class="transaction-table">
+                    <thead>
+                        <tr>
+                            <th>Date & Time</th>
+                            <th>Type</th>
+                            <th>Amount</th>
+                            <th>Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{range .Transactions}}
+                        <tr>
+                            <td>{{.CreatedAt.Format "02 Jan 2006 15:04:05"}}</td>
+                            <td>
+                                {{if eq .Type "deposit"}}
+                                    <span class="deposit-text">💰 DEPOSIT</span>
+                                {{else if eq .Type "withdrawal"}}
+                                    <span class="withdraw-text">💸 WITHDRAWAL</span>
+                                {{else}}
+                                    <span>{{.Type}}</span>
+                                {{end}}
+                            </td>
+                            <td>
+                                {{if eq .Type "deposit"}}
+                                    <span class="deposit-text">+ {{.Amount | formatKES}}</span>
+                                {{else}}
+                                    <span class="withdraw-text">- {{.Amount | formatKES}}</span>
+                                {{end}}
+                            </td>
+                            <td>{{.Balance | formatKES}}</td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+            {{else}}
+                <p style="text-align: center; color: #666; padding: 40px;">
+                    No transactions yet. Make your first deposit to get started!
+                </p>
+            {{end}}
         </div>
     </div>
-
-    <script>
-        // Fetch and display transactions
-        async function loadTransactions() {
-            try {
-                const response = await fetch('/transactions');
-                const transactions = await response.json();
-                
-                const container = document.getElementById('transactions');
-                if (transactions.length === 0) {
-                    container.innerHTML = '<p>No transactions yet. Make a deposit to get started!</p>';
-                    return;
-                }
-                
-                let html = '<table style="width: 100%; border-collapse: collapse;">';
-                html += '<tr style="background: #f8f9fa;"><th style="padding: 10px; text-align: left;">Date</th><th style="padding: 10px; text-align: left;">Type</th><th style="padding: 10px; text-align: right;">Amount</th><th style="padding: 10px; text-align: right;">Balance</th></tr>';
-                
-                transactions.forEach(tx => {
-                    const date = new Date(tx.CreatedAt).toLocaleString();
-                    const amountColor = tx.Type === 'deposit' ? '#2ecc71' : '#e74c3c';
-                    html += `<tr>
-                        <td style="padding: 10px;">${date}</td>
-                        <td style="padding: 10px; text-transform: capitalize;">${tx.Type}</td>
-                        <td style="padding: 10px; text-align: right; color: ${amountColor};">${tx.Type === 'deposit' ? '+' : '-'} KES ${tx.Amount}</td>
-                        <td style="padding: 10px; text-align: right;">KES ${tx.Balance}</td>
-                    </tr>`;
-                });
-                html += '</table>';
-                container.innerHTML = html;
-            } catch (error) {
-                console.error('Error loading transactions:', error);
-                document.getElementById('transactions').innerHTML = '<p>Error loading transactions. Please refresh the page.</p>';
-            }
-        }
-        
-        // Load transactions when page loads
-        loadTransactions();
-        
-        // Refresh transactions every 30 seconds
-        setInterval(loadTransactions, 30000);
-    </script>
 </body>
 </html>

@@ -1,105 +1,72 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>FinTech Banking - Register</title>
+    <title>Register</title>
     <link rel="stylesheet" href="/static/styles.css">
     <style>
-        .register-container {
+        .register-box {
             max-width: 400px;
             margin: 100px auto;
             padding: 30px;
             background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
         }
-        .register-container h2 {
-            text-align: center;
-            margin-bottom: 30px;
-            color: #1a1a1a;
-        }
-        .register-container input, select {
+        input, select {
             width: 100%;
-            padding: 12px;
+            padding: 10px;
             margin: 10px 0;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 1rem;
-            box-sizing: border-box;
         }
-        .register-container select {
-            background: white;
-            cursor: pointer;
-        }
-        .register-container button {
+        button {
             width: 100%;
-            padding: 12px;
+            padding: 10px;
             background: #007bff;
             color: white;
             border: none;
-            border-radius: 8px;
-            font-size: 1rem;
             cursor: pointer;
-            margin-top: 20px;
-        }
-        .register-container button:hover {
-            background: #0056b3;
-        }
-        .login-link {
-            text-align: center;
-            margin-top: 20px;
-            color: #666;
-        }
-        .login-link a {
-            color: #007bff;
-            text-decoration: none;
-        }
-        .login-link a:hover {
-            text-decoration: underline;
         }
     </style>
 </head>
 <body>
-    <div class="register-container">
-        <h2>📝 Create Account</h2>
+    <div class="register-box">
+        <h2>Create Account</h2>
         <form id="registerForm">
-            <input type="text" name="username" placeholder="Username (3-20 characters)" required>
-            <input type="password" name="password" placeholder="Password (min 6 characters)" required>
+            <input type="text" name="username" placeholder="Username" required>
+            <input type="password" name="password" placeholder="Password (min 6 chars)" required>
             <select name="role">
                 <option value="customer">Customer</option>
                 <option value="admin">Admin</option>
             </select>
             <button type="submit">Register</button>
         </form>
-        <div class="login-link">
-            Already have an account? <a href="/login">Login here</a>
-        </div>
+        <p style="text-align:center; margin-top:20px;">
+            <a href="/login">Already have an account? Login</a>
+        </p>
     </div>
+
     <script>
-        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+        document.getElementById('registerForm').onsubmit = async (e) => {
             e.preventDefault();
-            const formData = new FormData(e.target);
             const data = {
-                username: formData.get('username'),
-                password: formData.get('password'),
-                role: formData.get('role')
+                username: e.target.username.value,
+                password: e.target.password.value,
+                role: e.target.role.value
             };
             
-            const response = await fetch('/register', {
+            const res = await fetch('/api/register', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(data)
             });
             
-            if (response.ok) {
-                const result = await response.json();
-                alert(result.message || 'Registration successful! Please login.');
+            if (res.ok) {
+                alert('Registration successful! Please login.');
                 window.location.href = '/login';
             } else {
-                const error = await response.text();
+                const error = await res.text();
                 alert('Registration failed: ' + error);
             }
-        });
+        };
     </script>
 </body>
 </html>
