@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - FinTech Banking</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏦 FinTech Banking</h1>
+            <a href="/logout" class="logout-btn">🚪 Logout</a>
+        </div>
+        
+        <div class="card balance-card">
+            <h2>Welcome back, {{.Username}}!</h2>
+            <div class="balance-amount">{{.Account.Balance | formatKES}}</div>
+            <div class="account-info">
+                <p><strong>Account Number:</strong> {{.Account.Number}}</p>
+                <p><strong>Status:</strong> 
+                    {{if .Account.Active}}
+                        <span class="status-active">✓ Active</span>
+                    {{else}}
+                        <span class="status-inactive">✗ Inactive</span>
+                    {{end}}
+                </p>
+            </div>
+        </div>
+        
+        <div class="grid">
+            <div class="card">
+                <h3>💰 Deposit Money</h3>
+                <form action="/api/deposit" method="POST">
+                    <div class="form-group">
+                        <input type="number" name="amount" placeholder="Amount (Min: KES 50)" required>
+                        <small style="color: #666;">Min: KES 50 | Max: KES 250,000</small>
+                    </div>
+                    <button type="submit" class="btn-deposit">Confirm Deposit</button>
+                </form>
+            </div>
+            
+            <div class="card">
+                <h3>💸 Withdraw Money</h3>
+                <form action="/api/withdraw" method="POST">
+                    <div class="form-group">
+                        <input type="number" name="amount" placeholder="Amount (Min: KES 100)" required>
+                        <small style="color: #666;">Min: KES 100 | Max: KES 40,000</small>
+                    </div>
+                    <button type="submit" class="btn-withdraw">Confirm Withdrawal</button>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h3>📊 Transaction History</h3>
+            {{if .Transactions}}
+                <table class="transaction-table">
+                    <thead>
+                        <tr>
+                            <th>Date & Time</th>
+                            <th>Type</th>
+                            <th>Amount</th>
+                            <th>Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{range .Transactions}}
+                        <tr>
+                            <td>{{.CreatedAt.Format "02 Jan 2006 15:04:05"}}</td>
+                            <td>
+                                {{if eq .Type "deposit"}}
+                                    <span class="deposit-text">💰 DEPOSIT</span>
+                                {{else if eq .Type "withdrawal"}}
+                                    <span class="withdraw-text">💸 WITHDRAWAL</span>
+                                {{else}}
+                                    <span>{{.Type}}</span>
+                                {{end}}
+                            </td>
+                            <td>
+                                {{if eq .Type "deposit"}}
+                                    <span class="deposit-text">+ {{.Amount | formatKES}}</span>
+                                {{else}}
+                                    <span class="withdraw-text">- {{.Amount | formatKES}}</span>
+                                {{end}}
+                            </td>
+                            <td>{{.Balance | formatKES}}</td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+            {{else}}
+                <p style="text-align: center; color: #666; padding: 40px;">
+                    No transactions yet. Make your first deposit to get started!
+                </p>
+            {{end}}
+        </div>
+    </div>
+</body>
+</html>
