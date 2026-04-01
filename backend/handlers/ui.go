@@ -1,41 +1,83 @@
 package handlers
 
 import (
-    "html/template"
-    "log"
-    "net/http"
-    "fintech-labs/services"
+	"fmt"
+	"html/template"
+	"log"
+	"net/http"
+	"time"
+
+	"fintech-labs/models"
+	"fintech-labs/services"
 )
 
 func DashboardHandler(w http.ResponseWriter, r *http.Request) {
-    // 1. Get the username from the session cookie (already authenticated by middleware)
-    cookie, _ := r.Cookie("session_user")
-    username := cookie.Value
+	log.Println("DashboardHandler called")
 
-    // 2. Fetch the account and the User data from the database
-    account, err := services.GetBalanceProcess(username)
-    if err != nil {
-        log.Printf("Dashboard Error for %s: %v", username, err)
-        http.Error(w, "Account not found. Please register first.", http.StatusNotFound)
-        return
-    }
+	username := getSessionUser(r)
+	if username == "" {
+		log.Println("No username in session")
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
 
-    // 3. Find and Parse the HTML Template
-    // Note: The path "templates/dashboard.html" is relative to where you run 'go run .'
-    tmpl, err := template.ParseFiles("templates/dashboard.html")
-    if err != nil {
-        // This log will appear in your terminal to help you debug the path
-        log.Printf("CRITICAL TEMPLATE ERROR: Could not find dashboard.html. Error: %v", err)
-        
-        // Sending a 404 to the browser because the "Page" (template) wasn't found
-        http.Error(w, "Internal Server Error: UI Template not found", http.StatusNotFound)
-        return
-    }
+	log.Printf("👤 Loading dashboard for user: %s", username)
 
-    // 4. Send the data to the browser
-    err = tmpl.Execute(w, account)
-    if err != nil {
-        log.Printf("EXECUTION ERROR: Failed to render template for %s: %v", username, err)
-        http.Error(w, "Error rendering the page", http.StatusInternalServerError)
-    }
+	account, err := services.GetAccountByUsername(username)
+	if err != nil {
+		log.Printf("Error fetching account for %s: %v", username, err)
+		http.Error(w, "Account not found. Please contact support.", http.StatusNotFound)
+		return
+	}
+
+	log.Printf("Account found - Balance: KES %d, Number: %s, Active: %v",
+		account.Balance, account.Number, account.Active)
+
+	transactions, err := services.GetTransactions(username)
+	if err != nil {
+		log.Printf("Error fetching transactions: %v", err)
+		transactions = []models.Transaction{}
+	}
+
+	log.Printf("Found %d transactions for %s", len(transactions), username)
+
+	// Create template with custom functions
+	tmpl := template.New("dashboard.html").Funcs(template.FuncMap{
+		"formatKES":  formatKES,
+		"formatDate": formatDate,
+	})
+
+	tmpl, err = tmpl.ParseFiles("templates/dashboard.html")
+	if err != nil {
+		log.Printf("Template parse error: %v", err)
+		http.Error(w, fmt.Sprintf("Template error: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	data := struct {
+		Username     string
+		Account      *models.Account
+		Transactions []models.Transaction
+	}{
+		Username:     username,
+		Account:      account,
+		Transactions: transactions,
+	}
+
+	err = tmpl.Execute(w, data)
+	if err != nil {
+		log.Printf("Template execution error: %v", err)
+		http.Error(w, "Error rendering page", http.StatusInternalServerError)
+	}
+}
+
+func formatKES(amount int64) string {
+	if amount < 0 {
+		return fmt.Sprintf("-KES %d", -amount)
+	}
+	return fmt.Sprintf("KES %d", amount)
+}
+
+func formatDate(t time.Time) string {
+	return t.Format("02 Jan 2006 15:04:05")
 }

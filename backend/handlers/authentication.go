@@ -2,20 +2,44 @@ package handlers
 
 import (
 	"encoding/json"
-	"fintech-labs/models"
-	"fintech-labs/validator"
-	"fmt"
-	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 	"log"
-	"math/rand"
 	"net/http"
 	"strings"
 	"time"
+
+	"fintech-labs/services"
+	"fintech-labs/validator"
+
+	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
-func generateAccountNumber() string {
-	return fmt.Sprintf("ACC%06d", rand.Intn(900000)+100000)
+func getSessionUser(r *http.Request) string {
+	cookie, err := r.Cookie("session_user")
+	if err != nil {
+		return ""
+	}
+	return cookie.Value
+}
+
+func setSessionUser(w http.ResponseWriter, username string) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session_user",
+		Value:    username,
+		Path:     "/",
+		Expires:  time.Now().Add(24 * time.Hour),
+		HttpOnly: true,
+	})
+}
+
+func clearSession(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session_user",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+	})
 }
 
 func Register(db *gorm.DB) http.HandlerFunc {
@@ -34,7 +58,7 @@ func Register(db *gorm.DB) http.HandlerFunc {
 		input.Username = strings.ToLower(strings.TrimSpace(input.Username))
 
 		if !validator.ValidUsername(input.Username) {
-			http.Error(w, "Invalid Username: Must be 3-20 characters (letters/numbers only)", http.StatusBadRequest)
+			http.Error(w, "Invalid username: 3-20 characters, letters/numbers only", http.StatusBadRequest)
 			return
 		}
 
@@ -43,58 +67,50 @@ func Register(db *gorm.DB) http.HandlerFunc {
 			return
 		}
 
+		if input.Role == "" {
+			input.Role = "customer"
+		}
+
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
 		if err != nil {
 			http.Error(w, "Error creating password", http.StatusInternalServerError)
 			return
 		}
 
-		newUser := models.User{
-			Username: input.Username,
-			Password: string(hashedPassword),
-			Role:     input.Role,
-		}
-
-		if err := db.Create(&newUser).Error; err != nil {
-			http.Error(w, "Username already taken", http.StatusConflict)
+		user, err := services.CreateUser(input.Username, string(hashedPassword), input.Role)
+		if err != nil {
+			if strings.Contains(err.Error(), "UNIQUE") {
+				http.Error(w, "Username already taken", http.StatusConflict)
+			} else {
+				http.Error(w, "Error creating user", http.StatusInternalServerError)
+			}
 			return
 		}
 
-		if newUser.Role == "customer" {
-			newAccount := models.Account{
-				UserID:  newUser.ID,
-				Number:  generateAccountNumber(),
-				Balance: 0,
-				Active:  true,
-			}
-			if err := db.Create(&newAccount).Error; err != nil {
-				log.Printf("Failed to create account for user %d: %v", newUser.ID, err)
-			}
-
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusCreated)
-			json.NewEncoder(w).Encode(map[string]interface{}{
-				"message":        "Account Successfully Created",
-				"account_number": newAccount.Number,
-				"username":       newUser.Username,
-			})
+		account, err := services.CreateAccountForUser(user.ID)
+		if err != nil {
+			log.Printf("Failed to create account for user %d: %v", user.ID, err)
+			http.Error(w, "Account creation failed", http.StatusInternalServerError)
 			return
 		}
 
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(map[string]string{"message": "Admin user registered"})
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"message":        "Registration successful! Please login.",
+			"account_number": account.Number,
+			"username":       user.Username,
+		})
 	}
 }
 
-func LoginHandler(db *gorm.DB) http.HandlerFunc {
+func Login(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Handle GET request - show login page
 		if r.Method == http.MethodGet {
 			http.ServeFile(w, r, "templates/login.html")
 			return
 		}
 
-		// Handle POST request - process login
 		if r.Method == http.MethodPost {
 			err := r.ParseForm()
 			if err != nil {
@@ -106,60 +122,57 @@ func LoginHandler(db *gorm.DB) http.HandlerFunc {
 			password := r.FormValue("password")
 
 			if username == "" || password == "" {
-				http.Error(w, "Username and password are required", http.StatusBadRequest)
+				http.Error(w, "Username and password required", http.StatusBadRequest)
 				return
 			}
 
-			// Find user in database
-			var user models.User
-			result := db.Where("username = ?", strings.ToLower(username)).First(&user)
-			if result.Error != nil {
+			user, err := services.GetUserByUsername(username)
+			if err != nil {
 				http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 				return
 			}
 
-			// Verify password
 			err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 			if err != nil {
 				http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 				return
 			}
 
-			// Set session cookie
-			cookie := &http.Cookie{
-				Name:     "session_user",
-				Value:    user.Username,
-				Path:     "/",
-				Expires:  time.Now().Add(24 * time.Hour),
-				HttpOnly: true,
+			_, err = services.GetAccountByUserID(user.ID)
+			if err != nil {
+				_, err = services.CreateAccountForUser(user.ID)
+				if err != nil {
+					log.Printf("Failed to create missing account: %v", err)
+				}
 			}
-			http.SetCookie(w, cookie)
 
-			// Redirect to dashboard
+			setSessionUser(w, user.Username)
+
+			log.Printf("User logged in: %s", username)
 			http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
 		}
 	}
 }
 
+func Logout(w http.ResponseWriter, r *http.Request) {
+	clearSession(w)
+	http.Redirect(w, r, "/login", http.StatusSeeOther)
+}
+
+func RegisterPage(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "templates/register.html")
+}
+
 func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		cookie, err := r.Cookie("session_user")
-		if err != nil || cookie.Value == "" {
+		username := getSessionUser(r)
+		if username == "" {
+			log.Println("Unauthorized access attempt - no session")
 			http.Redirect(w, r, "/login", http.StatusSeeOther)
 			return
 		}
+
+		log.Printf("Auth middleware passed for user: %s", username)
 		next(w, r)
 	}
-}
-
-func LogoutHandler(w http.ResponseWriter, r *http.Request) {
-	cookie := &http.Cookie{
-		Name:     "session_user",
-		Value:    "",
-		Path:     "/",
-		MaxAge:   -1,
-		HttpOnly: true,
-	}
-	http.SetCookie(w, cookie)
-	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
