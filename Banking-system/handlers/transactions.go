@@ -2,11 +2,11 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
-	"net/http"
 	"fintech-labs/services"
-	"strconv"
+	"fmt"
 	"log"
+	"net/http"
+	"strconv"
 )
 
 func Deposit(w http.ResponseWriter, r *http.Request) {
@@ -14,34 +14,34 @@ func Deposit(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	
+
 	username := getSessionUser(r)
 	if username == "" {
 		http.Error(w, "Not authenticated", http.StatusUnauthorized)
 		return
 	}
-	
+
 	amountStr := r.FormValue("amount")
 	if amountStr == "" {
 		http.Error(w, "Amount required", http.StatusBadRequest)
 		return
 	}
-	
+
 	amount, err := strconv.ParseInt(amountStr, 10, 64)
 	if err != nil {
 		http.Error(w, "Invalid amount", http.StatusBadRequest)
 		return
 	}
-	
+
 	log.Printf("💰 Processing deposit for %s: KES %d", username, amount)
-	
+
 	err = services.Deposit(username, amount)
 	if err != nil {
 		log.Printf("Deposit error for %s: %v", username, err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	
+
 	log.Printf("Deposit successful for %s: KES %d", username, amount)
 	http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
 }
@@ -51,34 +51,34 @@ func Withdraw(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	
+
 	username := getSessionUser(r)
 	if username == "" {
 		http.Error(w, "Not authenticated", http.StatusUnauthorized)
 		return
 	}
-	
+
 	amountStr := r.FormValue("amount")
 	if amountStr == "" {
 		http.Error(w, "Amount required", http.StatusBadRequest)
 		return
 	}
-	
+
 	amount, err := strconv.ParseInt(amountStr, 10, 64)
 	if err != nil {
 		http.Error(w, "Invalid amount", http.StatusBadRequest)
 		return
 	}
-	
+
 	log.Printf("💸 Processing withdrawal for %s: KES %d", username, amount)
-	
+
 	err = services.Withdraw(username, amount)
 	if err != nil {
 		log.Printf("Withdrawal error for %s: %v", username, err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	
+
 	log.Printf("Withdrawal successful for %s: KES %d", username, amount)
 	http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
 }
@@ -88,19 +88,19 @@ func GetBalance(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	
+
 	username := getSessionUser(r)
 	if username == "" {
 		http.Error(w, "Not authenticated", http.StatusUnauthorized)
 		return
 	}
-	
+
 	account, err := services.GetAccountByUsername(username)
 	if err != nil {
 		http.Error(w, "Account not found", http.StatusNotFound)
 		return
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"balance":   account.Balance,
@@ -115,22 +115,22 @@ func GetTransactionsAPI(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	
+
 	username := getSessionUser(r)
 	if username == "" {
 		http.Error(w, "Not authenticated", http.StatusUnauthorized)
 		return
 	}
-	
+
 	transactions, err := services.GetTransactions(username)
 	if err != nil {
 		log.Printf("Error fetching transactions for %s: %v", username, err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	
+
 	log.Printf("📊 Returning %d transactions for %s", len(transactions), username)
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(transactions)
 }
