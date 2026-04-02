@@ -79,5 +79,5 @@ func formatKES(amount int64) string {
 }
 
 func formatDate(t time.Time) string {
-	return t.Format("02 Jan 2006 15:04:05")
+	return t.Add(3 * time.Hour).Format("02 Jan 2006 15:04:05")
 }
