@@ -23,7 +23,6 @@
             overflow-x: hidden;
         }
 
-        /* Animated background elements */
         .bg-bubble {
             position: absolute;
             background: rgba(255, 255, 255, 0.1);
@@ -188,40 +187,72 @@
             margin-bottom: 8px;
         }
 
-        .error-message {
-            background: #fee;
-            color: #c33;
-            padding: 10px;
-            border-radius: 8px;
-            margin-bottom: 20px;
+        /* Toast notification styles */
+        .toast-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 10px;
+            color: white;
             font-size: 14px;
-            display: none;
+            font-weight: 500;
+            z-index: 1000;
+            animation: slideInRight 0.3s ease-out;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
-        .success-message {
-            background: #efe;
-            color: #3c3;
-            padding: 10px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 14px;
-            display: none;
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
         }
 
-        @media (max-width: 480px) {
-            .register-header {
-                padding: 30px 20px;
-            }
-            .register-header h2 {
-                font-size: 24px;
-            }
-            .register-body {
-                padding: 30px 20px;
-            }
-            .benefits {
-                grid-template-columns: 1fr;
-                gap: 10px;
-            }
+        .toast-error {
+            background: linear-gradient(135deg, #f44336, #d32f2f);
+        }
+
+        .toast-success {
+            background: linear-gradient(135deg, #4caf50, #388e3c);
+        }
+
+        .toast-warning {
+            background: linear-gradient(135deg, #ff9800, #f57c00);
+        }
+
+        .toast-close {
+            cursor: pointer;
+            margin-left: 10px;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .btn-loading {
+            opacity: 0.7;
+            cursor: not-allowed;
         }
     </style>
 </head>
@@ -232,8 +263,6 @@
             <p>Start your digital banking journey today</p>
         </div>
         <div class="register-body">
-            <div class="error-message" id="errorMessage"></div>
-            <div class="success-message" id="successMessage"></div>
             <form id="registerForm">
                 <div class="form-group">
                     <label>👤 Username</label>
@@ -252,7 +281,7 @@
                         <option value="admin">🏢 Business Account (Admin)</option>
                     </select>
                 </div>
-                <button type="submit" class="register-btn">Create Free Account</button>
+                <button type="submit" class="register-btn" id="registerBtn">Create Free Account</button>
             </form>
             <div class="login-link">
                 <p>Already have an account? <a href="/login">Sign In</a></p>
@@ -292,32 +321,57 @@
         }
         createBubbles();
 
+        // Toast notification function
+        function showToast(message, type = 'error') {
+            const toast = document.createElement('div');
+            toast.className = `toast-notification toast-${type}`;
+            
+            const icon = type === 'error' ? '❌' : (type === 'success' ? '✅' : '⚠️');
+            toast.innerHTML = `
+                <span>${icon}</span>
+                <span>${message}</span>
+                <span class="toast-close">&times;</span>
+            `;
+            
+            document.body.appendChild(toast);
+            
+            const closeBtn = toast.querySelector('.toast-close');
+            closeBtn.onclick = () => toast.remove();
+            
+            setTimeout(() => {
+                if (toast.parentNode) toast.remove();
+            }, 5000);
+        }
+
         document.getElementById('registerForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
             const role = document.getElementById('role').value;
-            
-            // Clear previous messages
-            document.getElementById('errorMessage').style.display = 'none';
-            document.getElementById('successMessage').style.display = 'none';
+            const registerBtn = document.getElementById('registerBtn');
             
             // Client-side validation
             if (username.length < 3 || username.length > 20) {
-                showError('Username must be between 3 and 20 characters');
+                showToast('Username must be between 3 and 20 characters', 'error');
                 return;
             }
             
             if (!/^[a-zA-Z0-9]+$/.test(username)) {
-                showError('Username can only contain letters and numbers');
+                showToast('Username can only contain letters and numbers', 'error');
                 return;
             }
             
             if (password.length < 6) {
-                showError('Password must be at least 6 characters');
+                showToast('Password must be at least 6 characters', 'error');
                 return;
             }
+            
+            // Show loading state
+            const originalText = registerBtn.innerHTML;
+            registerBtn.innerHTML = '<span class="loading"></span> Creating account...';
+            registerBtn.disabled = true;
+            registerBtn.classList.add('btn-loading');
             
             const data = { username, password, role };
             
@@ -330,33 +384,32 @@
                 
                 if (response.ok) {
                     const result = await response.json();
-                    showSuccess(result.message || 'Registration successful! Redirecting to login...');
+                    showToast(result.message || 'Registration successful! Redirecting to login...', 'success');
                     setTimeout(() => {
                         window.location.href = '/login';
                     }, 2000);
                 } else {
                     const error = await response.text();
-                    showError(error);
+                    if (error.includes('already taken')) {
+                        showToast('Username already exists. Please choose another username.', 'error');
+                    } else if (error.includes('Invalid username')) {
+                        showToast('Invalid username format. Use 3-20 letters/numbers only.', 'error');
+                    } else {
+                        showToast(error || 'Registration failed. Please try again.', 'error');
+                    }
+                    // Reset button
+                    registerBtn.innerHTML = originalText;
+                    registerBtn.disabled = false;
+                    registerBtn.classList.remove('btn-loading');
                 }
             } catch (error) {
-                showError('Network error. Please try again.');
+                console.error('Registration error:', error);
+                showToast('Network error. Please check your connection.', 'error');
+                registerBtn.innerHTML = originalText;
+                registerBtn.disabled = false;
+                registerBtn.classList.remove('btn-loading');
             }
         });
-        
-        function showError(message) {
-            const errorDiv = document.getElementById('errorMessage');
-            errorDiv.textContent = message;
-            errorDiv.style.display = 'block';
-            setTimeout(() => {
-                errorDiv.style.display = 'none';
-            }, 5000);
-        }
-        
-        function showSuccess(message) {
-            const successDiv = document.getElementById('successMessage');
-            successDiv.textContent = message;
-            successDiv.style.display = 'block';
-        }
     </script>
 </body>
 </html>
