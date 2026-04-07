@@ -5,6 +5,161 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - FinTech Banking</title>
     <link rel="stylesheet" href="/static/styles.css">
+    <style>
+        .btn-transfer {
+            background: linear-gradient(135deg, #11998e, #38ef7d);
+            color: white;
+        }
+
+        .btn-transfer:hover {
+            background: linear-gradient(135deg, #0d7a6e, #2bc86a);
+        }
+
+        .transfer-out-text {
+            color: #e74c3c;
+            font-weight: 600;
+        }
+
+        .transfer-in-text {
+            color: #2ecc71;
+            font-weight: 600;
+        }
+
+        .deposit-text {
+            color: #2ecc71;
+            font-weight: 600;
+        }
+
+        .withdraw-text {
+            color: #e74c3c;
+            font-weight: 600;
+        }
+
+        .status-active {
+            color: #2ecc71;
+            font-weight: 600;
+        }
+
+        .status-inactive {
+            color: #e74c3c;
+            font-weight: 600;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .logout-btn {
+            background: #e74c3c;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        .logout-btn:hover {
+            background: #c0392b;
+        }
+
+        .transaction-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .transaction-table th,
+        .transaction-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        .transaction-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .transaction-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            margin: 0 0 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+        }
+
+        .form-group small {
+            display: block;
+            color: #666;
+            font-size: 12px;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.2s;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .btn-deposit {
+            background: #007bff;
+            color: white;
+        }
+
+        .btn-deposit:hover {
+            background: #0056b3;
+        }
+
+        .btn-withdraw {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-withdraw:hover {
+            background: #c0392b;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+
+        @media (max-width: 768px) {
+            .grid-3 {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -28,26 +183,41 @@
             </div>
         </div>
         
-        <div class="grid">
+        <div class="grid-3">
+            <!-- Deposit Card -->
             <div class="card">
                 <h3>💰 Deposit Money</h3>
                 <form action="/api/deposit" method="POST">
                     <div class="form-group">
                         <input type="number" name="amount" placeholder="Amount (Min: KES 50)" required>
-                        <small style="color: #666;">Min: KES 50 | Max: KES 250,000</small>
+                        <small>Min: KES 50 | Max: KES 250,000</small>
                     </div>
                     <button type="submit" class="btn-deposit">Confirm Deposit</button>
                 </form>
             </div>
             
+            <!-- Withdraw Card -->
             <div class="card">
                 <h3>💸 Withdraw Money</h3>
                 <form action="/api/withdraw" method="POST">
                     <div class="form-group">
                         <input type="number" name="amount" placeholder="Amount (Min: KES 100)" required>
-                        <small style="color: #666;">Min: KES 100 | Max: KES 40,000</small>
+                        <small>Min: KES 100 | Max: KES 40,000</small>
                     </div>
                     <button type="submit" class="btn-withdraw">Confirm Withdrawal</button>
+                </form>
+            </div>
+
+            <!-- Send Money Card (NEW) -->
+            <div class="card">
+                <h3>🤝 Send Money</h3>
+                <form action="/api/send" method="POST">
+                    <div class="form-group">
+                        <input type="text" name="to_username" placeholder="Recipient username" required>
+                        <input type="number" name="amount" placeholder="Amount (Min: KES 10)" required>
+                        <small>Min: KES 10 | Max: KES 50,000</small>
+                    </div>
+                    <button type="submit" class="btn-transfer">Send Money</button>
                 </form>
             </div>
         </div>
@@ -73,6 +243,10 @@
                                     <span class="deposit-text">💰 DEPOSIT</span>
                                 {{else if eq .Type "withdrawal"}}
                                     <span class="withdraw-text">💸 WITHDRAWAL</span>
+                                {{else if eq .Type "transfer_out"}}
+                                    <span class="transfer-out-text">📤 SENT</span>
+                                {{else if eq .Type "transfer_in"}}
+                                    <span class="transfer-in-text">📥 RECEIVED</span>
                                 {{else}}
                                     <span>{{.Type}}</span>
                                 {{end}}
@@ -80,8 +254,14 @@
                             <td>
                                 {{if eq .Type "deposit"}}
                                     <span class="deposit-text">+ {{.Amount | formatKES}}</span>
-                                {{else}}
+                                {{else if eq .Type "withdrawal"}}
                                     <span class="withdraw-text">- {{.Amount | formatKES}}</span>
+                                {{else if eq .Type "transfer_out"}}
+                                    <span class="transfer-out-text">- {{.Amount | formatKES}}</span>
+                                {{else if eq .Type "transfer_in"}}
+                                    <span class="transfer-in-text">+ {{.Amount | formatKES}}</span>
+                                {{else}}
+                                    <span>{{.Amount | formatKES}}</span>
                                 {{end}}
                             </td>
                             <td>{{.Balance | formatKES}}</td>
