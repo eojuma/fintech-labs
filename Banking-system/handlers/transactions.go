@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"fintech-labs/services"
 	"fmt"
+	"golang.org/x/crypto/bcrypt"
 	"log"
 	"net/http"
 	"strconv"
-	"golang.org/x/crypto/bcrypt"
+	"strings"
 )
 
 func Deposit(w http.ResponseWriter, r *http.Request) {
@@ -18,19 +19,19 @@ func Deposit(w http.ResponseWriter, r *http.Request) {
 
 	username := getSessionUser(r)
 	if username == "" {
-		http.Error(w, "Not authenticated", http.StatusUnauthorized)
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
 
 	amountStr := r.FormValue("amount")
 	if amountStr == "" {
-		http.Error(w, "Amount required", http.StatusBadRequest)
+		http.Redirect(w, r, "/dashboard?error=Amount+required", http.StatusSeeOther)
 		return
 	}
 
 	amount, err := strconv.ParseInt(amountStr, 10, 64)
 	if err != nil {
-		http.Error(w, "Invalid amount", http.StatusBadRequest)
+		http.Redirect(w, r, "/dashboard?error=Invalid+amount", http.StatusSeeOther)
 		return
 	}
 
@@ -39,12 +40,13 @@ func Deposit(w http.ResponseWriter, r *http.Request) {
 	err = services.Deposit(username, amount)
 	if err != nil {
 		log.Printf("Deposit error for %s: %v", username, err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		errorMsg := strings.ReplaceAll(err.Error(), " ", "+")
+		http.Redirect(w, r, "/dashboard?error="+errorMsg, http.StatusSeeOther)
 		return
 	}
 
 	log.Printf("Deposit successful for %s: KES %d", username, amount)
-	http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+	http.Redirect(w, r, "/dashboard?success=Deposit+successful!+KES+"+amountStr, http.StatusSeeOther)
 }
 
 func Withdraw(w http.ResponseWriter, r *http.Request) {
@@ -55,19 +57,19 @@ func Withdraw(w http.ResponseWriter, r *http.Request) {
 
 	username := getSessionUser(r)
 	if username == "" {
-		http.Error(w, "Not authenticated", http.StatusUnauthorized)
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
 
 	amountStr := r.FormValue("amount")
 	if amountStr == "" {
-		http.Error(w, "Amount required", http.StatusBadRequest)
+		http.Redirect(w, r, "/dashboard?error=Amount+required", http.StatusSeeOther)
 		return
 	}
 
 	amount, err := strconv.ParseInt(amountStr, 10, 64)
 	if err != nil {
-		http.Error(w, "Invalid amount", http.StatusBadRequest)
+		http.Redirect(w, r, "/dashboard?error=Invalid+amount", http.StatusSeeOther)
 		return
 	}
 
@@ -76,12 +78,13 @@ func Withdraw(w http.ResponseWriter, r *http.Request) {
 	err = services.Withdraw(username, amount)
 	if err != nil {
 		log.Printf("Withdrawal error for %s: %v", username, err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		errorMsg := strings.ReplaceAll(err.Error(), " ", "+")
+		http.Redirect(w, r, "/dashboard?error="+errorMsg, http.StatusSeeOther)
 		return
 	}
 
 	log.Printf("Withdrawal successful for %s: KES %d", username, amount)
-	http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+	http.Redirect(w, r, "/dashboard?success=Withdrawal+successful!+KES+"+amountStr, http.StatusSeeOther)
 }
 
 func GetBalance(w http.ResponseWriter, r *http.Request) {
@@ -136,7 +139,6 @@ func GetTransactionsAPI(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(transactions)
 }
 
-
 func SendMoneyHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -145,14 +147,14 @@ func SendMoneyHandler(w http.ResponseWriter, r *http.Request) {
 
 	username := getSessionUser(r)
 	if username == "" {
-		http.Error(w, "Not authenticated", http.StatusUnauthorized)
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
 
 	// Parse form data
 	err := r.ParseForm()
 	if err != nil {
-		http.Error(w, "Failed to parse form", http.StatusBadRequest)
+		http.Redirect(w, r, "/dashboard?error=Failed+to+parse+form", http.StatusSeeOther)
 		return
 	}
 
@@ -161,36 +163,36 @@ func SendMoneyHandler(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
 
 	if toAccountNumber == "" {
-		http.Error(w, "Recipient account number required", http.StatusBadRequest)
+		http.Redirect(w, r, "/dashboard?error=Recipient+account+number+required", http.StatusSeeOther)
 		return
 	}
 
 	if amountStr == "" {
-		http.Error(w, "Amount required", http.StatusBadRequest)
+		http.Redirect(w, r, "/dashboard?error=Amount+required", http.StatusSeeOther)
 		return
 	}
 
 	if password == "" {
-		http.Error(w, "Password required to confirm transaction", http.StatusBadRequest)
+		http.Redirect(w, r, "/dashboard?error=Password+required+to+confirm+transaction", http.StatusSeeOther)
 		return
 	}
 
 	amount, err := strconv.ParseInt(amountStr, 10, 64)
 	if err != nil {
-		http.Error(w, "Invalid amount", http.StatusBadRequest)
+		http.Redirect(w, r, "/dashboard?error=Invalid+amount", http.StatusSeeOther)
 		return
 	}
 
 	// Verify password before proceeding
 	user, err := services.GetUserByUsername(username)
 	if err != nil {
-		http.Error(w, "User not found", http.StatusUnauthorized)
+		http.Redirect(w, r, "/dashboard?error=User+not+found", http.StatusSeeOther)
 		return
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 	if err != nil {
-		http.Error(w, "Invalid password", http.StatusUnauthorized)
+		http.Redirect(w, r, "/dashboard?error=Invalid+password", http.StatusSeeOther)
 		return
 	}
 
@@ -199,13 +201,11 @@ func SendMoneyHandler(w http.ResponseWriter, r *http.Request) {
 	err = services.SendMoney(username, toAccountNumber, amount)
 	if err != nil {
 		log.Printf("Transfer error from %s to %s: %v", username, toAccountNumber, err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		errorMsg := strings.ReplaceAll(err.Error(), " ", "+")
+		http.Redirect(w, r, "/dashboard?error="+errorMsg, http.StatusSeeOther)
 		return
 	}
 
 	log.Printf("Transfer successful from %s to account %s: KES %d", username, toAccountNumber, amount)
-	
-	// Set success message in session or redirect with query param
-	http.Redirect(w, r, "/dashboard?success=transfer", http.StatusSeeOther)
+	http.Redirect(w, r, "/dashboard?success=Transfer+successful!+KES+"+amountStr+"+sent+to+account+"+toAccountNumber, http.StatusSeeOther)
 }
-
