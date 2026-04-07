@@ -24,6 +24,18 @@ Phase 2: Professional Grade (Current State)
 
     Clean Architecture: Separated the project into models, services, and handlers for better scalability and team collaboration.
 
+    Currently a user can:
+    
+-   Register and log in securely.
+-   View their real-time balance.
+-   Deposit and withdraw funds.
+-   See a complete, color-coded transaction history.
+
+   Working on:
+
+  -   **Sending money to other users** via a simple form.
+
+
 🛠️ Technical Stack
 
     Language: Go (Golang)
