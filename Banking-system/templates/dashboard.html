@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - FinTech Banking</title>
+    <title>Dashboard -Evans Bank</title>
     <link rel="stylesheet" href="/static/styles.css">
     <style>
         .btn-transfer {
@@ -66,7 +66,6 @@
             background: #c0392b;
         }
 
-        /* Full width transaction table */
         .transaction-section {
             width: 100%;
             overflow-x: auto;
@@ -161,17 +160,6 @@
             margin-bottom: 25px;
         }
 
-        .account-number-container {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            margin: 15px 0;
-            padding: 10px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 8px;
-        }
-
         .account-number {
             font-size: 1.2rem;
             font-weight: bold;
@@ -180,7 +168,7 @@
         }
 
         .copy-btn {
-            background: #007bff;
+            background:none;
             color: white;
             border: none;
             padding: 5px 15px;
@@ -195,7 +183,6 @@
             background: #0056b3;
         }
 
-        /* Password toggle button */
         .password-wrapper {
             position: relative;
         }
@@ -222,19 +209,59 @@
             color: #007bff;
         }
 
-        .toast-notification {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: #2ecc71;
-            color: white;
-            padding: 12px 20px;
-            border-radius: 8px;
-            animation: slideIn 0.3s ease-out;
-            z-index: 1000;
+        /* Balance toggle styles */
+        .balance-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin: 10px 0;
         }
 
-        @keyframes slideIn {
+        .toggle-balance-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            width: auto;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .toggle-balance-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.02);
+        }
+
+        .toggle-balance-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* Toast notification */
+        .toast-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 10px;
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+            z-index: 1000;
+            animation: slideInRight 0.3s ease-out;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        @keyframes slideInRight {
             from {
                 transform: translateX(100%);
                 opacity: 0;
@@ -243,6 +270,21 @@
                 transform: translateX(0);
                 opacity: 1;
             }
+        }
+
+        .toast-error {
+            background: linear-gradient(135deg, #f44336, #d32f2f);
+        }
+
+        .toast-success {
+            background: linear-gradient(135deg, #4caf50, #388e3c);
+        }
+
+        .toast-close {
+            cursor: pointer;
+            margin-left: 10px;
+            font-weight: bold;
+            font-size: 18px;
         }
 
         @media (max-width: 768px) {
@@ -261,17 +303,23 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🏦 FinTech Banking</h1>
-            <a href="/logout" class="logout-btn">🚪 Logout</a>
+            <h1>🏦 Evans Bank</h1>
+            <a href="/logout" class="logout-btn">⏻ Logout</a>
         </div>
         
         <div class="card balance-card">
-            <h2>Welcome back, {{.Username}}!</h2>
-            <div class="balance-amount">{{.Account.Balance | formatKES}}</div>
+            <h2>Hi , {{.Username}}!</h2>
+            <div class="balance-container">
+                <div class="balance-amount" id="balanceAmount">{{.Account.Balance | formatKES}}</div>
+                <button type="button" class="toggle-balance-btn" onclick="toggleBalance()">
+                    <span id="eyeIcon">👁️</span>
+                    <span id="toggleText">Hide</span>
+                </button>
+            </div>
             <div class="account-info">
                 <p><strong>Account Number:</strong> 
                     <span class="account-number" id="accountNumber">{{.Account.Number}}</span>
-                    <button class="copy-btn" onclick="copyAccountNumber()">📋 Copy</button>
+                    <button class="copy-btn" onclick="copyAccountNumber()"> ⎘Copy</button>
                 </p>
                 <p><strong>Status:</strong> 
                     {{if .Account.Active}}
@@ -311,18 +359,18 @@
             <!-- Send Money Card -->
             <div class="card">
                 <h3>🤝 Send Money</h3>
-                <form action="/api/send" method="POST" onsubmit="return validateTransfer()">
+                <form action="/api/send" method="POST" onsubmit="return validateTransfer()" autocomplete="off">
                     <div class="form-group">
-                        <input type="text" name="to_account" id="to_account" placeholder="Recipient Account Number" required>
+                        <input type="text" name="to_account" id="to_account" placeholder="Recipient Account Number" required autocomplete="off">
                         <small>Enter the recipient's 6-digit account number</small>
                     </div>
                     <div class="form-group">
-                        <input type="number" name="amount" id="amount" placeholder="Amount (Min: KES 10)" required>
-                        <small>Min: KES 10 | Max: KES 50,000</small>
+                        <input type="number" name="amount" id="amount" placeholder="Amount (Min: KES 10)" required autocomplete="off">
+                        <small>Min: KES 10 | Max: KES 100,000</small>
                     </div>
                     <div class="form-group">
                         <div class="password-wrapper">
-                            <input type="password" name="password" id="password" placeholder="Confirm with your password" required>
+                            <input type="password" name="password" id="password" placeholder="Confirm with your password" required autocomplete="new-password">
                             <button type="button" class="toggle-password" onclick="togglePassword('password')">👁️</button>
                         </div>
                         <small>Enter your password to confirm this transaction</small>
@@ -332,7 +380,7 @@
             </div>
         </div>
         
-        <!-- Transaction History - Full Width -->
+        <!-- Transaction History -->
         <div class="card transaction-section">
             <h3>📊 Transaction History</h3>
             {{if .Transactions}}
@@ -389,7 +437,30 @@
     </div>
 
     <script>
-        // Copy account number function
+        // Store actual balance for toggle functionality
+        let balanceVisible = true;
+        let actualBalance = '{{.Account.Balance | formatKES}}';
+
+        // Toggle balance visibility
+        function toggleBalance() {
+            const balanceElement = document.getElementById('balanceAmount');
+            const eyeIcon = document.getElementById('eyeIcon');
+            const toggleText = document.getElementById('toggleText');
+            
+            if (balanceVisible) {
+                balanceElement.innerHTML = '•••••';
+                eyeIcon.innerHTML = '🙈';
+                toggleText.textContent = 'Show';
+                balanceVisible = false;
+            } else {
+                balanceElement.innerHTML = actualBalance;
+                eyeIcon.innerHTML = '👁️';
+                toggleText.textContent = 'Hide';
+                balanceVisible = true;
+            }
+        }
+
+        // Copy account number
         function copyAccountNumber() {
             const accountNumber = document.getElementById('accountNumber').innerText;
             navigator.clipboard.writeText(accountNumber).then(() => {
@@ -409,11 +480,17 @@
         // Toast notification
         function showToast(message, type) {
             const toast = document.createElement('div');
-            toast.className = 'toast-notification';
-            toast.style.background = type === 'success' ? '#2ecc71' : '#e74c3c';
-            toast.textContent = message;
+            toast.className = `toast-notification toast-${type}`;
+            const icon = type === 'success' ? '✅' : '❌';
+            toast.innerHTML = `<span>${icon}</span><span>${message}</span><span class="toast-close">&times;</span>`;
             document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 3000);
+            
+            const closeBtn = toast.querySelector('.toast-close');
+            closeBtn.onclick = () => toast.remove();
+            
+            setTimeout(() => {
+                if (toast.parentNode) toast.remove();
+            }, 5000);
         }
 
         // Validate transfer form
@@ -432,8 +509,8 @@
                 return false;
             }
 
-            if (amount > 50000) {
-                showToast('Maximum transfer amount is KES 50,000', 'error');
+            if (amount > 100000) {
+                showToast('Maximum transfer amount is KES 100,000', 'error');
                 return false;
             }
 
@@ -445,10 +522,18 @@
             return true;
         }
 
-        // Show success message if redirected with success param
+        // Check URL parameters for success/error messages
         const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('success') === 'transfer') {
-            showToast('Transfer completed successfully!', 'success');
+        const successMsg = urlParams.get('success');
+        const errorMsg = urlParams.get('error');
+
+        if (successMsg) {
+            showToast(decodeURIComponent(successMsg), 'success');
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+
+        if (errorMsg) {
+            showToast(decodeURIComponent(errorMsg), 'error');
             window.history.replaceState({}, document.title, window.location.pathname);
         }
     </script>
