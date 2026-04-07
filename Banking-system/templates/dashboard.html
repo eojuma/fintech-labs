@@ -66,14 +66,21 @@
             background: #c0392b;
         }
 
+        /* Full width transaction table */
+        .transaction-section {
+            width: 100%;
+            overflow-x: auto;
+        }
+
         .transaction-table {
             width: 100%;
+            min-width: 600px;
             border-collapse: collapse;
         }
 
         .transaction-table th,
         .transaction-table td {
-            padding: 12px;
+            padding: 12px 15px;
             text-align: left;
             border-bottom: 1px solid #eee;
         }
@@ -188,6 +195,33 @@
             background: #0056b3;
         }
 
+        /* Password toggle button */
+        .password-wrapper {
+            position: relative;
+        }
+
+        .password-wrapper input {
+            padding-right: 45px;
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            font-size: 18px;
+            background: none;
+            border: none;
+            width: auto;
+            padding: 0;
+            color: #999;
+        }
+
+        .toggle-password:hover {
+            color: #007bff;
+        }
+
         .toast-notification {
             position: fixed;
             bottom: 20px;
@@ -214,6 +248,12 @@
         @media (max-width: 768px) {
             .grid-3 {
                 grid-template-columns: 1fr;
+            }
+            
+            .transaction-table th,
+            .transaction-table td {
+                padding: 8px 10px;
+                font-size: 12px;
             }
         }
     </style>
@@ -268,7 +308,7 @@
                 </form>
             </div>
 
-            <!-- Send Money Card (UPDATED with password) -->
+            <!-- Send Money Card -->
             <div class="card">
                 <h3>🤝 Send Money</h3>
                 <form action="/api/send" method="POST" onsubmit="return validateTransfer()">
@@ -281,7 +321,10 @@
                         <small>Min: KES 10 | Max: KES 50,000</small>
                     </div>
                     <div class="form-group">
-                        <input type="password" name="password" id="password" placeholder="Confirm with your password" required>
+                        <div class="password-wrapper">
+                            <input type="password" name="password" id="password" placeholder="Confirm with your password" required>
+                            <button type="button" class="toggle-password" onclick="togglePassword('password')">👁️</button>
+                        </div>
                         <small>Enter your password to confirm this transaction</small>
                     </div>
                     <button type="submit" class="btn-transfer">Send Money</button>
@@ -289,7 +332,8 @@
             </div>
         </div>
         
-        <div class="card">
+        <!-- Transaction History - Full Width -->
+        <div class="card transaction-section">
             <h3>📊 Transaction History</h3>
             {{if .Transactions}}
                 <table class="transaction-table">
@@ -355,6 +399,13 @@
             });
         }
 
+        // Toggle password visibility
+        function togglePassword(fieldId) {
+            const field = document.getElementById(fieldId);
+            const type = field.getAttribute('type') === 'password' ? 'text' : 'password';
+            field.setAttribute('type', type);
+        }
+
         // Toast notification
         function showToast(message, type) {
             const toast = document.createElement('div');
@@ -394,6 +445,7 @@
             return true;
         }
 
+        // Show success message if redirected with success param
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('success') === 'transfer') {
             showToast('Transfer completed successfully!', 'success');

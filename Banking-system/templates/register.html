@@ -113,6 +113,34 @@
             font-size: 14px;
         }
 
+        .password-wrapper {
+            position: relative;
+        }
+
+        .password-wrapper input {
+            padding-right: 45px;
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            font-size: 18px;
+            user-select: none;
+            background: none;
+            border: none;
+            width: auto;
+            padding: 0;
+            color: #999;
+            transition: color 0.2s;
+        }
+
+        .toggle-password:hover {
+            color: #667eea;
+        }
+
         .password-hint {
             font-size: 12px;
             color: #666;
@@ -187,7 +215,6 @@
             margin-bottom: 8px;
         }
 
-        /* Toast notification styles */
         .toast-notification {
             position: fixed;
             top: 20px;
@@ -271,8 +298,18 @@
                 </div>
                 <div class="form-group">
                     <label>🔒 Password</label>
-                    <input type="password" name="password" id="password" placeholder="Create a strong password" required>
+                    <div class="password-wrapper">
+                        <input type="password" name="password" id="password" placeholder="Create a strong password" required>
+                        <button type="button" class="toggle-password" onclick="togglePassword('password')">👁️</button>
+                    </div>
                     <small class="password-hint">Minimum 6 characters</small>
+                </div>
+                <div class="form-group">
+                    <label>✓ Confirm Password</label>
+                    <div class="password-wrapper">
+                        <input type="password" name="confirm_password" id="confirm_password" placeholder="Confirm your password" required>
+                        <button type="button" class="toggle-password" onclick="togglePassword('confirm_password')">👁️</button>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>📋 Account Type</label>
@@ -304,7 +341,6 @@
     </div>
 
     <script>
-        // Create floating bubbles
         function createBubbles() {
             for (let i = 0; i < 15; i++) {
                 const bubble = document.createElement('div');
@@ -321,7 +357,12 @@
         }
         createBubbles();
 
-        // Toast notification function
+        function togglePassword(fieldId) {
+            const field = document.getElementById(fieldId);
+            const type = field.getAttribute('type') === 'password' ? 'text' : 'password';
+            field.setAttribute('type', type);
+        }
+
         function showToast(message, type = 'error') {
             const toast = document.createElement('div');
             toast.className = `toast-notification toast-${type}`;
@@ -348,6 +389,7 @@
             
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirm_password').value;
             const role = document.getElementById('role').value;
             const registerBtn = document.getElementById('registerBtn');
             
@@ -364,6 +406,11 @@
             
             if (password.length < 6) {
                 showToast('Password must be at least 6 characters', 'error');
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                showToast('Passwords do not match!', 'error');
                 return;
             }
             
@@ -397,7 +444,6 @@
                     } else {
                         showToast(error || 'Registration failed. Please try again.', 'error');
                     }
-                    // Reset button
                     registerBtn.innerHTML = originalText;
                     registerBtn.disabled = false;
                     registerBtn.classList.remove('btn-loading');
