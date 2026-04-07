@@ -28,7 +28,7 @@ func main() {
 	http.HandleFunc("/api/withdraw", handlers.AuthMiddleware(handlers.Withdraw))
 	http.HandleFunc("/api/balance", handlers.AuthMiddleware(handlers.GetBalance))
 	http.HandleFunc("/api/transactions", handlers.AuthMiddleware(handlers.GetTransactionsAPI))
-
+	http.HandleFunc("/api/send", handlers.AuthMiddleware(handlers.SendMoneyHandler))
 	
 	log.Println("Server running on http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
