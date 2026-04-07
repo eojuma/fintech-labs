@@ -43,9 +43,9 @@ func DashboardHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Create template with custom functions
 	tmpl := template.New("dashboard.html").Funcs(template.FuncMap{
-		"formatKES":         formatKES,
-		"formatDate":        formatDate,
-		"getTransactionIcon": getTransactionIcon,
+		"formatKES":           formatKES,
+		"formatDate":          formatDate,
+		"getTransactionIcon":  getTransactionIcon,
 		"getTransactionClass": getTransactionClass,
 	})
 
