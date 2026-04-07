@@ -43,8 +43,10 @@ func DashboardHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Create template with custom functions
 	tmpl := template.New("dashboard.html").Funcs(template.FuncMap{
-		"formatKES":  formatKES,
-		"formatDate": formatDate,
+		"formatKES":         formatKES,
+		"formatDate":        formatDate,
+		"getTransactionIcon": getTransactionIcon,
+		"getTransactionClass": getTransactionClass,
 	})
 
 	tmpl, err = tmpl.ParseFiles("templates/dashboard.html")
@@ -80,4 +82,32 @@ func formatKES(amount int64) string {
 
 func formatDate(t time.Time) string {
 	return t.Add(3 * time.Hour).Format("02 Jan 2006 15:04:05")
+}
+
+// Get the appropriate emoji icon for transaction type
+func getTransactionIcon(txType string) string {
+	switch txType {
+	case "deposit":
+		return "💰"
+	case "withdrawal":
+		return "💸"
+	case "transfer_out":
+		return "📤"
+	case "transfer_in":
+		return "📥"
+	default:
+		return "💳"
+	}
+}
+
+// Get the CSS class for transaction styling
+func getTransactionClass(txType string) string {
+	switch txType {
+	case "deposit", "transfer_in":
+		return "positive"
+	case "withdrawal", "transfer_out":
+		return "negative"
+	default:
+		return "neutral"
+	}
 }
