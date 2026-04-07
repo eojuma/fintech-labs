@@ -22,6 +22,4 @@ func InitDB() {
 	if err != nil {
 		log.Fatal("Migration failed:", err)
 	}
-	
-	log.Println("✅ Database initialized successfully")
-}
+	}
