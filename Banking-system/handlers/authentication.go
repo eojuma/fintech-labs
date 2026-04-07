@@ -120,7 +120,6 @@ func Login(db *gorm.DB) http.HandlerFunc {
 
 			username := r.FormValue("username")
 			password := r.FormValue("password")
-
 			if username == "" || password == "" {
 				http.Error(w, "Username and password required", http.StatusBadRequest)
 				return
