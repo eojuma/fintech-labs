@@ -293,8 +293,8 @@
             <form id="registerForm">
                 <div class="form-group">
                     <label>👤 Username</label>
-                    <input type="text" name="username" id="username" placeholder="Choose a username (3-20 characters)" required>
-                    <small class="password-hint">Letters and numbers only, 3-20 characters</small>
+                    <input type="text" name="username" id="username" placeholder="Choose a username (4-64 characters)" required>
+                    <small class="password-hint">Letters, numbers, spaces, dots, hyphens, underscores only, 4-64 characters</small>
                 </div>
                 <div class="form-group">
                     <label>🔒 Password</label>
@@ -394,13 +394,14 @@
             const registerBtn = document.getElementById('registerBtn');
             
             // Client-side validation
-            if (username.length < 3 || username.length > 20) {
-                showToast('Username must be between 3 and 20 characters', 'error');
+            if (username.length < 4 || username.length > 64) {
+                showToast('Username must be between 4 and 64 characters', 'error');
                 return;
             }
             
-            if (!/^[a-zA-Z0-9]+$/.test(username)) {
-                showToast('Username can only contain letters and numbers', 'error');
+            const usernameRegex = /^[a-zA-Z0-9\s\.\-_]+$/;
+            if (!usernameRegex.test(username)) {
+                showToast('Username can only contain letters, numbers, spaces, dots, hyphens, and underscores', 'error');
                 return;
             }
             
@@ -440,7 +441,7 @@
                     if (error.includes('already taken')) {
                         showToast('Username already exists. Please choose another username.', 'error');
                     } else if (error.includes('Invalid username')) {
-                        showToast('Invalid username format. Use 3-20 letters/numbers only.', 'error');
+                        showToast('Invalid username format. Use 4-64 characters with letters, numbers, spaces, dots, hyphens, and underscores.', 'error');
                     } else {
                         showToast(error || 'Registration failed. Please try again.', 'error');
                     }
