@@ -10,7 +10,7 @@ func ValidUsername(username string) bool {
 	}
 
 	for _, v := range username {
-		if !(v >= 'a' && v <= 'z' || v >= 'A' && v <= 'Z' || v >= '0' && v <= '9' || v == '.' || v == '-' || v == '_') {
+		if !(v >= 'a' && v <= 'z' || v >= 'A' && v <= 'Z' || v >= '0' && v <= '9' || v == '.' || v == '-' || v == '_' || v==' ') {
 			return false
 		}
 	}
