@@ -308,7 +308,7 @@
         </div>
         
         <div class="card balance-card">
-            <h2>Hi , {{.Username}}!</h2>
+            <h2>Welcome back, {{.Username | title}}!</h2>
             <div class="balance-container">
                 <div class="balance-amount" id="balanceAmount">{{.Account.Balance | formatKES}}</div>
                 <button type="button" class="toggle-balance-btn" onclick="toggleBalance()">
