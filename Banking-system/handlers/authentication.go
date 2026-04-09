@@ -147,8 +147,16 @@ func Login(db *gorm.DB) http.HandlerFunc {
 
 			setSessionUser(w, user.Username)
 
-			log.Printf("User logged in: %s", username)
-			http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+			log.Printf("User logged in: %s (Role: %s)", username, user.Role)
+
+			// ROLE-BASED REDIRECTION
+			if user.Role == "admin" {
+				log.Printf("Redirecting admin %s to /admin", username)
+				http.Redirect(w, r, "/admin", http.StatusSeeOther)
+			} else {
+				log.Printf("Redirecting customer %s to /dashboard", username)
+				http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+			}
 		}
 	}
 }
