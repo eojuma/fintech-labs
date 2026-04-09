@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"fintech-labs/models"
@@ -47,6 +48,7 @@ func DashboardHandler(w http.ResponseWriter, r *http.Request) {
 		"formatDate":          formatDate,
 		"getTransactionIcon":  getTransactionIcon,
 		"getTransactionClass": getTransactionClass,
+		"title": properTitle,
 	})
 
 	tmpl, err = tmpl.ParseFiles("templates/dashboard.html")
@@ -110,4 +112,17 @@ func getTransactionClass(txType string) string {
 	default:
 		return "neutral"
 	}
+}
+
+
+
+
+func properTitle(s string) string {
+    words := strings.Fields(s)
+    for i, word := range words {
+        if len(word) > 0 {
+            words[i] = strings.ToUpper(string(word[:1])) + strings.ToLower(string(word[1:]))
+        }
+    }
+    return strings.Join(words, " ")
 }
