@@ -334,7 +334,7 @@
         <div class="grid-3">
             <!-- Deposit Card -->
             <div class="card">
-                <h3>💰 Deposit Money</h3>
+                <h3>💰 Top up</h3>
                 <form action="/api/deposit" method="POST">
                     <div class="form-group">
                         <input type="number" name="amount" placeholder="Amount (Min: KES 50)" required>
@@ -346,7 +346,7 @@
             
             <!-- Withdraw Card -->
             <div class="card">
-                <h3>💸 Withdraw Money</h3>
+                <h3>💸 Withdraw</h3>
                 <form action="/api/withdraw" method="POST">
                     <div class="form-group">
                         <input type="number" name="amount" placeholder="Amount (Min: KES 100)" required>
@@ -358,7 +358,7 @@
 
             <!-- Send Money Card -->
             <div class="card">
-                <h3>🤝 Send Money</h3>
+                <h3>🤝 Transfer</h3>
                 <form action="/api/send" method="POST" onsubmit="return validateTransfer()" autocomplete="off">
                     <div class="form-group">
                         <input type="text" name="to_account" id="to_account" placeholder="Recipient Account Number" required autocomplete="off">
