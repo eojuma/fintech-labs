@@ -58,7 +58,7 @@ func Register(db *gorm.DB) http.HandlerFunc {
 		input.Username = strings.ToLower(strings.TrimSpace(input.Username))
 
 		if !validator.ValidUsername(input.Username) {
-			http.Error(w, "Invalid username: 3-20 characters, letters/numbers only", http.StatusBadRequest)
+			http.Error(w, "Invalid username: 4-64 characters, letters/numbers,spaces,dots and underscore only", http.StatusBadRequest)
 			return
 		}
 
