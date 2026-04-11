@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - FinTech Banking</title>
+    <title>Dashboard -Evans Bank</title>
     <link rel="stylesheet" href="/static/styles.css">
     <style>
         .btn-transfer {
@@ -66,14 +66,20 @@
             background: #c0392b;
         }
 
+        .transaction-section {
+            width: 100%;
+            overflow-x: auto;
+        }
+
         .transaction-table {
             width: 100%;
+            min-width: 600px;
             border-collapse: collapse;
         }
 
         .transaction-table th,
         .transaction-table td {
-            padding: 12px;
+            padding: 12px 15px;
             text-align: left;
             border-bottom: 1px solid #eee;
         }
@@ -154,9 +160,142 @@
             margin-bottom: 25px;
         }
 
+        .account-number {
+            font-size: 1.2rem;
+            font-weight: bold;
+            letter-spacing: 2px;
+            font-family: monospace;
+        }
+
+        .copy-btn {
+            background:none;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            width: auto;
+            display: inline-block;
+        }
+
+        .copy-btn:hover {
+            background: #0056b3;
+        }
+
+        .password-wrapper {
+            position: relative;
+        }
+
+        .password-wrapper input {
+            padding-right: 45px;
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            font-size: 18px;
+            background: none;
+            border: none;
+            width: auto;
+            padding: 0;
+            color: #999;
+        }
+
+        .toggle-password:hover {
+            color: #007bff;
+        }
+
+        /* Balance toggle styles */
+        .balance-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin: 10px 0;
+        }
+
+        .toggle-balance-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            width: auto;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .toggle-balance-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.02);
+        }
+
+        .toggle-balance-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* Toast notification */
+        .toast-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 10px;
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+            z-index: 1000;
+            animation: slideInRight 0.3s ease-out;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .toast-error {
+            background: linear-gradient(135deg, #f44336, #d32f2f);
+        }
+
+        .toast-success {
+            background: linear-gradient(135deg, #4caf50, #388e3c);
+        }
+
+        .toast-close {
+            cursor: pointer;
+            margin-left: 10px;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
         @media (max-width: 768px) {
             .grid-3 {
                 grid-template-columns: 1fr;
+            }
+            
+            .transaction-table th,
+            .transaction-table td {
+                padding: 8px 10px;
+                font-size: 12px;
             }
         }
     </style>
@@ -164,15 +303,24 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🏦 FinTech Banking</h1>
-            <a href="/logout" class="logout-btn">🚪 Logout</a>
+            <h1>🏦 Evans Bank</h1>
+            <a href="/logout" class="logout-btn">⏻ Logout</a>
         </div>
         
         <div class="card balance-card">
-            <h2>Welcome back, {{.Username}}!</h2>
-            <div class="balance-amount">{{.Account.Balance | formatKES}}</div>
+            <h2>Welcome back, {{.Username | title}}!</h2>
+            <div class="balance-container">
+                <div class="balance-amount" id="balanceAmount">{{.Account.Balance | formatKES}}</div>
+                <button type="button" class="toggle-balance-btn" onclick="toggleBalance()">
+                    <span id="eyeIcon">👁️</span>
+                    <span id="toggleText">Hide</span>
+                </button>
+            </div>
             <div class="account-info">
-                <p><strong>Account Number:</strong> {{.Account.Number}}</p>
+                <p><strong>Account Number:</strong> 
+                    <span class="account-number" id="accountNumber">{{.Account.Number}}</span>
+                    <button class="copy-btn" onclick="copyAccountNumber()"> ⎘Copy</button>
+                </p>
                 <p><strong>Status:</strong> 
                     {{if .Account.Active}}
                         <span class="status-active">✓ Active</span>
@@ -186,7 +334,7 @@
         <div class="grid-3">
             <!-- Deposit Card -->
             <div class="card">
-                <h3>💰 Deposit Money</h3>
+                <h3>💰 Top up</h3>
                 <form action="/api/deposit" method="POST">
                     <div class="form-group">
                         <input type="number" name="amount" placeholder="Amount (Min: KES 50)" required>
@@ -198,7 +346,7 @@
             
             <!-- Withdraw Card -->
             <div class="card">
-                <h3>💸 Withdraw Money</h3>
+                <h3>💸 Withdraw</h3>
                 <form action="/api/withdraw" method="POST">
                     <div class="form-group">
                         <input type="number" name="amount" placeholder="Amount (Min: KES 100)" required>
@@ -208,21 +356,32 @@
                 </form>
             </div>
 
-            <!-- Send Money Card (NEW) -->
+            <!-- Send Money Card -->
             <div class="card">
-                <h3>🤝 Send Money</h3>
-                <form action="/api/send" method="POST">
+                <h3>🤝 Transfer</h3>
+                <form action="/api/send" method="POST" onsubmit="return validateTransfer()" autocomplete="off">
                     <div class="form-group">
-                        <input type="text" name="to_username" placeholder="Recipient username" required>
-                        <input type="number" name="amount" placeholder="Amount (Min: KES 10)" required>
-                        <small>Min: KES 10 | Max: KES 50,000</small>
+                        <input type="text" name="to_account" id="to_account" placeholder="Recipient Account Number" required autocomplete="off">
+                        <small>Enter the recipient's 6-digit account number</small>
+                    </div>
+                    <div class="form-group">
+                        <input type="number" name="amount" id="amount" placeholder="Amount (Min: KES 10)" required autocomplete="off">
+                        <small>Min: KES 10 | Max: KES 100,000</small>
+                    </div>
+                    <div class="form-group">
+                        <div class="password-wrapper">
+                            <input type="password" name="password" id="password" placeholder="Confirm with your password" required autocomplete="new-password">
+                            <button type="button" class="toggle-password" onclick="togglePassword('password')">👁️</button>
+                        </div>
+                        <small>Enter your password to confirm this transaction</small>
                     </div>
                     <button type="submit" class="btn-transfer">Send Money</button>
                 </form>
             </div>
         </div>
         
-        <div class="card">
+        <!-- Transaction History -->
+        <div class="card transaction-section">
             <h3>📊 Transaction History</h3>
             {{if .Transactions}}
                 <table class="transaction-table">
@@ -276,5 +435,107 @@
             {{end}}
         </div>
     </div>
+
+    <script>
+        // Store actual balance for toggle functionality
+        let balanceVisible = true;
+        let actualBalance = '{{.Account.Balance | formatKES}}';
+
+        // Toggle balance visibility
+        function toggleBalance() {
+            const balanceElement = document.getElementById('balanceAmount');
+            const eyeIcon = document.getElementById('eyeIcon');
+            const toggleText = document.getElementById('toggleText');
+            
+            if (balanceVisible) {
+                balanceElement.innerHTML = '•••••';
+                eyeIcon.innerHTML = '🙈';
+                toggleText.textContent = 'Show';
+                balanceVisible = false;
+            } else {
+                balanceElement.innerHTML = actualBalance;
+                eyeIcon.innerHTML = '👁️';
+                toggleText.textContent = 'Hide';
+                balanceVisible = true;
+            }
+        }
+
+        // Copy account number
+        function copyAccountNumber() {
+            const accountNumber = document.getElementById('accountNumber').innerText;
+            navigator.clipboard.writeText(accountNumber).then(() => {
+                showToast('Account number copied!', 'success');
+            }).catch(() => {
+                showToast('Failed to copy', 'error');
+            });
+        }
+
+        // Toggle password visibility
+        function togglePassword(fieldId) {
+            const field = document.getElementById(fieldId);
+            const type = field.getAttribute('type') === 'password' ? 'text' : 'password';
+            field.setAttribute('type', type);
+        }
+
+        // Toast notification
+        function showToast(message, type) {
+            const toast = document.createElement('div');
+            toast.className = `toast-notification toast-${type}`;
+            const icon = type === 'success' ? '✅' : '❌';
+            toast.innerHTML = `<span>${icon}</span><span>${message}</span><span class="toast-close">&times;</span>`;
+            document.body.appendChild(toast);
+            
+            const closeBtn = toast.querySelector('.toast-close');
+            closeBtn.onclick = () => toast.remove();
+            
+            setTimeout(() => {
+                if (toast.parentNode) toast.remove();
+            }, 5000);
+        }
+
+        // Validate transfer form
+        function validateTransfer() {
+            const account = document.getElementById('to_account').value;
+            const amount = document.getElementById('amount').value;
+            const password = document.getElementById('password').value;
+
+            if (!account || account.length !== 6) {
+                showToast('Please enter a valid 6-digit account number', 'error');
+                return false;
+            }
+
+            if (!amount || amount < 10) {
+                showToast('Minimum transfer amount is KES 10', 'error');
+                return false;
+            }
+
+            if (amount > 100000) {
+                showToast('Maximum transfer amount is KES 100,000', 'error');
+                return false;
+            }
+
+            if (!password) {
+                showToast('Please enter your password to confirm', 'error');
+                return false;
+            }
+
+            return true;
+        }
+
+        // Check URL parameters for success/error messages
+        const urlParams = new URLSearchParams(window.location.search);
+        const successMsg = urlParams.get('success');
+        const errorMsg = urlParams.get('error');
+
+        if (successMsg) {
+            showToast(decodeURIComponent(successMsg), 'success');
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+
+        if (errorMsg) {
+            showToast(decodeURIComponent(errorMsg), 'error');
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    </script>
 </body>
 </html>

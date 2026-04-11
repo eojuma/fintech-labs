@@ -23,7 +23,6 @@
             overflow-x: hidden;
         }
 
-        /* Animated background elements */
         .bg-bubble {
             position: absolute;
             background: rgba(255, 255, 255, 0.1);
@@ -112,6 +111,35 @@
             font-size: 14px;
         }
 
+        /* Password field with eye icon */
+        .password-wrapper {
+            position: relative;
+        }
+
+        .password-wrapper input {
+            padding-right: 45px;
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            font-size: 18px;
+            user-select: none;
+            background: none;
+            border: none;
+            width: auto;
+            padding: 0;
+            color: #999;
+            transition: color 0.2s;
+        }
+
+        .toggle-password:hover {
+            color: #667eea;
+        }
+
         .login-btn {
             width: 100%;
             padding: 14px;
@@ -178,7 +206,6 @@
             margin-bottom: 5px;
         }
 
-        /* Toast notification styles */
         .toast-notification {
             position: fixed;
             top: 20px;
@@ -226,7 +253,6 @@
             font-size: 18px;
         }
 
-        /* Loading spinner */
         .loading {
             display: inline-block;
             width: 20px;
@@ -251,7 +277,7 @@
 <body>
     <div class="login-container">
         <div class="login-header">
-            <h2>🏦 FinTech Banking</h2>
+            <h2>🏦 Evans Bank</h2>
             <p>Secure & Modern Digital Banking</p>
         </div>
         <div class="login-body">
@@ -262,7 +288,10 @@
                 </div>
                 <div class="form-group">
                     <label>🔒 Password</label>
-                    <input type="password" id="password" name="password" placeholder="Enter your password" required>
+                    <div class="password-wrapper">
+                        <input type="password" id="password" name="password" placeholder="Enter your password" required>
+                        <button type="button" class="toggle-password" onclick="togglePassword('password')">👁️</button>
+                    </div>
                 </div>
                 <button type="submit" class="login-btn" id="loginBtn">Sign In</button>
             </form>
@@ -287,7 +316,6 @@
     </div>
 
     <script>
-        // Create floating bubbles animation
         function createBubbles() {
             for (let i = 0; i < 15; i++) {
                 const bubble = document.createElement('div');
@@ -304,7 +332,12 @@
         }
         createBubbles();
 
-        // Toast notification function
+        function togglePassword(fieldId) {
+            const field = document.getElementById(fieldId);
+            const type = field.getAttribute('type') === 'password' ? 'text' : 'password';
+            field.setAttribute('type', type);
+        }
+
         function showToast(message, type = 'error') {
             const toast = document.createElement('div');
             toast.className = `toast-notification toast-${type}`;
@@ -318,17 +351,14 @@
             
             document.body.appendChild(toast);
             
-            // Close button functionality
             const closeBtn = toast.querySelector('.toast-close');
             closeBtn.onclick = () => toast.remove();
             
-            // Auto remove after 5 seconds
             setTimeout(() => {
                 if (toast.parentNode) toast.remove();
             }, 5000);
         }
 
-        // Handle login form submission
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -336,7 +366,6 @@
             const password = document.getElementById('password').value;
             const loginBtn = document.getElementById('loginBtn');
             
-            // Show loading state
             const originalText = loginBtn.innerHTML;
             loginBtn.innerHTML = '<span class="loading"></span> Signing in...';
             loginBtn.disabled = true;
@@ -355,25 +384,20 @@
                 });
                 
                 if (response.ok) {
-                    // Login successful - redirect to dashboard
                     showToast('Login successful! Redirecting...', 'success');
                     setTimeout(() => {
                         window.location.href = '/dashboard';
                     }, 1000);
                 } else {
-                    // Login failed - show error message
                     const errorText = await response.text();
                     if (errorText.includes('Invalid credentials')) {
                         showToast('❌ Invalid username or password. Please try again.', 'error');
                     } else {
                         showToast('❌ Login failed. Please check your credentials.', 'error');
                     }
-                    // Reset button
                     loginBtn.innerHTML = originalText;
                     loginBtn.disabled = false;
                     loginBtn.classList.remove('btn-loading');
-                    
-                    // Clear password field for security
                     document.getElementById('password').value = '';
                 }
             } catch (error) {

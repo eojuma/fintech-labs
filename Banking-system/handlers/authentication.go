@@ -58,7 +58,7 @@ func Register(db *gorm.DB) http.HandlerFunc {
 		input.Username = strings.ToLower(strings.TrimSpace(input.Username))
 
 		if !validator.ValidUsername(input.Username) {
-			http.Error(w, "Invalid username: 3-20 characters, letters/numbers only", http.StatusBadRequest)
+			http.Error(w, "Invalid username: 4-64 characters, letters/numbers,spaces,dots and underscore only", http.StatusBadRequest)
 			return
 		}
 
@@ -120,7 +120,6 @@ func Login(db *gorm.DB) http.HandlerFunc {
 
 			username := r.FormValue("username")
 			password := r.FormValue("password")
-
 			if username == "" || password == "" {
 				http.Error(w, "Username and password required", http.StatusBadRequest)
 				return
@@ -148,8 +147,16 @@ func Login(db *gorm.DB) http.HandlerFunc {
 
 			setSessionUser(w, user.Username)
 
-			log.Printf("User logged in: %s", username)
-			http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+			log.Printf("User logged in: %s (Role: %s)", username, user.Role)
+
+			// ROLE-BASED REDIRECTION
+			if user.Role == "admin" {
+				log.Printf("Redirecting admin %s to /admin", username)
+				http.Redirect(w, r, "/admin", http.StatusSeeOther)
+			} else {
+				log.Printf("Redirecting customer %s to /dashboard", username)
+				http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+			}
 		}
 	}
 }
