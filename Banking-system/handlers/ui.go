@@ -84,7 +84,7 @@ func formatDate(t time.Time) string {
 	return t.Add(3 * time.Hour).Format("02 Jan 2006 15:04:05")
 }
 
-// Get the appropriate emoji icon for transaction type
+// Get the appropriate emojis icons for transaction type
 func getTransactionIcon(txType string) string {
 	switch txType {
 	case "deposit":
