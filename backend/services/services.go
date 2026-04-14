@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"fintech-labs/db"
+	"./db"
 	"fintech-labs/models"
 
 	"gorm.io/gorm"
