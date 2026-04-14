@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"/fintech-labs/db"
+	"fintech-labs/db"
 	"fintech-labs/models"
 
 	"gorm.io/gorm"
@@ -320,7 +320,6 @@ func SendMoney(fromUsername, toAccountNumber string, amount int64) error {
 		return nil
 	})
 }
-
 
 // GetAllUsers - Fetch all users with their accounts
 func GetAllUsers() ([]models.User, error) {
