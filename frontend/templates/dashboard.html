@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Evans Bank</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Welcome, {{.Username}}!</h1>
+            <form action="/logout" method="POST">
+                <button type="submit" class="btn-withdraw" style="width: auto; padding: 10px 20px;">Logout</button>
+            </form>
+        </div>
+
+        <div class="card balance-card">
+            <h3>Current Balance</h3>
+            <div class="balance-amount">KES {{.Balance}}</div>
+            <p>Account Number: <span class="account-number-display">{{.AccountNumber}}</span></p>
+        </div>
+
+        <div class="grid-3">
+            <div class="card">
+                <h3>🤝 Transfer</h3>
+                <form action="/transfer" method="POST" onsubmit="return validateTransfer()">
+                    <input type="text" name="to_account" id="to_account" placeholder="Recipient Account #">
+                    <input type="number" name="amount" id="amount" placeholder="Amount (KES)">
+                    <input type="password" name="password" id="password" placeholder="Confirm Password">
+                    <button type="submit" class="btn-transfer">Send Money</button>
+                </form>
+            </div>
+            </div>
+
+        <div class="card">
+            <h3>Recent Transactions</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range .Transactions}}
+                    <tr>
+                        <td class="{{if eq .Type "DEPOSIT"}}text-success{{else}}text-danger{{end}}">{{.Type}}</td>
+                        <td>KES {{.Amount}}</td>
+                        <td class="status-active">Completed</td>
+                        <td>{{.Date}}</td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
