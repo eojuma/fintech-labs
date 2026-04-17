@@ -73,9 +73,17 @@ func Register(db *gorm.DB) http.HandlerFunc {
 			return
 		}
 
-		_, err := services.CreateUser(username, password, "customer")
+		// 1. Create the User
+		user, err := services.CreateUser(username, password, "customer")
 		if err != nil {
 			http.Redirect(w, r, "/register-page?error=Registration+failed", http.StatusSeeOther)
+			return
+		}
+
+		// 2. NEW: Create the Account for the user so they can actually use the bank
+		_, err = services.CreateAccountForUser(user.ID)
+		if err != nil {
+			http.Redirect(w, r, "/register-page?error=Failed+to+initialize+account", http.StatusSeeOther)
 			return
 		}
 
