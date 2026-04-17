@@ -6,12 +6,15 @@ import (
 	"time"
 )
 
-// Shared by all handlers
 func formatKES(amount int64) string {
+	if amount < 0 {
+		return fmt.Sprintf("-KES %d", -amount)
+	}
 	return fmt.Sprintf("KES %d", amount)
 }
 
 func formatDate(t time.Time) string {
+	// Adding 3 hours for East Africa Time if needed
 	return t.Format("02 Jan 2006 15:04:05")
 }
 

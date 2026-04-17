@@ -1,12 +1,9 @@
 package handlers
 
 import (
-	"fmt"
 	"html/template"
 	"log"
 	"net/http"
-	"time"
-
 	"fintech-labs/models"
 	"fintech-labs/services"
 )
@@ -55,6 +52,3 @@ func DashboardHandler(w http.ResponseWriter, r *http.Request) {
 
 	tmpl.Execute(w, data)
 }
-
-func formatKES(amount int64) string { return fmt.Sprintf("%d", amount) }
-func formatDate(t time.Time) string { return t.Format("02 Jan 2006") }

@@ -170,7 +170,3 @@ func AdminWithdrawHandler(w http.ResponseWriter, r *http.Request) {
 
 	http.Redirect(w, r, "/admin?success=Withdrawal+successful!+KES+"+amountStr+"+from+account+"+accountNumber, http.StatusSeeOther)
 }
-
-func formatKES(amount int64) string {
-    return fmt.Sprintf("KES %d", amount)
-}
