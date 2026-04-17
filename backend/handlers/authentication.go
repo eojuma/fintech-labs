@@ -6,18 +6,32 @@ import (
 
 	"fintech-labs/services"
 	"fintech-labs/validator"
+
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
-func setSessionUser(w http.ResponseWriter, username string) {
+// AuthMiddleware protects routes from unauthenticated users
+func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if getSessionUser(r) == "" {
+			http.Redirect(w, r, "/login", http.StatusSeeOther)
+			return
+		}
+		next(w, r)
+	}
+}
+
+// Logout clears the session cookie
+func Logout(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     "session_user",
-		Value:    username,
+		Value:    "",
 		Path:     "/",
-		Expires:  time.Now().Add(24 * time.Hour),
+		MaxAge:   -1,
 		HttpOnly: true,
 	})
+	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
 
 func Login(db *gorm.DB) http.HandlerFunc {
@@ -59,13 +73,22 @@ func Register(db *gorm.DB) http.HandlerFunc {
 			return
 		}
 
-		// FIXED: services.CreateUser returns (*User, error)
 		_, err := services.CreateUser(username, password, "customer")
 		if err != nil {
-			http.Redirect(w, r, "/register-page?error=User+exists+or+database+error", http.StatusSeeOther)
+			http.Redirect(w, r, "/register-page?error=Registration+failed", http.StatusSeeOther)
 			return
 		}
 
-		http.Redirect(w, r, "/login?success=Account+created+successfully", http.StatusSeeOther)
+		http.Redirect(w, r, "/login?success=Account+created", http.StatusSeeOther)
 	}
+}
+
+func setSessionUser(w http.ResponseWriter, username string) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session_user",
+		Value:    username,
+		Path:     "/",
+		Expires:  time.Now().Add(24 * time.Hour),
+		HttpOnly: true,
+	})
 }
