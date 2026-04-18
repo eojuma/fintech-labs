@@ -1,4 +1,3 @@
-
 function showToast(message, type = 'success') {
     const toast = document.createElement('div');
     toast.className = `toast-notification ${type === 'success' ? 'toast-success' : 'toast-error'}`;
@@ -8,8 +7,23 @@ function showToast(message, type = 'success') {
     setTimeout(() => {
         toast.style.opacity = '0';
         setTimeout(() => toast.remove(), 500);
-    }, 3000);
+    }, 4000);
 }
+
+// Automatically handle messages from Go redirects
+window.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const successMsg = urlParams.get('success');
+    const errorMsg = urlParams.get('error');
+
+    if (successMsg) showToast(decodeURIComponent(successMsg), 'success');
+    if (errorMsg) showToast(decodeURIComponent(errorMsg), 'error');
+    
+    // Clean URL so alert doesn't repeat on refresh
+    if (successMsg || errorMsg) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+});
 
 function togglePassword(inputId, iconElement) {
     const input = document.getElementById(inputId);
@@ -30,12 +44,13 @@ function openModal(type, accountNumber) {
     const accountNumField = document.getElementById('accountNumber');
     const form = document.getElementById('quickActionForm');
     
+    // UPDATED: Standardized routes to match main.go
     if (type === 'deposit') {
-        title.innerText = '💰 Add Funds to Account ' + accountNumber;
-        form.action = '/admin/api/deposit';
+        title.innerText = '💰 Deposit to Account ' + accountNumber;
+        form.action = '/admin/deposit';
     } else {
-        title.innerText = '💸 Withdraw Funds from Account ' + accountNumber;
-        form.action = '/admin/api/withdraw';
+        title.innerText = '💸 Withdraw from Account ' + accountNumber;
+        form.action = '/admin/withdraw';
     }
     
     accountNumField.value = accountNumber;
@@ -47,7 +62,6 @@ function closeModal() {
     const modal = document.getElementById('actionModal');
     if (modal) modal.classList.remove('active');
 }
-
 
 function validateTransfer() {
     const account = document.getElementById('to_account').value;
@@ -69,6 +83,7 @@ function validateTransfer() {
     return true;
 }
 
+// Automatically show messages from the URL (Success/Error redirects)
 window.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
     const successMsg = urlParams.get('success');
@@ -77,6 +92,7 @@ window.addEventListener('DOMContentLoaded', () => {
     if (successMsg) showToast(decodeURIComponent(successMsg), 'success');
     if (errorMsg) showToast(decodeURIComponent(errorMsg), 'error');
     
+    // Clean the URL so messages don't pop up again on refresh
     if (successMsg || errorMsg) {
         window.history.replaceState({}, document.title, window.location.pathname);
     }
