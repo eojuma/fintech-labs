@@ -12,7 +12,7 @@ type User struct {
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 	Username  string         `gorm:"uniqueIndex;not null" json:"username"`
 	Password  string         `gorm:"not null" json:"-"`
-	Role      string         `gorm:"default:'customer'" json:"role"`
+	Role      string         `gorm:"default:'customer'" json:"role"`  // "customer" or "admin"
 	Accounts  []Account      `json:"accounts,omitempty"`
 }
 
