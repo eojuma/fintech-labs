@@ -1,10 +1,10 @@
 package handlers
 
 import (
-	"fintech-labs/services"
-	"fintech-labs/validator"
+	"fintech-labs/backend/services"
+	"fintech-labs/backend/validator"
 	"net/http"
-
+	"log"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -32,21 +32,39 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 
 func Login(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		// 1. Handle the GET request to show the login page
 		if r.Method == http.MethodGet {
-			http.ServeFile(w, r, "../frontend/templates/login.html")
+			http.ServeFile(w, r, "frontend/templates/login.html")
 			return
 		}
 
+		// 2. Capture form values
 		username := r.FormValue("username")
 		password := r.FormValue("password")
 
+		// 3. Find the user (services.GetUserByUsername already handles Trim and ToLower)
 		user, err := services.GetUserByUsername(username)
-		if err != nil || bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)) != nil {
+		if err != nil {
+			// DEBUG LOG: Tells you if the user actually exists in the DB
+			log.Printf("Login Fail: User '%s' not found in database", username)
 			http.Redirect(w, r, "/login?error=Invalid+username+or+password", http.StatusSeeOther)
 			return
 		}
 
+		// 4. Compare the provided plain-text password with the stored HASH
+		// bcrypt.CompareHashAndPassword returns nil on success
+		err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+		if err != nil {
+			// DEBUG LOG: Tells you if the password was typed incorrectly or wasn't hashed
+			log.Printf("Login Fail: Password mismatch for user '%s'", username)
+			http.Redirect(w, r, "/login?error=Invalid+username+or+password", http.StatusSeeOther)
+			return
+		}
+
+		// 5. Success! Set the session and redirect based on role
+		log.Printf("✅ Login Success: %s logged in as %s", user.Username, user.Role)
 		setSessionUser(w, user.Username)
+		
 		if user.Role == "admin" {
 			http.Redirect(w, r, "/admin", http.StatusSeeOther)
 		} else {
@@ -88,7 +106,7 @@ func Register(db *gorm.DB) http.HandlerFunc {
 }
 
 func RegisterPage(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "../frontend/templates/register.html")
+	http.ServeFile(w, r, "frontend/templates/register.html")
 }
 
 func setSessionUser(w http.ResponseWriter, username string) {

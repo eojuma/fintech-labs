@@ -10,9 +10,12 @@
     <div class="container">
         <div class="header">
             <h1>Welcome, {{.Username}}!</h1>
-            <form action="/logout" method="POST">
-                <button type="submit" class="btn-withdraw" style="width: auto; padding: 10px 20px;">Logout</button>
-            </form>
+            <div class="header-actions">
+                <a href="/admin" class="btn-secondary" style="text-decoration: none; padding: 10px 20px; border-radius: 8px; margin-right: 10px;">Admin Panel</a>
+                <form action="/logout" method="POST" style="display: inline;">
+                    <button type="submit" class="btn-withdraw" style="width: auto; padding: 10px 20px;">Logout</button>
+                </form>
+            </div>
         </div>
 
         <div class="card balance-card">
@@ -23,6 +26,16 @@
 
         <div class="grid-3">
             <div class="card">
+                <h3>💰 Deposit</h3>
+                <form action="/deposit" method="POST">
+                    <div class="form-group">
+                        <input type="number" name="amount" placeholder="Amount (KES)" required min="50">
+                    </div>
+                    <button type="submit" class="btn-deposit" style="width: 100%; background: var(--success); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600;">Deposit Funds</button>
+                </form>
+            </div>
+
+            <div class="card">
                 <h3>🤝 Transfer</h3>
                 <form action="/transfer" method="POST" onsubmit="return validateTransfer()">
                     <input type="text" name="to_account" id="to_account" placeholder="Recipient Account #">
@@ -31,7 +44,17 @@
                     <button type="submit" class="btn-transfer">Send Money</button>
                 </form>
             </div>
+
+            <div class="card">
+                <h3>💸 Withdraw</h3>
+                <form action="/withdraw" method="POST">
+                    <div class="form-group">
+                        <input type="number" name="amount" placeholder="Amount (KES)" required min="100">
+                    </div>
+                    <button type="submit" class="btn-withdraw" style="width: 100%; background: var(--danger); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600;">Withdraw Cash</button>
+                </form>
             </div>
+        </div>
 
         <div class="card">
             <h3>Recent Transactions</h3>
@@ -47,10 +70,16 @@
                 <tbody>
                     {{range .Transactions}}
                     <tr>
-                        <td class="{{if eq .Type "DEPOSIT"}}text-success{{else}}text-danger{{end}}">{{.Type}}</td>
+                        <td class="{{if eq .Type "deposit"}}text-success{{else}}text-danger{{end}}" style="text-transform: capitalize;">
+                            {{.Type}}
+                        </td>
                         <td>KES {{.Amount}}</td>
                         <td class="status-active">Completed</td>
-                        <td>{{.Date}}</td>
+                        <td>{{.CreatedAt.Format "02 Jan 2006 15:04"}}</td>
+                    </tr>
+                    {{else}}
+                    <tr>
+                        <td colspan="4" style="text-align: center; color: #666; padding: 20px;">No transactions yet.</td>
                     </tr>
                     {{end}}
                 </tbody>

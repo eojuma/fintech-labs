@@ -2,8 +2,8 @@ package handlers
 
 import (
 	"encoding/json"
-	"fintech-labs/models"
-	"fintech-labs/services"
+	"fintech-labs/backend/models"
+	"fintech-labs/backend/services"
 	"fmt"
 	"html/template"
 	"log"
@@ -61,7 +61,7 @@ func AdminDashboardHandler(w http.ResponseWriter, r *http.Request) {
 		"formatKES": formatKES,
 	})
 
-	tmpl, err = tmpl.ParseFiles("templates/admin.html")
+	tmpl, err = tmpl.ParseFiles("frontend/templates/admin.html")
 	if err != nil {
 		log.Printf("Template parse error: %v", err)
 		http.Error(w, "Template error", http.StatusInternalServerError)

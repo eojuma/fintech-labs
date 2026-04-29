@@ -1,7 +1,7 @@
 package db
 
 import (
-	"fintech-labs/models"
+	"fintech-labs/backend/models"
 	"log"
 
 	"gorm.io/driver/sqlite"

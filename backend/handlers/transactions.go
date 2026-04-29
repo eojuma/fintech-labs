@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
-	"fintech-labs/services"
+	"fintech-labs/backend/services"
 	"fmt"
 	"golang.org/x/crypto/bcrypt"
 	"log"

@@ -8,10 +8,11 @@ import (
 	"strings"
 	"time"
 
-	"fintech-labs/db"
-	"fintech-labs/models"
+	"fintech-labs/backend/db"
+	"fintech-labs/backend/models"
 
 	"gorm.io/gorm"
+	"golang.org/x/crypto/bcrypt"
 )
 
 const (
@@ -65,19 +66,34 @@ func GetAccountByUsername(username string) (*models.Account, error) {
 }
 
 func CreateUser(username, password, role string) (*models.User, error) {
-	username = strings.ToLower(strings.TrimSpace(username))
+	// 1. CLEAN THE USERNAME
+	// This ensures "Evans" and "evans " are treated as the same user
+	cleanUsername := strings.ToLower(strings.TrimSpace(username))
 
-	user := &models.User{
-		Username: username,
-		Password: password,
-		Role:     role,
-	}
-
-	err := db.DB.Create(user).Error
+	// 2. HASH THE PASSWORD
+	// Never save plain text! DefaultCost is usually 10, which is secure and fast
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
+		log.Printf("Error hashing password: %v", err)
 		return nil, err
 	}
 
+	// 3. CREATE THE USER OBJECT
+	user := &models.User{
+		Username: cleanUsername,
+		Password: string(hashedPassword), // Save the hash, not the raw password
+		Role:     role,
+	}
+
+	// 4. SAVE TO DATABASE
+	// db.DB.Create will return an error if the username already exists (Unique constraint)
+	result := db.DB.Create(user)
+	if result.Error != nil {
+		log.Printf("Error creating user %s: %v", cleanUsername, result.Error)
+		return nil, result.Error
+	}
+
+	log.Printf("✅ User created successfully: %s (Role: %s)", cleanUsername, role)
 	return user, nil
 }
 

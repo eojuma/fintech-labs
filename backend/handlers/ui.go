@@ -4,8 +4,8 @@ import (
 	"html/template"
 	"log"
 	"net/http"
-	"fintech-labs/models"
-	"fintech-labs/services"
+	"fintech-labs/backend/models"
+	"fintech-labs/backend/services"
 )
 
 func DashboardHandler(w http.ResponseWriter, r *http.Request) {
@@ -30,7 +30,7 @@ func DashboardHandler(w http.ResponseWriter, r *http.Request) {
 	tmpl, err := template.New("dashboard.html").Funcs(template.FuncMap{
 		"formatKES": formatKES,
 		"formatDate": formatDate,
-	}).ParseFiles("../frontend/templates/dashboard.html")
+	}).ParseFiles("frontend/templates/dashboard.html")
 	
 	if err != nil {
 		log.Printf("Template error: %v", err)

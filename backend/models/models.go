@@ -44,5 +44,5 @@ type DepositRequest struct {
 }
 
 type WithdrawRequest struct {
-	Amount int64 `json:"amount"`
+	Amount int64 `json:"amount"`  //
 }
