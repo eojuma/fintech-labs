@@ -1,0 +1,13 @@
+# Database file (The "Cake")
+transaction.db
+
+# Binary/Executable files (The built app)
+fintech-labs
+main
+
+# Environment files (Sensitive keys)
+.env
+*.txt
+
+# Dependency folders
+vendor/
