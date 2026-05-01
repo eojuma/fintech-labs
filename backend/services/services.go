@@ -29,48 +29,11 @@ const (
 func init() {
 	rand.Seed(time.Now().UnixNano())
 }
-
-func GenerateAccountNumber() string {
-	return fmt.Sprintf("%06d", rand.Intn(900000)+100000)
-}
-
-func GetUserByUsername(username string) (*models.User, error) {
-	username = strings.ToLower(strings.TrimSpace(username))
-	var user models.User
-	err := db.DB.Where("username = ?", username).First(&user).Error
-	if err != nil {
-		return nil, err
-	}
-	return &user, nil
-}
-
-func GetAccountByUserID(userID uint) (*models.Account, error) {
-	var account models.Account
-	err := db.DB.Where("user_id = ?", userID).Preload("User").First(&account).Error
-	if err != nil {
-		return nil, err
-	}
-	return &account, nil
-}
-
-func GetAccountByUsername(username string) (*models.Account, error) {
-	username = strings.ToLower(strings.TrimSpace(username))
-	var account models.Account
-	err := db.DB.Joins("JOIN users ON users.id = accounts.user_id").
-		Where("users.username = ?", username).
-		Preload("User").
-		First(&account).Error
-	if err != nil {
-		return nil, err
-	}
-	return &account, nil
-}
-
-func CreateUser(fullname, username, email, password, role string) (*models.User, error) {
+func CreateUser(fullname, username, email, phone, password, role string) (*models.User, error) {
 	cleanfullname := strings.TrimSpace(fullname)
 	cleanEmail := strings.ToLower(strings.TrimSpace(email))
 	cleanUsername := strings.ToLower(strings.TrimSpace(username))
-
+	cleanPhoneNumber := strings.TrimSpace(phone)
 	if !validator.ValidEmail(cleanEmail) {
 		return nil, fmt.Errorf("invalid email address")
 	}
@@ -81,7 +44,13 @@ func CreateUser(fullname, username, email, password, role string) (*models.User,
 	if !validator.ValidUsername(cleanUsername) {
 		return nil, fmt.Errorf("invalid username:must be 3-30 characters and contains only letters,numbers or . - _")
 	}
+	if strings.HasPrefix(cleanPhoneNumber, "0") {
+		cleanPhoneNumber = "254" + cleanPhoneNumber[1:]
+	}
 
+	if !validator.ValidPhoneNumber(cleanPhoneNumber) {
+		return nil, fmt.Errorf("invalid phone number")
+	}
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		log.Printf("Error hashing password: %v", err)
@@ -89,21 +58,29 @@ func CreateUser(fullname, username, email, password, role string) (*models.User,
 	}
 
 	user := &models.User{
-		Email:    cleanEmail,
-		FullName: cleanfullname,
-		Username: cleanUsername,
-		Password: string(hashedPassword),
-		Role:     role,
+		Email:       cleanEmail,
+		FullName:    cleanfullname,
+		Username:    cleanUsername,
+		Password:    string(hashedPassword),
+		Role:        role,
+		PhoneNumber: phone,
 	}
 
 	result := db.DB.Create(user)
 	if result.Error != nil {
-		log.Printf("Error creating user %s: %v", cleanUsername, result.Error)
+		if strings.Contains(result.Error.Error(), "UNIQUE constraint failed") {
+			return nil, fmt.Errorf("a user with this email, username, or phone number already exists")
+		}
+		log.Printf("Error creating user: %v", result.Error)
 		return nil, result.Error
 	}
 
 	log.Printf("✅ User created successfully: %s (Role: %s)", cleanUsername, role)
 	return user, nil
+}
+
+func GenerateAccountNumber() string {
+	return fmt.Sprintf("%06d", rand.Intn(900000)+100000)
 }
 
 func CreateAccountForUser(userID uint) (*models.Account, error) {
@@ -120,6 +97,25 @@ func CreateAccountForUser(userID uint) (*models.Account, error) {
 	}
 
 	return account, nil
+}
+
+func AuthenticateUser(email, password string) (*models.User, error) {
+	cleanEmail := strings.ToLower(strings.TrimSpace(email))
+	if !validator.ValidEmail(cleanEmail) {
+		return nil, fmt.Errorf("invalid email or password")
+	}
+	var user models.User
+
+	if err := db.DB.Where("email = ?", cleanEmail).First(&user).Error; err != nil {
+		return nil, errors.New("invalid email or password")
+	}
+
+	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+
+	if err != nil {
+		return nil, errors.New("invalid email or password")
+	}
+	return &user, nil
 }
 
 func Deposit(username string, amount int64) error {
@@ -170,6 +166,50 @@ func Deposit(username string, amount int64) error {
 		return nil
 	})
 }
+
+
+// AdminDeposit - Admin deposit to any user account
+func AdminDeposit(accountNumber string, amount int64) error {
+	if amount < MinDeposit {
+		return fmt.Errorf("minimum deposit is KES %d", MinDeposit)
+	}
+	if amount > MaxDeposit {
+		return fmt.Errorf("maximum deposit is KES %d", MaxDeposit)
+	}
+
+	return db.DB.Transaction(func(tx *gorm.DB) error {
+		var account models.Account
+		if err := tx.Where("number = ?", accountNumber).First(&account).Error; err != nil {
+			return errors.New("account not found")
+		}
+
+		var user models.User
+		if err := tx.First(&user, account.UserID).Error; err != nil {
+			return errors.New("user not found")
+		}
+
+		oldBalance := account.Balance
+		account.Balance += amount
+		if err := tx.Save(&account).Error; err != nil {
+			return err
+		}
+
+		transaction := models.Transaction{
+			Username: user.Username,
+			Type:     "deposit",
+			Amount:   amount,
+			Balance:  account.Balance,
+		}
+		if err := tx.Create(&transaction).Error; err != nil {
+			return err
+		}
+
+		log.Printf("💰 ADMIN DEPOSIT: Added KES %d to account %s (User: %s) | Balance: KES %d → KES %d",
+			amount, account.Number, user.Username, oldBalance, account.Balance)
+		return nil
+	})
+}
+
 
 func Withdraw(username string, amount int64) error {
 	username = strings.ToLower(strings.TrimSpace(username))
@@ -224,29 +264,52 @@ func Withdraw(username string, amount int64) error {
 	})
 }
 
-func GetTransactions(username string) ([]models.Transaction, error) {
-	username = strings.ToLower(strings.TrimSpace(username))
-
-	var transactions []models.Transaction
-	err := db.DB.Where("username = ?", username).
-		Order("created_at desc").
-		Limit(50).
-		Find(&transactions).Error
-	if err != nil {
-		log.Printf("Error fetching transactions for %s: %v", username, err)
-		return nil, err
+// AdminWithdraw - Admin withdrawal from any user account
+func AdminWithdraw(accountNumber string, amount int64) error {
+	if amount < MinWithdrawal {
+		return fmt.Errorf("minimum withdrawal is KES %d", MinWithdrawal)
+	}
+	if amount > MaxWithdrawal {
+		return fmt.Errorf("maximum withdrawal is KES %d", MaxWithdrawal)
 	}
 
-	log.Printf("Retrieved %d transactions for %s", len(transactions), username)
+	return db.DB.Transaction(func(tx *gorm.DB) error {
+		var account models.Account
+		if err := tx.Where("number = ?", accountNumber).First(&account).Error; err != nil {
+			return errors.New("account not found")
+		}
 
-	return transactions, nil
+		var user models.User
+		if err := tx.First(&user, account.UserID).Error; err != nil {
+			return errors.New("user not found")
+		}
+
+		if account.Balance < amount {
+			return fmt.Errorf("insufficient funds. Account balance is KES %d", account.Balance)
+		}
+
+		oldBalance := account.Balance
+		account.Balance -= amount
+		if err := tx.Save(&account).Error; err != nil {
+			return err
+		}
+
+		transaction := models.Transaction{
+			Username: user.Username,
+			Type:     "withdrawal",
+			Amount:   amount,
+			Balance:  account.Balance,
+		}
+		if err := tx.Create(&transaction).Error; err != nil {
+			return err
+		}
+
+		log.Printf("💸 ADMIN WITHDRAWAL: Removed KES %d from account %s (User: %s) | Balance: KES %d → KES %d",
+			amount, account.Number, user.Username, oldBalance, account.Balance)
+		return nil
+	})
 }
 
-func GetAllAccounts() ([]models.Account, error) {
-	var accounts []models.Account
-	err := db.DB.Preload("User").Find(&accounts).Error
-	return accounts, err
-}
 
 func SendMoney(fromUsername, toAccountNumber string, amount int64) error {
 	fromUsername = strings.ToLower(strings.TrimSpace(fromUsername))
@@ -346,11 +409,33 @@ func SendMoney(fromUsername, toAccountNumber string, amount int64) error {
 	})
 }
 
-// GetAllUsers - Fetch all users with their accounts
-func GetAllUsers() ([]models.User, error) {
-	var users []models.User
-	err := db.DB.Preload("Accounts").Find(&users).Error
-	return users, err
+
+func GetTransactions(username string) ([]models.Transaction, error) {
+	username = strings.ToLower(strings.TrimSpace(username))
+
+	var transactions []models.Transaction
+	err := db.DB.Where("username = ?", username).
+		Order("created_at desc").
+		Limit(50).
+		Find(&transactions).Error
+	if err != nil {
+		log.Printf("Error fetching transactions for %s: %v", username, err)
+		return nil, err
+	}
+
+	log.Printf("Retrieved %d transactions for %s", len(transactions), username)
+
+	return transactions, nil
+}
+
+func GetUserByUsername(username string) (*models.User, error) {
+	username = strings.ToLower(strings.TrimSpace(username))
+	var user models.User
+	err := db.DB.Where("username = ?", username).First(&user).Error
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
 }
 
 // GetUserByID - Fetch a single user by ID
@@ -361,6 +446,44 @@ func GetUserByID(userID uint) (*models.User, error) {
 		return nil, err
 	}
 	return &user, nil
+}
+
+func GetAccountByUserID(userID uint) (*models.Account, error) {
+	var account models.Account
+	err := db.DB.Where("user_id = ?", userID).Preload("User").First(&account).Error
+	if err != nil {
+		return nil, err
+	}
+	return &account, nil
+}
+
+func GetAccountByUsername(username string) (*models.Account, error) {
+	username = strings.ToLower(strings.TrimSpace(username))
+	var account models.Account
+	err := db.DB.Joins("JOIN users ON users.id = accounts.user_id").
+		Where("users.username = ?", username).
+		Preload("User").
+		First(&account).Error
+	if err != nil {
+		return nil, err
+	}
+	return &account, nil
+}
+
+// GetAccountByNumber - Fetch account by account number
+func GetAccountByNumber(accountNumber string) (*models.Account, error) {
+	var account models.Account
+	err := db.DB.Where("number = ?", accountNumber).Preload("User").First(&account).Error
+	if err != nil {
+		return nil, err
+	}
+	return &account, nil
+}
+
+func GetAllAccounts() ([]models.Account, error) {
+	var accounts []models.Account
+	err := db.DB.Preload("User").Find(&accounts).Error
+	return accounts, err
 }
 
 // ToggleAccountStatus - Activate/Deactivate an account
@@ -383,121 +506,4 @@ func ToggleAccountStatus(accountID uint, active bool) error {
 		log.Printf("Admin: Account %s (User ID: %d) has been %s", account.Number, account.UserID, status)
 		return nil
 	})
-}
-
-// AdminDeposit - Admin deposit to any user account
-func AdminDeposit(accountNumber string, amount int64) error {
-	if amount < MinDeposit {
-		return fmt.Errorf("minimum deposit is KES %d", MinDeposit)
-	}
-	if amount > MaxDeposit {
-		return fmt.Errorf("maximum deposit is KES %d", MaxDeposit)
-	}
-
-	return db.DB.Transaction(func(tx *gorm.DB) error {
-		var account models.Account
-		if err := tx.Where("number = ?", accountNumber).First(&account).Error; err != nil {
-			return errors.New("account not found")
-		}
-
-		var user models.User
-		if err := tx.First(&user, account.UserID).Error; err != nil {
-			return errors.New("user not found")
-		}
-
-		oldBalance := account.Balance
-		account.Balance += amount
-		if err := tx.Save(&account).Error; err != nil {
-			return err
-		}
-
-		transaction := models.Transaction{
-			Username: user.Username,
-			Type:     "deposit",
-			Amount:   amount,
-			Balance:  account.Balance,
-		}
-		if err := tx.Create(&transaction).Error; err != nil {
-			return err
-		}
-
-		log.Printf("💰 ADMIN DEPOSIT: Added KES %d to account %s (User: %s) | Balance: KES %d → KES %d",
-			amount, account.Number, user.Username, oldBalance, account.Balance)
-		return nil
-	})
-}
-
-// AdminWithdraw - Admin withdrawal from any user account
-func AdminWithdraw(accountNumber string, amount int64) error {
-	if amount < MinWithdrawal {
-		return fmt.Errorf("minimum withdrawal is KES %d", MinWithdrawal)
-	}
-	if amount > MaxWithdrawal {
-		return fmt.Errorf("maximum withdrawal is KES %d", MaxWithdrawal)
-	}
-
-	return db.DB.Transaction(func(tx *gorm.DB) error {
-		var account models.Account
-		if err := tx.Where("number = ?", accountNumber).First(&account).Error; err != nil {
-			return errors.New("account not found")
-		}
-
-		var user models.User
-		if err := tx.First(&user, account.UserID).Error; err != nil {
-			return errors.New("user not found")
-		}
-
-		if account.Balance < amount {
-			return fmt.Errorf("insufficient funds. Account balance is KES %d", account.Balance)
-		}
-
-		oldBalance := account.Balance
-		account.Balance -= amount
-		if err := tx.Save(&account).Error; err != nil {
-			return err
-		}
-
-		transaction := models.Transaction{
-			Username: user.Username,
-			Type:     "withdrawal",
-			Amount:   amount,
-			Balance:  account.Balance,
-		}
-		if err := tx.Create(&transaction).Error; err != nil {
-			return err
-		}
-
-		log.Printf("💸 ADMIN WITHDRAWAL: Removed KES %d from account %s (User: %s) | Balance: KES %d → KES %d",
-			amount, account.Number, user.Username, oldBalance, account.Balance)
-		return nil
-	})
-}
-
-// GetAccountByNumber - Fetch account by account number
-func GetAccountByNumber(accountNumber string) (*models.Account, error) {
-	var account models.Account
-	err := db.DB.Where("number = ?", accountNumber).Preload("User").First(&account).Error
-	if err != nil {
-		return nil, err
-	}
-	return &account, nil
-}
-
-
-
-func AuthenticateUser(email,password string)(*models.User,error){
-	cleanEmail:=strings.ToLower(strings.TrimSpace(email))
-
-	var user models.User
-
-if err := db.DB.Where("email = ?", cleanEmail).First(&user).Error; err != nil {
-        return nil, errors.New("invalid email or password")
-    }
-
-err:=bcrypt.CompareHashAndPassword([]byte(user.Password),[]byte(password))
-
-if err !=nil{
-	return nil,errors.New("invalid email or password")
-}
-return &user,nil
 }
