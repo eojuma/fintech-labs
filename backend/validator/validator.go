@@ -43,3 +43,11 @@ if len(email) <5 || len(email)>254{
 var emailRegex = regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$`)
 return emailRegex.MatchString(strings.ToLower(email))
 }
+
+func ValidPhoneNumber(phone string)bool{
+	phone = strings.TrimSpace(phone)
+
+	var phoneRegex = regexp.MustCompile(`^(?:254|\+254|0)?(7|1|2)\d{8}$`)
+
+	return phoneRegex.MatchString(phone)
+}
