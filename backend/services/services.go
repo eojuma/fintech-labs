@@ -29,11 +29,12 @@ const (
 func init() {
 	rand.Seed(time.Now().UnixNano())
 }
-func CreateUser(fullname, username, email, phone, password, role string) (*models.User, error) {
+func CreateUser(fullname, username, email, phone,Id, password, role string) (*models.User, error) {
 	cleanfullname := strings.TrimSpace(fullname)
 	cleanEmail := strings.ToLower(strings.TrimSpace(email))
 	cleanUsername := strings.ToLower(strings.TrimSpace(username))
 	cleanPhoneNumber := strings.TrimSpace(phone)
+	cleanId:=strings.TrimSpace(Id)
 	if !validator.ValidEmail(cleanEmail) {
 		return nil, fmt.Errorf("invalid email address")
 	}
@@ -51,6 +52,12 @@ func CreateUser(fullname, username, email, phone, password, role string) (*model
 	if !validator.ValidPhoneNumber(cleanPhoneNumber) {
 		return nil, fmt.Errorf("invalid phone number")
 	}
+
+	if !validator.ValidNationalID(cleanId){
+
+		return nil,fmt.Errorf("invalid National ID Number")
+	}
+	
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		log.Printf("Error hashing password: %v", err)
@@ -62,6 +69,7 @@ func CreateUser(fullname, username, email, phone, password, role string) (*model
 		FullName:    cleanfullname,
 		Username:    cleanUsername,
 		Password:    string(hashedPassword),
+		NationlID: cleanId,
 		Role:        role,
 		PhoneNumber: phone,
 	}
@@ -99,21 +107,19 @@ func CreateAccountForUser(userID uint) (*models.Account, error) {
 	return account, nil
 }
 
-func AuthenticateUser(email, password string) (*models.User, error) {
-	cleanEmail := strings.ToLower(strings.TrimSpace(email))
-	if !validator.ValidEmail(cleanEmail) {
-		return nil, fmt.Errorf("invalid email or password")
-	}
-	var user models.User
+func AuthenticateUser(Identifier,password string) (*models.User, error) {
+	cleanIdentifier := strings.ToLower(strings.TrimSpace(Identifier))
 
-	if err := db.DB.Where("email = ?", cleanEmail).First(&user).Error; err != nil {
-		return nil, errors.New("invalid email or password")
+ var user models.User
+
+	if err := db.DB.Where("email = ? OR phonenumber = ?" , cleanIdentifier).First(&user).Error; err != nil {
+		return nil, errors.New("invalid credentials")
 	}
 
 	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 
 	if err != nil {
-		return nil, errors.New("invalid email or password")
+		return nil, errors.New("invalid credentials")
 	}
 	return &user, nil
 }
