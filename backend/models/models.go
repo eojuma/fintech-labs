@@ -16,6 +16,8 @@ type User struct {
 	Accounts  []Account      `json:"accounts,omitempty"`
 	Email string              `gorm:"uniqueIndex;not null" json:"email"`
 	FullName string           `gorm:"not null" json:"fullname"`
+	PhoneNumber string        `gorm:"uniqueIndex;not null" json:"phonenumber"`
+	NationlID string    	  `gorm:"uniqueIndex;not null" json:"national_id"`
 }
 
 type Account struct {
