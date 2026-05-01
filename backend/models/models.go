@@ -50,3 +50,13 @@ type DepositRequest struct {
 type WithdrawRequest struct {
 	Amount int64 `json:"amount"`
 }
+
+type TransferRecipient struct {
+    AccountNumber string `json:"account_number"`
+    Amount        int64  `json:"amount"`
+}
+
+type MultiTransferRequest struct {
+    SenderIdentifier string              `json:"sender_identifier"`
+    Recipients       []TransferRecipient `json:"recipients"`
+}
