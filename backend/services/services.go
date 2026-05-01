@@ -10,9 +10,10 @@ import (
 
 	"fintech-labs/backend/db"
 	"fintech-labs/backend/models"
+	"fintech-labs/backend/validator"
 
-	"gorm.io/gorm"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 const (
@@ -65,28 +66,36 @@ func GetAccountByUsername(username string) (*models.Account, error) {
 	return &account, nil
 }
 
-func CreateUser(username, password, role string) (*models.User, error) {
-	// 1. CLEAN THE USERNAME
-	// This ensures "Evans" and "evans " are treated as the same user
+func CreateUser(fullname, username, email, password, role string) (*models.User, error) {
+	cleanfullname := strings.TrimSpace(fullname)
+	cleanEmail := strings.ToLower(strings.TrimSpace(email))
 	cleanUsername := strings.ToLower(strings.TrimSpace(username))
 
-	// 2. HASH THE PASSWORD
-	// Never save plain text! DefaultCost is usually 10, which is secure and fast
+	if !validator.ValidEmail(cleanEmail) {
+		return nil, fmt.Errorf("invalid email address")
+	}
+
+	if !validator.ValidFullName(cleanfullname) {
+		return nil, fmt.Errorf("invalid full  name")
+	}
+	if !validator.ValidUsername(cleanUsername) {
+		return nil, fmt.Errorf("invalid username:must be 3-30 characters and contains only letters,numbers or . - _")
+	}
+
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		log.Printf("Error hashing password: %v", err)
 		return nil, err
 	}
 
-	// 3. CREATE THE USER OBJECT
 	user := &models.User{
+		Email:    cleanEmail,
+		FullName: cleanfullname,
 		Username: cleanUsername,
-		Password: string(hashedPassword), // Save the hash, not the raw password
+		Password: string(hashedPassword),
 		Role:     role,
 	}
 
-	// 4. SAVE TO DATABASE
-	// db.DB.Create will return an error if the username already exists (Unique constraint)
 	result := db.DB.Create(user)
 	if result.Error != nil {
 		log.Printf("Error creating user %s: %v", cleanUsername, result.Error)
@@ -472,4 +481,23 @@ func GetAccountByNumber(accountNumber string) (*models.Account, error) {
 		return nil, err
 	}
 	return &account, nil
+}
+
+
+
+func AuthenticateUser(email,password string)(*models.User,error){
+	cleanEmail:=strings.ToLower(strings.TrimSpace(email))
+
+	var user models.User
+
+if err := db.DB.Where("email = ?", cleanEmail).First(&user).Error; err != nil {
+        return nil, errors.New("invalid email or password")
+    }
+
+err:=bcrypt.CompareHashAndPassword([]byte(user.Password),[]byte(password))
+
+if err !=nil{
+	return nil,errors.New("invalid email or password")
+}
+return &user,nil
 }
