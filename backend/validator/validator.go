@@ -51,3 +51,16 @@ func ValidPhoneNumber(phone string)bool{
 
 	return phoneRegex.MatchString(phone)
 }
+
+func ValidNationalID(Id string)bool{
+	Id=strings.TrimSpace(Id)
+	if len(Id)<7 || len(Id)>8{
+		return false
+	}
+	for _,ch:=range Id{
+		if ch<'0' || ch>'9'{
+			return false
+		}
+	}
+	return true
+}
