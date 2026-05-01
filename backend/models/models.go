@@ -10,10 +10,12 @@ type User struct {
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
-	Username  string         `gorm:"uniqueIndex;not null" json:"username"`
+	Username  string         `gorm:"not null" json:"username"`
 	Password  string         `gorm:"not null" json:"-"`
 	Role      string         `gorm:"default:'customer'" json:"role"`  // "customer" or "admin"
 	Accounts  []Account      `json:"accounts,omitempty"`
+	Email string              `gorm:"uniqueIndex;not null" json:"email"`
+	FullName string           `gorm:"not null" json:"fullname"`
 }
 
 type Account struct {
