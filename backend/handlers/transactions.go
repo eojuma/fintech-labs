@@ -2,13 +2,16 @@ package handlers
 
 import (
 	"encoding/json"
-	"fintech-labs/backend/services"
 	"fmt"
-	"golang.org/x/crypto/bcrypt"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"fintech-labs/backend/models"
+	"fintech-labs/backend/services"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 func Deposit(w http.ResponseWriter, r *http.Request) {
@@ -208,4 +211,25 @@ func SendMoneyHandler(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Transfer successful from %s to account %s: KES %d", username, toAccountNumber, amount)
 	http.Redirect(w, r, "/dashboard?success=Transfer+successful!+KES+"+amountStr+"+sent+to+account+"+toAccountNumber, http.StatusSeeOther)
+}
+
+func MultiTransferHandler(w http.ResponseWriter, r *http.Request) {
+	var req models.MultiTransferRequest
+
+	// 1. Decode the JSON body
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		return
+	}
+
+	// 2. Call the service we just built
+	err := services.MultiTransfer(req.SenderIdentifier, req.Recipients)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		return
+	}
+
+	// 3. Success Response
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"message": "Batch transfer completed successfully"})
 }
