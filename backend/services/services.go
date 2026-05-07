@@ -547,3 +547,11 @@ func MultiTransfer(senderIdentifier string, recipients []models.TransferRecipien
         return nil
     })
 }
+
+// GetAllUsers - Fetches all users and their associated accounts for the Admin Dashboard
+func GetAllUsers() ([]models.User, error) {
+	var users []models.User
+	// Preload("Accounts") tells GORM to fetch the bank account for each user
+	err := db.DB.Preload("Accounts").Find(&users).Error
+	return users, err
+}
