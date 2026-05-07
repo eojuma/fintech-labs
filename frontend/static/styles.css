@@ -7,8 +7,6 @@
     --danger: #e74c3c;
     --warning: #f59e0b;
     --text: #333;
-    --admin-primary: #7c3aed;
-    --admin-dark: #5b21b6;
     --border: #e2e8f0;
 }
 
@@ -24,34 +22,27 @@ body { font-family: 'Inter', sans-serif; background-color: var(--light); color: 
 .form-group { margin-bottom: 15px; }
 .form-group label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.9rem; }
 
-/* --- INPUT & ICON POSITIONING --- */
-.input-wrapper {
-    position: relative; /* Anchor for the absolute icon */
+/* --- THE EYE ICON FIX --- */
+.password-container {
+    position: relative; /* Anchor for the icon */
     width: 100%;
 }
 
-input {
+.password-container input {
     width: 100%;
     padding: 12px;
+    padding-right: 45px; /* Creates space so text doesn't go under the eye */
     border: 1px solid var(--border);
     border-radius: 8px;
     font-size: 1rem;
-    transition: border-color 0.2s;
+    box-sizing: border-box;
 }
-
-/* Specific padding for password fields to prevent text overlapping the icon */
-.input-wrapper input[type="password"], 
-.input-wrapper input[type="text"].password-field {
-    padding-right: 45px; 
-}
-
-input:focus { border-color: var(--primary); outline: none; }
 
 .password-toggle {
     position: absolute;
     right: 12px;
     top: 50%;
-    transform: translateY(-50%); /* Centers icon perfectly */
+    transform: translateY(-50%); /* Centers the icon vertically */
     cursor: pointer;
     user-select: none;
     font-size: 1.2rem;
@@ -61,17 +52,14 @@ input:focus { border-color: var(--primary); outline: none; }
     align-items: center;
 }
 
-/* --- TOAST NOTIFICATIONS --- */
-.toast-notification {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    padding: 15px 25px;
-    border-radius: 8px;
+/* General button style for auth */
+.btn-auth {
+    width: 100%;
+    background: var(--primary);
     color: white;
-    z-index: 10000;
-    box-shadow: 0 10px 15px rgba(0,0,0,0.1);
-    transition: opacity 0.5s ease;
+    border: none;
+    padding: 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
 }
-.toast-success { background-color: var(--success); }
-.toast-error { background-color: var(--danger); }
