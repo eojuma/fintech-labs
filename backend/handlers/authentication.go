@@ -7,6 +7,7 @@ import (
 	"log"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
+	"strings"
 )
 
 func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
@@ -73,7 +74,7 @@ func Login(db *gorm.DB) http.HandlerFunc {
 	}
 }
 
-ffunc Register(db *gorm.DB) http.HandlerFunc {
+func Register(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
