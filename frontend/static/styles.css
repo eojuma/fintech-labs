@@ -16,14 +16,19 @@
 body { font-family: 'Inter', sans-serif; background-color: var(--light); color: var(--text); }
 .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
 
-/* --- AUTH PAGES & FORMS --- */
+/* --- AUTH PAGES --- */
 .auth-page { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
 .auth-container { width: 100%; max-width: 450px; }
 .auth-header { text-align: center; margin-bottom: 25px; }
-
 .card { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); margin-bottom: 25px; }
 .form-group { margin-bottom: 15px; }
 .form-group label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.9rem; }
+
+/* --- INPUT & ICON POSITIONING --- */
+.input-wrapper {
+    position: relative; /* Anchor for the absolute icon */
+    width: 100%;
+}
 
 input {
     width: 100%;
@@ -34,29 +39,26 @@ input {
     transition: border-color 0.2s;
 }
 
+/* Specific padding for password fields to prevent text overlapping the icon */
+.input-wrapper input[type="password"], 
+.input-wrapper input[type="text"].password-field {
+    padding-right: 45px; 
+}
+
 input:focus { border-color: var(--primary); outline: none; }
-
-/* --- PASSWORD ICON FIX --- */
-.password-container {
-    position: relative;
-    display: flex;
-    align-items: center;
-}
-
-.password-container input {
-    padding-right: 45px; /* Space for the icon */
-}
 
 .password-toggle {
     position: absolute;
-    right: 15px;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%); /* Centers icon perfectly */
     cursor: pointer;
     user-select: none;
     font-size: 1.2rem;
     color: #94a3b8;
+    z-index: 10;
     display: flex;
     align-items: center;
-    height: 100%;
 }
 
 /* --- TOAST NOTIFICATIONS --- */
@@ -73,9 +75,3 @@ input:focus { border-color: var(--primary); outline: none; }
 }
 .toast-success { background-color: var(--success); }
 .toast-error { background-color: var(--danger); }
-
-/* --- ADMIN UI (Badges/Buttons) --- */
-.badge { padding: 5px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; }
-.badge-success { background: #dcfce7; color: #166534; }
-.badge-danger { background: #fee2e2; color: #991b1b; }
-.btn-deposit { background: var(--success); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; }
