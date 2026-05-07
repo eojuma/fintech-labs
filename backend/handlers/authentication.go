@@ -1,13 +1,14 @@
 package handlers
 
 import (
-	"fintech-labs/backend/services"
-	"fintech-labs/backend/validator"
-	"net/http"
 	"log"
+	"net/http"
+	"strings"
+
+	"fintech-labs/backend/services"
+
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
-	"strings"
 )
 
 func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
@@ -65,7 +66,7 @@ func Login(db *gorm.DB) http.HandlerFunc {
 		// 5. Success! Set the session and redirect based on role
 		log.Printf("✅ Login Success: %s logged in as %s", user.Username, user.Role)
 		setSessionUser(w, user.Username)
-		
+
 		if user.Role == "admin" {
 			http.Redirect(w, r, "/admin", http.StatusSeeOther)
 		} else {
@@ -81,39 +82,23 @@ func Register(db *gorm.DB) http.HandlerFunc {
 			return
 		}
 
-		// 1. Capture ALL required fields from the form
+		// CAPTURE ALL NEW FIELDS FROM HTML
 		fullname := r.FormValue("fullname")
 		username := r.FormValue("username")
-		email    := r.FormValue("email")
-		phone    := r.FormValue("phone")
+		email := r.FormValue("email")
+		phone := r.FormValue("phone")
 		idNumber := r.FormValue("id_number")
 		password := r.FormValue("password")
-		role     := "customer" // Default role
 
-		// 2. Validate the username format
-		if !validator.ValidUsername(username) {
-			http.Redirect(w, r, "/register-page?error=Invalid+username+format", http.StatusSeeOther)
-			return
-		}
-
-		// 3. Call CreateUser with all 7 arguments required by services.go
-		user, err := services.CreateUser(
-			fullname, 
-			username, 
-			email, 
-			phone, 
-			idNumber, 
-			password, 
-			role,
-		)
-		
+		// PASS ALL 7 ARGUMENTS TO THE SERVICE
+		user, err := services.CreateUser(fullname, username, email, phone, idNumber, password, "customer")
 		if err != nil {
+			// If validation fails (like the invalid email error), send the specific error back
 			errorMsg := strings.ReplaceAll(err.Error(), " ", "+")
 			http.Redirect(w, r, "/register-page?error="+errorMsg, http.StatusSeeOther)
 			return
 		}
 
-		// 4. Create the bank account
 		_, err = services.CreateAccountForUser(user.ID)
 		if err != nil {
 			http.Redirect(w, r, "/register-page?error=Failed+to+create+bank+account", http.StatusSeeOther)
