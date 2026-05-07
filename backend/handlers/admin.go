@@ -37,46 +37,49 @@ func AdminAuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 
 // AdminDashboardHandler - Shows admin panel
 func AdminDashboardHandler(w http.ResponseWriter, r *http.Request) {
-	username := getSessionUser(r)
-	if username == "" {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
-		return
-	}
+    username := getSessionUser(r)
+    if username == "" {
+        http.Redirect(w, r, "/login", http.StatusSeeOther)
+        return
+    }
 
-	// Verify admin role
-	user, err := services.GetUserByUsername(username)
-	if err != nil || user.Role != "admin" {
-		http.Error(w, "Access denied", http.StatusForbidden)
-		return
-	}
+    user, err := services.GetUserByUsername(username)
+    if err != nil || user.Role != "admin" {
+        http.Error(w, "Access denied", http.StatusForbidden)
+        return
+    }
 
-	// Get all users for admin view
-	users, err := services.GetAllUsers()
-	if err != nil {
-		log.Printf("Error fetching users: %v", err)
-		users = []models.User{}
-	}
+    users, err := services.GetAllUsers()
+    if err != nil {
+        log.Printf("Error fetching users: %v", err)
+        // If DB fails, it's better to show an error than an empty list
+        http.Error(w, "Internal Database Error", http.StatusInternalServerError)
+        return
+    }
 
-	tmpl := template.New("admin.html").Funcs(template.FuncMap{
-		"formatKES": formatKES,
-	})
+    // Adding more functions to the template map makes the dashboard "fancier"
+    tmpl, err := template.New("admin.html").Funcs(template.FuncMap{
+        "formatKES": formatKES,
+        "formatDate": formatDate, // Essential for admin auditing
+    }).ParseFiles("frontend/templates/admin.html")
 
-	tmpl, err = tmpl.ParseFiles("frontend/templates/admin.html")
-	if err != nil {
-		log.Printf("Template parse error: %v", err)
-		http.Error(w, "Template error", http.StatusInternalServerError)
-		return
-	}
+    if err != nil {
+        log.Printf("Template error: %v", err)
+        http.Error(w, "Display Error", http.StatusInternalServerError)
+        return
+    }
 
-	data := struct {
-		Username string
-		Users    []models.User
-	}{
-		Username: username,
-		Users:    users,
-	}
+    data := struct {
+        Username string
+        Users    []models.User
+    }{
+        Username: username,
+        Users:    users,
+    }
 
-	tmpl.Execute(w, data)
+    if err := tmpl.Execute(w, data); err != nil {
+        log.Printf("Execution error: %v", err)
+    }
 }
 
 // AdminToggleAccount - API endpoint to activate/deactivate account
