@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Panel - Evans Bank</title>
     <link rel="stylesheet" href="/static/styles.css">
-    </head>
+</head>
 <body class="admin-body">
     <div class="admin-header-bg">
         <div class="container header">
@@ -32,75 +32,41 @@
             </div>
         </div>
 
-        <div id="alert-container">
-            {{if .Error}}
-                <div class="alert alert-danger">{{.Error}}</div>
-            {{end}}
-            {{if .Success}}
-                <div class="alert alert-success">{{.Success}}</div>
-            {{end}}
-        </div>
-
         <div class="card">
-            <h3>User & Account Management</h3>
+            <h3>User Management</h3>
             <table id="admin-user-table">
                 <thead>
                     <tr>
                         <th>Account #</th>
-                        <th>User Details</th>
+                        <th>Username</th>
                         <th>Balance</th>
                         <th>Status</th>
-                        <th>Quick Actions</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     {{range .Users}}
                     <tr>
+                        <td><code>{{(index .Accounts 0).Number}}</code></td>
+                        <td>{{.Username}}</td>
+                        <td>KES {{(index .Accounts 0).Balance}}</td>
                         <td>
-                            <code>{{if .Accounts}}{{(index .Accounts 0).Number}}{{else}}NO ACCOUNT{{end}}</code>
-                        </td>
-                        <td class="user-info">
-                            <strong>{{.Username}}</strong>
-                            <small>{{.Email}}</small>
-                        </td>
-                        <td>
-                            {{if .Accounts}}
-                                {{index .Accounts 0 | (call $.FormatKES)}}
-                            {{else}}
-                                KES 0
-                            {{end}}
+                            <span class="badge {{if (index .Accounts 0).Active}}badge-success{{else}}badge-danger{{end}}">
+                                {{if (index .Accounts 0).Active}}Active{{else}}Blocked{{end}}
+                            </span>
                         </td>
                         <td>
-                            {{if .Accounts}}
-                                {{if (index .Accounts 0).Active}}
-                                    <span class="badge badge-success">Active</span>
-                                {{else}}
-                                    <span class="badge badge-danger">Blocked</span>
-                                {{end}}
-                            {{else}}
-                                <span class="badge badge-none">N/A</span>
-                            {{end}}
-                        </td>
-                        <td>
-                            {{if .Accounts}}
                             <div class="action-buttons">
-                                <button type="button" 
-                                        class="btn-action btn-deposit-trigger" 
-                                        data-account="{{(index .Accounts 0).Number}}">Deposit</button>
+                                <button class="btn-action btn-deposit-trigger" data-account="{{(index .Accounts 0).Number}}">Deposit</button>
+                                <button class="btn-action btn-withdraw-trigger" data-account="{{(index .Accounts 0).Number}}">Withdraw</button>
                                 
-                                <button type="button" 
-                                        class="btn-action btn-withdraw-trigger" 
-                                        data-account="{{(index .Accounts 0).Number}}">Withdraw</button>
-                                
-                                <form action="/admin/toggle-status" method="POST" class="toggle-form">
-                                    <input type="hidden" name="account_id" value="{{(index .Accounts 0).ID}}">
-                                    <input type="hidden" name="active" value="{{if (index .Accounts 0).Active}}false{{else}}true{{end}}">
-                                    <button type="submit" class="btn-toggle">
+                                <form action="/admin/toggle-status" method="POST" style="display:inline;">
+                                    <input type="hidden" name="account_number" value="{{(index .Accounts 0).Number}}">
+                                    <button type="submit" class="btn-action btn-toggle">
                                         {{if (index .Accounts 0).Active}}Block{{else}}Unblock{{end}}
                                     </button>
                                 </form>
                             </div>
-                            {{end}}
                         </td>
                     </tr>
                     {{else}}
@@ -116,14 +82,16 @@
     <div id="adminModal" class="modal" style="display: none;">
         <div class="modal-content card">
             <h3 id="modalTitle">Account Action</h3>
-            <p id="modalSubtitle"></p>
+            <p id="modalSubtitle" style="color: #666; margin-bottom: 15px;"></p>
             
             <form id="adminActionForm" method="POST">
                 <input type="hidden" id="modalAccountNumber" name="account_number">
+                
                 <div class="form-group">
                     <label for="modalAmount">Amount (KES)</label>
-                    <input type="number" id="modalAmount" name="amount" required min="1">
+                    <input type="number" id="modalAmount" name="amount" required min="1" placeholder="Enter amount">
                 </div>
+                
                 <div class="modal-actions">
                     <button type="button" id="closeModalBtn" class="btn-secondary">Cancel</button>
                     <button type="submit" id="modalSubmitBtn" class="btn-deposit">Confirm</button>
