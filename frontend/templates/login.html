@@ -5,61 +5,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login | Evans Bank</title>
     <link rel="stylesheet" href="/static/styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
 </head>
 <body class="auth-page">
-    <div class="auth-wrapper">
-        <div class="auth-container">
-            <div class="auth-header">
-                <div class="logo-icon">🏦</div>
-                <h1>Evans Bank</h1>
-                <p>Secure Digital Banking</p>
-            </div>
-
-            <div class="card auth-card">
-                <form id="loginForm" action="/login" method="POST">
-                    <div class="form-group">
-                        <label for="username">Username</label>
-                        <div class="input-wrapper">
-                            <input 
-                                type="text" 
-                                id="username" 
-                                name="username" 
-                                required 
-                                placeholder="Enter username"
-                                autocomplete="username"
-                            >
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="password">Password</label>
-                        <div class="input-wrapper">
-                            <input 
-                                type="password" 
-                                id="password" 
-                                name="password" 
-                                required 
-                                placeholder="••••••••"
-                                autocomplete="current-password"
-                            >
-                        </div>
-                    </div>
-
-                    <button type="submit" class="btn-primary btn-block">
-                        Sign In
-                    </button>
-                </form>
-
-                <div class="auth-footer">
-                    <p>New here? <a href="/register-page">Create Account</a></p>
-                </div>
-            </div>
+    <div class="auth-container">
+        <div class="auth-header">
+            <div style="font-size: 3rem;">🏦</div>
+            <h1>Evans Bank</h1>
+            <p>Secure Digital Banking</p>
         </div>
 
-        <div id="toast" class="toast hidden"></div>
-    </div>
+        <div class="card auth-card">
+            <form id="loginForm" action="/login" method="POST">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" required placeholder="Enter username">
+                </div>
 
-    <script src="/static/app.js" defer></script>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <div class="input-wrapper">
+                        <input type="password" id="login-password" name="password" required placeholder="••••••••">
+                        <span class="password-toggle" onclick="togglePassword('login-password', this)">👁️‍🗨️</span>
+                    </div>
+                </div>
+
+                <button type="submit" style="width: 100%; background: var(--primary); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600;">Sign In</button>
+            </form>
+
+            <div style="text-align: center; margin-top: 20px;">
+                <p>New here? <a href="/register-page" style="color: var(--primary); text-decoration: none; font-weight: 600;">Create Account</a></p>
+            </div>
+        </div>
+    </div>
+    <script src="/static/app.js"></script>
 </body>
 </html>
