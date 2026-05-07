@@ -5,12 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Panel - Evans Bank</title>
     <link rel="stylesheet" href="/static/styles.css">
-</head>
+    </head>
 <body class="admin-body">
     <div class="admin-header-bg">
         <div class="container header">
             <h1>🏦 Admin Control Panel</h1>
             <div class="admin-nav">
+                <span class="admin-session">Admin: <strong>{{.Username}}</strong></span>
                 <a href="/dashboard" class="btn-secondary">Back to Dashboard</a>
                 <form action="/logout" method="POST" style="display: inline;">
                     <button type="submit" class="btn-logout-small">Logout</button>
@@ -22,36 +23,89 @@
     <div class="container">
         <div class="stats-grid">
             <div class="stat-card">
-                <h3>Total Users</h3>
-                <p class="stat-number">{{.TotalUsers}}</p>
+                <h3>Total Registered Users</h3>
+                <p class="stat-number">{{len .Users}}</p>
             </div>
             <div class="stat-card">
-                <h3>Total Deposits</h3>
-                <p class="stat-number text-success">KES {{.TotalDeposits}}</p>
+                <h3>System Status</h3>
+                <p class="stat-number text-success">Operational</p>
             </div>
         </div>
 
+        <div id="alert-container">
+            {{if .Error}}
+                <div class="alert alert-danger">{{.Error}}</div>
+            {{end}}
+            {{if .Success}}
+                <div class="alert alert-success">{{.Success}}</div>
+            {{end}}
+        </div>
+
         <div class="card">
-            <h3>User Management</h3>
-            <table>
+            <h3>User & Account Management</h3>
+            <table id="admin-user-table">
                 <thead>
                     <tr>
                         <th>Account #</th>
-                        <th>Username</th>
+                        <th>User Details</th>
                         <th>Balance</th>
-                        <th>Actions</th>
+                        <th>Status</th>
+                        <th>Quick Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     {{range .Users}}
                     <tr>
-                        <td><code>{{.AccountNumber}}</code></td>
-                        <td>{{.Username}}</td>
-                        <td>KES {{.Balance}}</td>
                         <td>
-                            <button onclick="openModal('deposit', '{{.AccountNumber}}')" class="btn-action btn-deposit-small">Deposit</button>
-                            <button onclick="openModal('withdraw', '{{.AccountNumber}}')" class="btn-action btn-withdraw-small">Withdraw</button>
+                            <code>{{if .Accounts}}{{(index .Accounts 0).Number}}{{else}}NO ACCOUNT{{end}}</code>
                         </td>
+                        <td class="user-info">
+                            <strong>{{.Username}}</strong>
+                            <small>{{.Email}}</small>
+                        </td>
+                        <td>
+                            {{if .Accounts}}
+                                {{index .Accounts 0 | (call $.FormatKES)}}
+                            {{else}}
+                                KES 0
+                            {{end}}
+                        </td>
+                        <td>
+                            {{if .Accounts}}
+                                {{if (index .Accounts 0).Active}}
+                                    <span class="badge badge-success">Active</span>
+                                {{else}}
+                                    <span class="badge badge-danger">Blocked</span>
+                                {{end}}
+                            {{else}}
+                                <span class="badge badge-none">N/A</span>
+                            {{end}}
+                        </td>
+                        <td>
+                            {{if .Accounts}}
+                            <div class="action-buttons">
+                                <button type="button" 
+                                        class="btn-action btn-deposit-trigger" 
+                                        data-account="{{(index .Accounts 0).Number}}">Deposit</button>
+                                
+                                <button type="button" 
+                                        class="btn-action btn-withdraw-trigger" 
+                                        data-account="{{(index .Accounts 0).Number}}">Withdraw</button>
+                                
+                                <form action="/admin/toggle-status" method="POST" class="toggle-form">
+                                    <input type="hidden" name="account_id" value="{{(index .Accounts 0).ID}}">
+                                    <input type="hidden" name="active" value="{{if (index .Accounts 0).Active}}false{{else}}true{{end}}">
+                                    <button type="submit" class="btn-toggle">
+                                        {{if (index .Accounts 0).Active}}Block{{else}}Unblock{{end}}
+                                    </button>
+                                </form>
+                            </div>
+                            {{end}}
+                        </td>
+                    </tr>
+                    {{else}}
+                    <tr>
+                        <td colspan="5" class="empty-state">No users found in the system.</td>
                     </tr>
                     {{end}}
                 </tbody>
@@ -59,18 +113,20 @@
         </div>
     </div>
 
-    <div id="actionModal" class="modal">
+    <div id="adminModal" class="modal" style="display: none;">
         <div class="modal-content card">
             <h3 id="modalTitle">Account Action</h3>
-            <form id="quickActionForm" method="POST">
-                <input type="hidden" id="accountNumber" name="account_number">
+            <p id="modalSubtitle"></p>
+            
+            <form id="adminActionForm" method="POST">
+                <input type="hidden" id="modalAccountNumber" name="account_number">
                 <div class="form-group">
-                    <label for="amount">Amount (KES)</label>
-                    <input type="number" id="amount" name="amount" required min="1">
+                    <label for="modalAmount">Amount (KES)</label>
+                    <input type="number" id="modalAmount" name="amount" required min="1">
                 </div>
                 <div class="modal-actions">
-                    <button type="button" onclick="closeModal()" class="btn-secondary">Cancel</button>
-                    <button type="submit" class="btn-deposit">Confirm Action</button>
+                    <button type="button" id="closeModalBtn" class="btn-secondary">Cancel</button>
+                    <button type="submit" id="modalSubmitBtn" class="btn-deposit">Confirm</button>
                 </div>
             </form>
         </div>
