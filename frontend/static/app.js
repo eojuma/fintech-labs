@@ -1,5 +1,5 @@
 /**
- * TOAST NOTIFICATIONS - Global UI Feedback
+ * TOAST NOTIFICATIONS
  */
 function showToast(message, type = 'success') {
     const toast = document.createElement('div');
@@ -14,10 +14,25 @@ function showToast(message, type = 'success') {
 }
 
 /**
- * INITIALIZATION - Runs on page load
+ * UTILITY: Toggle Password Visibility
+ */
+function togglePassword(inputId, iconElement) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+
+    if (input.type === 'password') {
+        input.type = 'text';
+        iconElement.innerText = '👁️'; // Open eye
+    } else {
+        input.type = 'password';
+        iconElement.innerText = '👁️‍🗨️'; // Eye with stroke
+    }
+}
+
+/**
+ * INITIALIZATION
  */
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Alert Handling from Go Redirects
     const urlParams = new URLSearchParams(window.location.search);
     const successMsg = urlParams.get('success');
     const errorMsg = urlParams.get('error');
@@ -29,12 +44,11 @@ document.addEventListener('DOMContentLoaded', () => {
         window.history.replaceState({}, document.title, window.location.pathname);
     }
 
-    // 2. Page-Specific Initializers
     if (document.getElementById('admin-user-table')) initAdminPanel();
 });
 
 /**
- * ADMIN LOGIC - Using Event Delegation
+ * ADMIN PANEL LOGIC
  */
 function initAdminPanel() {
     const table = document.getElementById('admin-user-table');
@@ -45,9 +59,9 @@ function initAdminPanel() {
 
     table.addEventListener('click', (e) => {
         const target = e.target;
-        // Connects to the data-account attribute in our HTML template
         const accNum = target.getAttribute('data-account');
-        
+        if (!accNum) return;
+
         if (target.classList.contains('btn-deposit-trigger')) {
             showAdminModal('deposit', accNum);
         } else if (target.classList.contains('btn-withdraw-trigger')) {
@@ -56,24 +70,22 @@ function initAdminPanel() {
     });
 
     closeBtn.onclick = () => modal.style.display = 'none';
-    window.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
 }
 
 function showAdminModal(type, accNum) {
     const modal = document.getElementById('adminModal');
     const form = document.getElementById('adminActionForm');
-    const title = document.getElementById('modalTitle');
     const hiddenAcc = document.getElementById('modalAccountNumber');
-
+    
     hiddenAcc.value = accNum;
-    document.getElementById('modalSubtitle').innerText = `Target: ${accNum}`;
-
+    document.getElementById('modalSubtitle').innerText = `Account: ${accNum}`;
+    
     if (type === 'deposit') {
-        title.innerText = "Admin Deposit";
-        form.action = "/admin/deposit"; // Matches main.go route
+        document.getElementById('modalTitle').innerText = "Admin Deposit";
+        form.action = "/admin/deposit";
     } else {
-        title.innerText = "Admin Withdrawal";
-        form.action = "/admin/withdraw"; // Matches main.go route
+        document.getElementById('modalTitle').innerText = "Admin Withdrawal";
+        form.action = "/admin/withdraw";
     }
     modal.style.display = 'flex';
 }
