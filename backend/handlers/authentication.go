@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
-
+	"fintech-labs/backend/utils"
 	"fintech-labs/backend/services"
 
 	"golang.org/x/crypto/bcrypt"
@@ -13,7 +13,7 @@ import (
 
 func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if getSessionUser(r) == "" {
+		if utils.GetSessionUser(r) == "" {
 			http.Redirect(w, r, "/login?error=Please+login+first", http.StatusSeeOther)
 			return
 		}

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fintech-labs/backend/models"
 	"fintech-labs/backend/services"
+	"fintech-labs/backend/utils"
 	"fmt"
 	"html/template"
 	"log"
@@ -15,7 +16,7 @@ import (
 // AdminAuthMiddleware checks authentication AND admin role
 func AdminAuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		username := getSessionUser(r)
+		username := utils.GetSessionUser(r)
 		if username == "" {
 			log.Println("Unauthorized access attempt - no session")
 			http.Redirect(w, r, "/login", http.StatusSeeOther)
@@ -37,7 +38,7 @@ func AdminAuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 
 // AdminDashboardHandler - Shows admin panel
 func AdminDashboardHandler(w http.ResponseWriter, r *http.Request) {
-    username := getSessionUser(r)
+    username := utils.GetSessionUser(r)
     if username == "" {
         http.Redirect(w, r, "/login", http.StatusSeeOther)
         return
@@ -59,8 +60,8 @@ func AdminDashboardHandler(w http.ResponseWriter, r *http.Request) {
 
     // Adding more functions to the template map makes the dashboard "fancier"
     tmpl, err := template.New("admin.html").Funcs(template.FuncMap{
-        "formatKES": formatKES,
-        "formatDate": formatDate, // Essential for admin auditing
+        "formatKES": utils.FormatKES,
+        "formatDate": utils.FormatDate, // Essential for admin auditing
     }).ParseFiles("frontend/templates/admin.html")
 
     if err != nil {

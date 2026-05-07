@@ -10,7 +10,7 @@ import (
 
 	"fintech-labs/backend/db"
 	"fintech-labs/backend/models"
-	"fintech-labs/backend/validator"
+	"fintech-labs/backend/utils"
 
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -30,30 +30,30 @@ func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 func CreateUser(fullname, username, email, phone,Id, password, role string) (*models.User, error) {
-	cleanfullname := strings.TrimSpace(fullname)
+	cleanfullname := strings.ToLower( strings.TrimSpace(fullname))
 	cleanEmail := strings.ToLower(strings.TrimSpace(email))
 	cleanUsername := strings.ToLower(strings.TrimSpace(username))
 	cleanPhoneNumber := strings.TrimSpace(phone)
 	cleanId:=strings.TrimSpace(Id)
-	if !validator.ValidEmail(cleanEmail) {
+	if utils.ValidEmail(cleanEmail) {
 		return nil, fmt.Errorf("invalid email address")
 	}
 
-	if !validator.ValidFullName(cleanfullname) {
+	if utils.ValidFullName(cleanfullname) {
 		return nil, fmt.Errorf("invalid full  name")
 	}
-	if !validator.ValidUsername(cleanUsername) {
+	if utils.ValidUsername(cleanUsername) {
 		return nil, fmt.Errorf("invalid username:must be 3-30 characters and contains only letters,numbers or . - _")
 	}
 	if strings.HasPrefix(cleanPhoneNumber, "0") {
 		cleanPhoneNumber = "254" + cleanPhoneNumber[1:]
 	}
 
-	if !validator.ValidPhoneNumber(cleanPhoneNumber) {
+	if utils.ValidPhoneNumber(cleanPhoneNumber) {
 		return nil, fmt.Errorf("invalid phone number")
 	}
 
-	if !validator.ValidNationalID(cleanId){
+	if utils.ValidNationalID(cleanId){
 
 		return nil,fmt.Errorf("invalid National ID Number")
 	}

@@ -6,10 +6,11 @@ import (
 	"net/http"
 	"fintech-labs/backend/models"
 	"fintech-labs/backend/services"
+	"fintech-labs/backend/utils"
 )
 
 func DashboardHandler(w http.ResponseWriter, r *http.Request) {
-	username := getSessionUser(r)
+	username := utils.GetSessionUser(r)
 	if username == "" {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
@@ -28,8 +29,8 @@ func DashboardHandler(w http.ResponseWriter, r *http.Request) {
 
 	// FIXED: Correct path to find the template from the backend directory
 	tmpl, err := template.New("dashboard.html").Funcs(template.FuncMap{
-		"formatKES": formatKES,
-		"formatDate": formatDate,
+		"formatKES": utils.FormatKES,
+		"formatDate": utils.FormatDate,
 	}).ParseFiles("frontend/templates/dashboard.html")
 	
 	if err != nil {

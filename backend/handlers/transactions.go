@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-
+	"fintech-labs/backend/utils"
 	"fintech-labs/backend/models"
 	"fintech-labs/backend/services"
 
@@ -20,7 +20,7 @@ func Deposit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	username := getSessionUser(r)
+	username := utils.GetSessionUser(r)
 	if username == "" {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
@@ -58,7 +58,7 @@ func Withdraw(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	username := getSessionUser(r)
+	username := utils.GetSessionUser(r)
 	if username == "" {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
@@ -96,7 +96,7 @@ func GetBalance(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	username := getSessionUser(r)
+	username := utils.GetSessionUser(r)
 	if username == "" {
 		http.Error(w, "Not authenticated", http.StatusUnauthorized)
 		return
@@ -123,7 +123,7 @@ func GetTransactionsAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	username := getSessionUser(r)
+	username := utils.GetSessionUser(r)
 	if username == "" {
 		http.Error(w, "Not authenticated", http.StatusUnauthorized)
 		return
@@ -148,7 +148,7 @@ func SendMoneyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	username := getSessionUser(r)
+	username := utils.GetSessionUser(r)
 	if username == "" {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
