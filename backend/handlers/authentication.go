@@ -73,28 +73,46 @@ func Login(db *gorm.DB) http.HandlerFunc {
 	}
 }
 
-func Register(db *gorm.DB) http.HandlerFunc {
+ffunc Register(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
 
+		// 1. Capture ALL required fields from the form
+		fullname := r.FormValue("fullname")
 		username := r.FormValue("username")
+		email    := r.FormValue("email")
+		phone    := r.FormValue("phone")
+		idNumber := r.FormValue("id_number")
 		password := r.FormValue("password")
+		role     := "customer" // Default role
 
+		// 2. Validate the username format
 		if !validator.ValidUsername(username) {
 			http.Redirect(w, r, "/register-page?error=Invalid+username+format", http.StatusSeeOther)
 			return
 		}
 
-		user, err := services.CreateUser(username, password, "customer")
+		// 3. Call CreateUser with all 7 arguments required by services.go
+		user, err := services.CreateUser(
+			fullname, 
+			username, 
+			email, 
+			phone, 
+			idNumber, 
+			password, 
+			role,
+		)
+		
 		if err != nil {
-			http.Redirect(w, r, "/register-page?error=User+already+exists", http.StatusSeeOther)
+			errorMsg := strings.ReplaceAll(err.Error(), " ", "+")
+			http.Redirect(w, r, "/register-page?error="+errorMsg, http.StatusSeeOther)
 			return
 		}
 
-		// Create the actual bank account so the user can see their dashboard
+		// 4. Create the bank account
 		_, err = services.CreateAccountForUser(user.ID)
 		if err != nil {
 			http.Redirect(w, r, "/register-page?error=Failed+to+create+bank+account", http.StatusSeeOther)
