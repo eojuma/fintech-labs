@@ -59,5 +59,16 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       return true;
     });
+
+    // Prefill form inputs from URL query params (preserve fields after redirect)
+    const params = new URLSearchParams(window.location.search);
+    const fields = ["fullname", "username", "email", "phone", "id_number"];
+    fields.forEach((f) => {
+      const val = params.get(f);
+      if (val) {
+        const input = regForm.querySelector(`[name="${f}"]`);
+        if (input) input.value = decodeURIComponent(val);
+      }
+    });
   }
 });
