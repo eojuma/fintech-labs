@@ -1,11 +1,11 @@
 package handlers
 
 import (
+	"fintech-labs/backend/services"
+	"fintech-labs/backend/utils"
 	"log"
 	"net/http"
 	"strings"
-	"fintech-labs/backend/utils"
-	"fintech-labs/backend/services"
 
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -89,6 +89,12 @@ func Register(db *gorm.DB) http.HandlerFunc {
 		phone := r.FormValue("phone")
 		idNumber := r.FormValue("id_number")
 		password := r.FormValue("password")
+		confirmPassword := r.FormValue("confirm_password")
+
+		if password != confirmPassword {
+			http.Redirect(w, r, "/register-page?error=Passwords+do+not+match", http.StatusSeeOther)
+			return
+		}
 
 		// PASS ALL 7 ARGUMENTS TO THE SERVICE
 		user, err := services.CreateUser(fullname, username, email, phone, idNumber, password, "customer")

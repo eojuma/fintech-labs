@@ -35,27 +35,26 @@ func CreateUser(fullname, username, email, phone,Id, password, role string) (*mo
 	cleanUsername := strings.ToLower(strings.TrimSpace(username))
 	cleanPhoneNumber := strings.TrimSpace(phone)
 	cleanId:=strings.TrimSpace(Id)
-	if utils.ValidEmail(cleanEmail) {
+	if !utils.ValidEmail(cleanEmail) {
 		return nil, fmt.Errorf("invalid email address")
 	}
 
-	if utils.ValidFullName(cleanfullname) {
-		return nil, fmt.Errorf("invalid full  name")
+	if !utils.ValidFullName(cleanfullname) {
+		return nil, fmt.Errorf("invalid full name")
 	}
-	if utils.ValidUsername(cleanUsername) {
-		return nil, fmt.Errorf("invalid username:must be 3-30 characters and contains only letters,numbers or . - _")
+	if !utils.ValidUsername(cleanUsername) {
+		return nil, fmt.Errorf("invalid username: must be 3-30 characters and contain only letters, numbers or .-_")
 	}
 	if strings.HasPrefix(cleanPhoneNumber, "0") {
 		cleanPhoneNumber = "254" + cleanPhoneNumber[1:]
 	}
 
-	if utils.ValidPhoneNumber(cleanPhoneNumber) {
+	if !utils.ValidPhoneNumber(cleanPhoneNumber) {
 		return nil, fmt.Errorf("invalid phone number")
 	}
 
-	if utils.ValidNationalID(cleanId){
-
-		return nil,fmt.Errorf("invalid National ID Number")
+	if !utils.ValidNationalID(cleanId) {
+		return nil, fmt.Errorf("invalid National ID Number")
 	}
 	
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
