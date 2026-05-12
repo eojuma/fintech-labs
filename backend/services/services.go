@@ -29,12 +29,12 @@ const (
 func init() {
 	rand.Seed(time.Now().UnixNano())
 }
-func CreateUser(fullname, username, email, phone,Id, password, role string) (*models.User, error) {
-	cleanfullname := strings.ToLower( strings.TrimSpace(fullname))
+func CreateUser(fullname, username, email, phone, Id, password, role string) (*models.User, error) {
+	cleanfullname := strings.ToLower(strings.TrimSpace(fullname))
 	cleanEmail := strings.ToLower(strings.TrimSpace(email))
 	cleanUsername := strings.ToLower(strings.TrimSpace(username))
 	cleanPhoneNumber := strings.TrimSpace(phone)
-	cleanId:=strings.TrimSpace(Id)
+	cleanId := strings.TrimSpace(Id)
 	if !utils.ValidEmail(cleanEmail) {
 		return nil, fmt.Errorf("invalid email address")
 	}
@@ -56,7 +56,7 @@ func CreateUser(fullname, username, email, phone,Id, password, role string) (*mo
 	if !utils.ValidNationalID(cleanId) {
 		return nil, fmt.Errorf("invalid National ID Number")
 	}
-	
+
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		log.Printf("Error hashing password: %v", err)
@@ -68,7 +68,7 @@ func CreateUser(fullname, username, email, phone,Id, password, role string) (*mo
 		FullName:    cleanfullname,
 		Username:    cleanUsername,
 		Password:    string(hashedPassword),
-		NationlID: cleanId,
+		NationlID:   cleanId,
 		Role:        role,
 		PhoneNumber: cleanPhoneNumber,
 	}
@@ -91,27 +91,38 @@ func GenerateAccountNumber() string {
 }
 
 func CreateAccountForUser(userID uint) (*models.Account, error) {
-	account := &models.Account{
-		UserID:  userID,
-		Number:  GenerateAccountNumber(),
-		Balance: 0,
-		Active:  true,
+	// Generate a unique account number, retrying a few times if collisions occur
+	var account *models.Account
+	for i := 0; i < 10; i++ {
+		num := GenerateAccountNumber()
+		var existing models.Account
+		if err := db.DB.Where("number = ?", num).First(&existing).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				account = &models.Account{
+					UserID:  userID,
+					Number:  num,
+					Balance: 0,
+					Active:  true,
+				}
+				if err := db.DB.Create(account).Error; err != nil {
+					return nil, err
+				}
+				return account, nil
+			}
+			// unexpected DB error, return
+			return nil, err
+		}
+		// collision detected; try again
 	}
-
-	err := db.DB.Create(account).Error
-	if err != nil {
-		return nil, err
-	}
-
-	return account, nil
+	return nil, fmt.Errorf("failed to generate unique account number")
 }
 
-func AuthenticateUser(Identifier,password string) (*models.User, error) {
+func AuthenticateUser(Identifier, password string) (*models.User, error) {
 	cleanIdentifier := strings.ToLower(strings.TrimSpace(Identifier))
 
- var user models.User
+	var user models.User
 
-	if err := db.DB.Where("email = ? OR phone_number = ?" , cleanIdentifier).First(&user).Error; err != nil {
+	if err := db.DB.Where("email = ? OR phone_number = ? OR username = ?", cleanIdentifier, cleanIdentifier, cleanIdentifier).First(&user).Error; err != nil {
 		return nil, errors.New("invalid credentials")
 	}
 
@@ -124,7 +135,7 @@ func AuthenticateUser(Identifier,password string) (*models.User, error) {
 }
 
 func Deposit(Identifier string, amount int64) error {
-	cleanIdentifier:= strings.ToLower(strings.TrimSpace(Identifier))
+	cleanIdentifier := strings.ToLower(strings.TrimSpace(Identifier))
 
 	if amount < MinDeposit {
 		return fmt.Errorf("minimum deposit is KES %d", MinDeposit)
@@ -136,8 +147,8 @@ func Deposit(Identifier string, amount int64) error {
 	return db.DB.Transaction(func(tx *gorm.DB) error {
 
 		var user models.User
-		query:="email = ? OR phone_number = ? OR username = ?"
-		if err := tx.Where(query,cleanIdentifier,cleanIdentifier,cleanIdentifier).First(&user).Error; err != nil {
+		query := "email = ? OR phone_number = ? OR username = ?"
+		if err := tx.Where(query, cleanIdentifier, cleanIdentifier, cleanIdentifier).First(&user).Error; err != nil {
 			return errors.New("user not found")
 		}
 
@@ -173,7 +184,6 @@ func Deposit(Identifier string, amount int64) error {
 		return nil
 	})
 }
-
 
 // AdminDeposit - Admin deposit to any user account
 func AdminDeposit(accountNumber string, amount int64) error {
@@ -217,7 +227,6 @@ func AdminDeposit(accountNumber string, amount int64) error {
 	})
 }
 
-
 func Withdraw(Identifier string, amount int64) error {
 	cleanIdentifier := strings.ToLower(strings.TrimSpace(Identifier))
 
@@ -230,8 +239,8 @@ func Withdraw(Identifier string, amount int64) error {
 
 	return db.DB.Transaction(func(tx *gorm.DB) error {
 		var user models.User
-		query:=("email = ? OR username = ? OR phone_number = ?")
-		if err := tx.Where(query,cleanIdentifier,cleanIdentifier,cleanIdentifier).First(&user).Error; err != nil {
+		query := ("email = ? OR username = ? OR phone_number = ?")
+		if err := tx.Where(query, cleanIdentifier, cleanIdentifier, cleanIdentifier).First(&user).Error; err != nil {
 			return errors.New("user not found")
 		}
 
@@ -318,68 +327,75 @@ func AdminWithdraw(accountNumber string, amount int64) error {
 	})
 }
 
-
 func SendMoney(fromIdentifier, toIdentifier string, amount int64) error {
-    fromIdentifier = strings.ToLower(strings.TrimSpace(fromIdentifier))
-    toIdentifier = strings.TrimSpace(toIdentifier)
+	fromIdentifier = strings.ToLower(strings.TrimSpace(fromIdentifier))
+	toIdentifier = strings.TrimSpace(toIdentifier)
 
-    if amount < MinTransfer || amount > MaxTransfer {
-        return fmt.Errorf("transfer must be between KES %d and KES %d", MinTransfer, MaxTransfer)
-    }
+	if amount < MinTransfer || amount > MaxTransfer {
+		return fmt.Errorf("transfer must be between KES %d and KES %d", MinTransfer, MaxTransfer)
+	}
 
-    return db.DB.Transaction(func(tx *gorm.DB) error {
-        // 1. Get sender with corrected query
-        var fromUser models.User
-        query := "email = ? OR phone_number = ? OR username = ?"
-        if err := tx.Where(query, fromIdentifier, fromIdentifier, fromIdentifier).First(&fromUser).Error; err != nil {
-            return errors.New("sender not found")
-        }
+	return db.DB.Transaction(func(tx *gorm.DB) error {
+		// 1. Get sender with corrected query
+		var fromUser models.User
+		query := "email = ? OR phone_number = ? OR username = ?"
+		if err := tx.Where(query, fromIdentifier, fromIdentifier, fromIdentifier).First(&fromUser).Error; err != nil {
+			return errors.New("sender not found")
+		}
 
-        // 2. Get sender's account
-        var fromAccount models.Account
-        if err := tx.Where("user_id = ?", fromUser.ID).First(&fromAccount).Error; err != nil {
-            return errors.New("sender account not found")
-        }
+		// 2. Get sender's account
+		var fromAccount models.Account
+		if err := tx.Where("user_id = ?", fromUser.ID).First(&fromAccount).Error; err != nil {
+			return errors.New("sender account not found")
+		}
 
-        if !fromAccount.Active || fromAccount.Balance < amount {
-            return errors.New("transaction denied: check status or balance")
-        }
+		if !fromAccount.Active {
+			return errors.New("transaction denied: account inactive")
+		}
 
-        // 3. Get receiver's account by account number
-        var toAccount models.Account
-        if err := tx.Where("number = ?", toIdentifier).First(&toAccount).Error; err != nil {
-            return errors.New("recipient account not found")
-        }
+		if fromAccount.Balance < amount {
+			return fmt.Errorf("insufficient funds. Your balance is KES %d", fromAccount.Balance)
+		}
 
-        if !toAccount.Active || fromAccount.ID == toAccount.ID {
-            return errors.New("invalid recipient account")
-        }
+		// 3. Get receiver's account by account number
+		var toAccount models.Account
+		if err := tx.Where("number = ?", toIdentifier).First(&toAccount).Error; err != nil {
+			return errors.New("recipient account not found")
+		}
 
-        // 4. Get receiver user info for logging
-        var toUser models.User
-        if err := tx.Where("id = ?", toAccount.UserID).First(&toUser).Error; err != nil {
-            return errors.New("recipient user not found")
-        }
+		if !toAccount.Active || fromAccount.ID == toAccount.ID {
+			return errors.New("invalid recipient account")
+		}
 
-        // 5. ATOMIC SWAP: Execute the transfer[cite: 1]
-        fromOldBalance := fromAccount.Balance
-        fromAccount.Balance -= amount
-        toOldBalance := toAccount.Balance
-        toAccount.Balance += amount
+		// 4. Get receiver user info for logging
+		var toUser models.User
+		if err := tx.Where("id = ?", toAccount.UserID).First(&toUser).Error; err != nil {
+			return errors.New("recipient user not found")
+		}
 
-        if err := tx.Save(&fromAccount).Error; err != nil { return err }
-        if err := tx.Save(&toAccount).Error; err != nil { return err }
+		// 5. ATOMIC SWAP: Execute the transfer[cite: 1]
+		fromOldBalance := fromAccount.Balance
+		fromAccount.Balance -= amount
+		toOldBalance := toAccount.Balance
+		toAccount.Balance += amount
 
-        // 6. RECORD LOGS: Both sides see the history[cite: 1]
-        tx.Create(&models.Transaction{Username: fromUser.Username, Type: "transfer_out", Amount: amount, Balance: fromAccount.Balance})
-        tx.Create(&models.Transaction{Username: toUser.Username, Type: "transfer_in", Amount: amount, Balance: toAccount.Balance})
+		if err := tx.Save(&fromAccount).Error; err != nil {
+			return err
+		}
+		if err := tx.Save(&toAccount).Error; err != nil {
+			return err
+		}
 
-        // FIXED LOGGING: Using correct variable types[cite: 1]
-        log.Printf("💸 Transfer: %s sent KES %d to %s (Acc: %s) | Sender: %d -> %d | Recipient: %d -> %d",
-            fromUser.Username, amount, toUser.Username, toAccount.Number, fromOldBalance, fromAccount.Balance, toOldBalance, toAccount.Balance)
+		// 6. RECORD LOGS: Both sides see the history[cite: 1]
+		tx.Create(&models.Transaction{Username: fromUser.Username, Type: "transfer_out", Amount: amount, Balance: fromAccount.Balance})
+		tx.Create(&models.Transaction{Username: toUser.Username, Type: "transfer_in", Amount: amount, Balance: toAccount.Balance})
 
-        return nil
-    })
+		// FIXED LOGGING: Using correct variable types[cite: 1]
+		log.Printf("💸 Transfer: %s sent KES %d to %s (Acc: %s) | Sender: %d -> %d | Recipient: %d -> %d",
+			fromUser.Username, amount, toUser.Username, toAccount.Number, fromOldBalance, fromAccount.Balance, toOldBalance, toAccount.Balance)
+
+		return nil
+	})
 }
 
 func GetTransactions(Identifier string) ([]models.Transaction, error) {
@@ -387,12 +403,12 @@ func GetTransactions(Identifier string) ([]models.Transaction, error) {
 
 	var user models.User
 	var transactions []models.Transaction
-	query:="username = ? OR email = ?"
-	if err := db.DB.Where(query,Identifier,Identifier).First(&user).Error; err !=nil{
-return nil,errors.New("user not found")
+	query := "username = ? OR email = ?"
+	if err := db.DB.Where(query, Identifier, Identifier).First(&user).Error; err != nil {
+		return nil, errors.New("user not found")
 	}
 
-	err := db.DB.Where("username = ?",user.Username).
+	err := db.DB.Where("username = ?", user.Username).
 		Order("created_at desc").
 		Limit(50).
 		Find(&transactions).Error
@@ -486,65 +502,68 @@ func ToggleAccountStatus(accountID uint, active bool) error {
 	})
 }
 
-
 func MultiTransfer(senderIdentifier string, recipients []models.TransferRecipient) error {
-    senderIdentifier = strings.ToLower(strings.TrimSpace(senderIdentifier))
-    
-    return db.DB.Transaction(func(tx *gorm.DB) error {
-        // 1. Validate Sender
-        var sender models.User
-        query := "email = ? OR phone_number = ? OR username = ?"
-        if err := tx.Where(query, senderIdentifier, senderIdentifier, senderIdentifier).First(&sender).Error; err != nil {
-            return errors.New("sender not found")
-        }
+	senderIdentifier = strings.ToLower(strings.TrimSpace(senderIdentifier))
 
-        var senderAcc models.Account
-        if err := tx.Where("user_id = ?", sender.ID).First(&senderAcc).Error; err != nil {
-            return errors.New("sender account not found")
-        }
+	return db.DB.Transaction(func(tx *gorm.DB) error {
+		// 1. Validate Sender
+		var sender models.User
+		query := "email = ? OR phone_number = ? OR username = ?"
+		if err := tx.Where(query, senderIdentifier, senderIdentifier, senderIdentifier).First(&sender).Error; err != nil {
+			return errors.New("sender not found")
+		}
 
-        // 2. Calculate Total needed
-        var totalAmount int64
-        for _, r := range recipients {
-            if r.Amount < MinTransfer {
-                return fmt.Errorf("transfer to %s is below minimum", r.AccountNumber)
-            }
-            totalAmount += r.Amount
-        }
+		var senderAcc models.Account
+		if err := tx.Where("user_id = ?", sender.ID).First(&senderAcc).Error; err != nil {
+			return errors.New("sender account not found")
+		}
 
-        if senderAcc.Balance < totalAmount {
-            return fmt.Errorf("insufficient funds for batch: need KES %d", totalAmount)
-        }
+		// 2. Calculate Total needed
+		var totalAmount int64
+		for _, r := range recipients {
+			if r.Amount < MinTransfer {
+				return fmt.Errorf("transfer to %s is below minimum", r.AccountNumber)
+			}
+			totalAmount += r.Amount
+		}
 
-        // 3. Process each recipient
-        for _, r := range recipients {
-            var recAcc models.Account
-            if err := tx.Where("number = ?", r.AccountNumber).First(&recAcc).Error; err != nil {
-                return fmt.Errorf("recipient %s not found", r.AccountNumber)
-            }
+		if senderAcc.Balance < totalAmount {
+			return fmt.Errorf("insufficient funds for batch: need KES %d", totalAmount)
+		}
 
-            if !recAcc.Active || recAcc.ID == senderAcc.ID {
-                return fmt.Errorf("invalid recipient: %s", r.AccountNumber)
-            }
+		// 3. Process each recipient
+		for _, r := range recipients {
+			var recAcc models.Account
+			if err := tx.Where("number = ?", r.AccountNumber).First(&recAcc).Error; err != nil {
+				return fmt.Errorf("recipient %s not found", r.AccountNumber)
+			}
 
-            // Update Balances
-            senderAcc.Balance -= r.Amount
-            recAcc.Balance += r.Amount
+			if !recAcc.Active || recAcc.ID == senderAcc.ID {
+				return fmt.Errorf("invalid recipient: %s", r.AccountNumber)
+			}
 
-            if err := tx.Save(&senderAcc).Error; err != nil { return err }
-            if err := tx.Save(&recAcc).Error; err != nil { return err }
+			// Update Balances
+			senderAcc.Balance -= r.Amount
+			recAcc.Balance += r.Amount
 
-            // Record Log for Recipient
-            var recUser models.User
-            tx.Where("id = ?", recAcc.UserID).First(&recUser)
-            tx.Create(&models.Transaction{Username: recUser.Username, Type: "transfer_in", Amount: r.Amount, Balance: recAcc.Balance})
-        }
+			if err := tx.Save(&senderAcc).Error; err != nil {
+				return err
+			}
+			if err := tx.Save(&recAcc).Error; err != nil {
+				return err
+			}
 
-        // 4. Record one final log for Sender's total exit
-        tx.Create(&models.Transaction{Username: sender.Username, Type: "batch_transfer_out", Amount: totalAmount, Balance: senderAcc.Balance})
+			// Record Log for Recipient
+			var recUser models.User
+			tx.Where("id = ?", recAcc.UserID).First(&recUser)
+			tx.Create(&models.Transaction{Username: recUser.Username, Type: "transfer_in", Amount: r.Amount, Balance: recAcc.Balance})
+		}
 
-        return nil
-    })
+		// 4. Record one final log for Sender's total exit
+		tx.Create(&models.Transaction{Username: sender.Username, Type: "batch_transfer_out", Amount: totalAmount, Balance: senderAcc.Balance})
+
+		return nil
+	})
 }
 
 // GetAllUsers - Fetches all users and their associated accounts for the Admin Dashboard
@@ -553,4 +572,14 @@ func GetAllUsers() ([]models.User, error) {
 	// Preload("Accounts") tells GORM to fetch the bank account for each user
 	err := db.DB.Preload("Accounts").Find(&users).Error
 	return users, err
+}
+
+// HasAdmin checks if there is any user with role 'admin' in the system
+func HasAdmin() (bool, error) {
+	var count int64
+	err := db.DB.Model(&models.User{}).Where("role = ?", "admin").Count(&count).Error
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
 }

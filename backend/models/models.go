@@ -1,23 +1,23 @@
 package models
 
 import (
-	"time"
 	"gorm.io/gorm"
+	"time"
 )
 
 type User struct {
-	ID        uint           `gorm:"primaryKey" json:"id"`
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
-	Username  string         `gorm:"not null" json:"username"`
-	Password  string         `gorm:"not null" json:"-"`
-	Role      string         `gorm:"default:'customer'" json:"role"`  // "customer" or "admin"
-	Accounts  []Account      `json:"accounts,omitempty"`
-	Email string              `gorm:"uniqueIndex;not null" json:"email"`
-	FullName string           `gorm:"not null" json:"fullname"`
-	PhoneNumber string        `gorm:"uniqueIndex;not null" json:"phonenumber"`
-	NationlID string    	  `gorm:"uniqueIndex;not null" json:"national_id"`
+	ID          uint           `gorm:"primaryKey" json:"id"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
+	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
+	Username    string         `gorm:"not null" json:"username"`
+	Password    string         `gorm:"not null" json:"-"`
+	Role        string         `gorm:"default:'customer'" json:"role"` // "customer" or "admin"
+	Accounts    []Account      `json:"accounts,omitempty"`
+	Email       string         `gorm:"uniqueIndex;not null" json:"email"`
+	FullName    string         `gorm:"not null" json:"fullname"`
+	PhoneNumber string         `gorm:"uniqueIndex;not null" json:"phonenumber"`
+	NationlID   string         `gorm:"uniqueIndex;not null" json:"national_id"`
 }
 
 type Account struct {
@@ -52,11 +52,11 @@ type WithdrawRequest struct {
 }
 
 type TransferRecipient struct {
-    AccountNumber string `json:"account_number"`
-    Amount        int64  `json:"amount"`
+	AccountNumber string `json:"account_number"`
+	Amount        int64  `json:"amount"`
 }
 
 type MultiTransferRequest struct {
-    SenderIdentifier string              `json:"sender_identifier"`
-    Recipients       []TransferRecipient `json:"recipients"`
+	SenderIdentifier string              `json:"sender_identifier"`
+	Recipients       []TransferRecipient `json:"recipients"`
 }

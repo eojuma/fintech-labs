@@ -22,4 +22,4 @@ func InitDB() {
 	if err != nil {
 		log.Fatal("Migration failed:", err)
 	}
-	}
+}

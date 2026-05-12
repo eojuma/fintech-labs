@@ -2,14 +2,14 @@ package handlers
 
 import (
 	"encoding/json"
+	"fintech-labs/backend/models"
+	"fintech-labs/backend/services"
+	"fintech-labs/backend/utils"
 	"fmt"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
-	"fintech-labs/backend/utils"
-	"fintech-labs/backend/models"
-	"fintech-labs/backend/services"
 
 	"golang.org/x/crypto/bcrypt"
 )

@@ -1,11 +1,9 @@
 package handlers
 
 import (
-	"encoding/json"
 	"fintech-labs/backend/models"
 	"fintech-labs/backend/services"
 	"fintech-labs/backend/utils"
-	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -25,9 +23,14 @@ func AdminAuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 
 		// Check if user has admin role
 		user, err := services.GetUserByUsername(username)
-		if err != nil || user.Role != "admin" {
-			log.Printf("Access denied for %s (Role: %v) - Admin only", username)
-			http.Error(w, "Access denied. Admin privileges required.", http.StatusForbidden)
+		roleStr := "unknown"
+		if user != nil {
+			roleStr = user.Role
+		}
+		if err != nil || roleStr != "admin" {
+			log.Printf("Access denied for %s (Role: %s) - Admin only", username, roleStr)
+			// Redirect non-admins back to dashboard with an error message instead of returning 403
+			http.Redirect(w, r, "/dashboard?error=Admin+privileges+required", http.StatusSeeOther)
 			return
 		}
 
@@ -38,49 +41,49 @@ func AdminAuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 
 // AdminDashboardHandler - Shows admin panel
 func AdminDashboardHandler(w http.ResponseWriter, r *http.Request) {
-    username := utils.GetSessionUser(r)
-    if username == "" {
-        http.Redirect(w, r, "/login", http.StatusSeeOther)
-        return
-    }
+	username := utils.GetSessionUser(r)
+	if username == "" {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
 
-    user, err := services.GetUserByUsername(username)
-    if err != nil || user.Role != "admin" {
-        http.Error(w, "Access denied", http.StatusForbidden)
-        return
-    }
+	user, err := services.GetUserByUsername(username)
+	if err != nil || user == nil || user.Role != "admin" {
+		http.Redirect(w, r, "/dashboard?error=Admin+privileges+required", http.StatusSeeOther)
+		return
+	}
 
-    users, err := services.GetAllUsers()
-    if err != nil {
-        log.Printf("Error fetching users: %v", err)
-        // If DB fails, it's better to show an error than an empty list
-        http.Error(w, "Internal Database Error", http.StatusInternalServerError)
-        return
-    }
+	users, err := services.GetAllUsers()
+	if err != nil {
+		log.Printf("Error fetching users: %v", err)
+		// If DB fails, it's better to show an error than an empty list
+		http.Error(w, "Internal Database Error", http.StatusInternalServerError)
+		return
+	}
 
-    // Adding more functions to the template map makes the dashboard "fancier"
-    tmpl, err := template.New("admin.html").Funcs(template.FuncMap{
-        "formatKES": utils.FormatKES,
-        "formatDate": utils.FormatDate, // Essential for admin auditing
-    }).ParseFiles("frontend/templates/admin.html")
+	// Adding more functions to the template map makes the dashboard "fancier"
+	tmpl, err := template.New("admin.html").Funcs(template.FuncMap{
+		"formatKES":  utils.FormatKES,
+		"formatDate": utils.FormatDate, // Essential for admin auditing
+	}).ParseFiles("frontend/templates/admin.html")
 
-    if err != nil {
-        log.Printf("Template error: %v", err)
-        http.Error(w, "Display Error", http.StatusInternalServerError)
-        return
-    }
+	if err != nil {
+		log.Printf("Template error: %v", err)
+		http.Error(w, "Display Error", http.StatusInternalServerError)
+		return
+	}
 
-    data := struct {
-        Username string
-        Users    []models.User
-    }{
-        Username: username,
-        Users:    users,
-    }
+	data := struct {
+		Username string
+		Users    []models.User
+	}{
+		Username: username,
+		Users:    users,
+	}
 
-    if err := tmpl.Execute(w, data); err != nil {
-        log.Printf("Execution error: %v", err)
-    }
+	if err := tmpl.Execute(w, data); err != nil {
+		log.Printf("Execution error: %v", err)
+	}
 }
 
 // AdminToggleAccount - API endpoint to activate/deactivate account
@@ -90,27 +93,32 @@ func AdminToggleAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var input struct {
-		AccountID uint `json:"account_id"`
-		Active    bool `json:"active"`
-	}
-
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		http.Error(w, "Invalid request", http.StatusBadRequest)
+	// Accept form POST from admin UI: account_number
+	accountNumber := r.FormValue("account_number")
+	if accountNumber == "" {
+		http.Redirect(w, r, "/admin?error=Account+number+required", http.StatusSeeOther)
 		return
 	}
 
-	err := services.ToggleAccountStatus(input.AccountID, input.Active)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	// Find account by number using service
+	acc, err := services.GetAccountByNumber(accountNumber)
+	if err != nil || acc == nil {
+		http.Redirect(w, r, "/admin?error=Account+not+found", http.StatusSeeOther)
+		return
+	}
+	account := *acc
+
+	newActive := !account.Active
+	if err := services.ToggleAccountStatus(account.ID, newActive); err != nil {
+		http.Redirect(w, r, "/admin?error=Failed+to+toggle+status", http.StatusSeeOther)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"success": true,
-		"message": fmt.Sprintf("Account %s", map[bool]string{true: "activated", false: "deactivated"}[input.Active]),
-	})
+	action := "activated"
+	if !newActive {
+		action = "deactivated"
+	}
+	http.Redirect(w, r, "/admin?success=Account+"+action+"+successfully", http.StatusSeeOther)
 }
 
 // AdminDepositHandler - Admin deposit to any account

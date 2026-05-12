@@ -1,10 +1,10 @@
 package utils
 
 import (
-	"regexp"
-	"strings"
 	"fmt"
 	"net/http"
+	"regexp"
+	"strings"
 	"time"
 )
 
@@ -16,38 +16,37 @@ func ValidUsername(username string) bool {
 	}
 
 	for _, v := range username {
-		if !(v >= 'a' && v <= 'z'|| v >= '0' && v <= '9' || v == '.' || v == '-' || v == '_') {
+		if !(v >= 'a' && v <= 'z' || v >= '0' && v <= '9' || v == '.' || v == '-' || v == '_') {
 			return false
 		}
 	}
 	return true
 }
 
-func ValidFullName(fullname string)bool{
-	fullname=strings.TrimSpace(fullname)
-if len(fullname)<4 || len(fullname)>100{
-	return false
-}
+func ValidFullName(fullname string) bool {
+	fullname = strings.TrimSpace(fullname)
+	if len(fullname) < 4 || len(fullname) > 100 {
+		return false
+	}
 
-for _,name:=range fullname{
-	if !(name >= 'a' && name <= 'z' || name >= 'A' && name <= 'Z' ||  name==' ') {
+	for _, name := range fullname {
+		if !(name >= 'a' && name <= 'z' || name >= 'A' && name <= 'Z' || name == ' ') {
 			return false
 		}
-}
-return true
-}
-
-
-func ValidEmail(email string)bool{
-email=strings.TrimSpace(email)
-if len(email) <5 || len(email)>254{
-	return false
-}
-var emailRegex = regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$`)
-return emailRegex.MatchString(strings.ToLower(email))
+	}
+	return true
 }
 
-func ValidPhoneNumber(phone string)bool{
+func ValidEmail(email string) bool {
+	email = strings.TrimSpace(email)
+	if len(email) < 5 || len(email) > 254 {
+		return false
+	}
+	var emailRegex = regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$`)
+	return emailRegex.MatchString(strings.ToLower(email))
+}
+
+func ValidPhoneNumber(phone string) bool {
 	phone = strings.TrimSpace(phone)
 
 	var phoneRegex = regexp.MustCompile(`^(?:254|\+254|0)?(7|1|2)\d{8}$`)
@@ -55,13 +54,13 @@ func ValidPhoneNumber(phone string)bool{
 	return phoneRegex.MatchString(phone)
 }
 
-func ValidNationalID(Id string)bool{
-	Id=strings.TrimSpace(Id)
-	if len(Id)<7 || len(Id)>8{
+func ValidNationalID(Id string) bool {
+	Id = strings.TrimSpace(Id)
+	if len(Id) < 7 || len(Id) > 8 {
 		return false
 	}
-	for _,ch:=range Id{
-		if ch<'0' || ch>'9'{
+	for _, ch := range Id {
+		if ch < '0' || ch > '9' {
 			return false
 		}
 	}

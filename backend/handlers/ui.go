@@ -1,12 +1,12 @@
 package handlers
 
 import (
-	"html/template"
-	"log"
-	"net/http"
 	"fintech-labs/backend/models"
 	"fintech-labs/backend/services"
 	"fintech-labs/backend/utils"
+	"html/template"
+	"log"
+	"net/http"
 )
 
 func DashboardHandler(w http.ResponseWriter, r *http.Request) {
@@ -29,26 +29,35 @@ func DashboardHandler(w http.ResponseWriter, r *http.Request) {
 
 	// FIXED: Correct path to find the template from the backend directory
 	tmpl, err := template.New("dashboard.html").Funcs(template.FuncMap{
-		"formatKES": utils.FormatKES,
+		"formatKES":  utils.FormatKES,
 		"formatDate": utils.FormatDate,
 	}).ParseFiles("frontend/templates/dashboard.html")
-	
+
 	if err != nil {
 		log.Printf("Template error: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
+	// Fetch user role so template can render admin controls conditionally
+	user, _ := services.GetUserByUsername(username)
+
 	data := struct {
-		Username     string
+		Username      string
+		Role          string
 		AccountNumber string
-		Balance      int64
-		Transactions []models.Transaction
+		Balance       int64
+		Transactions  []models.Transaction
 	}{
 		Username:      username,
+		Role:          "",
 		AccountNumber: account.Number,
 		Balance:       account.Balance,
 		Transactions:  transactions,
+	}
+
+	if user != nil {
+		data.Role = user.Role
 	}
 
 	tmpl.Execute(w, data)
