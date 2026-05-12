@@ -19,6 +19,7 @@ func main() {
     http.HandleFunc("/login", handlers.Login(db.DB))
     http.HandleFunc("/register-page", handlers.RegisterPage)
     http.HandleFunc("/register", handlers.Register(db.DB))
+    http.HandleFunc("/register-admin", handlers.AdminRegister(db.DB))
     http.HandleFunc("/logout", handlers.Logout)           // Middleware optional for logout
 
     // 3. PROTECTED USER ROUTES (Dashboard & Money)

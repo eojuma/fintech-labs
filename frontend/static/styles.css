@@ -319,3 +319,17 @@ td {
   gap: 10px;
   margin-top: 20px;
 }
+
+/* Transfer button */
+.btn-transfer {
+  background: linear-gradient(90deg, #0066cc 0%, #004a99 100%);
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  font-weight: 700;
+}
+.btn-transfer:hover {
+  filter: brightness(0.95);
+}
