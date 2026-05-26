@@ -75,8 +75,13 @@ func FormatKES(amount int64) string {
 }
 
 func FormatDate(t time.Time) string {
-	// Adding 3 hours for East Africa Time if needed
-	return t.Format("02 Jan 2006 15:04:05")
+
+	loc,err:=time.LoadLocation("Africa/Nairobi")
+
+	if err !=nil{
+		return t.Format("02 Jan 2006 15:04:05")
+	}
+	return t.In(loc).Format("02 Jan 2006 15:04:05")
 }
 
 func GetSessionUser(r *http.Request) string {
