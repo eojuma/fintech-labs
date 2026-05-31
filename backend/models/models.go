@@ -41,6 +41,12 @@ type Transaction struct {
 	Type      string         `json:"type"`
 	Amount    int64          `json:"amount"`
 	Balance   int64          `json:"balance"`
+	 // Mpesa integration
+	MpesaReceiptCode string `gorm:"uniqueIndex;default:null" json:"mpesa_receipt_code,omitempty"`
+	MpesaPhoneNumber string         `json:"mpesa_phone_number,omitempty"`
+	MerchantRequestID string        `gorm:"index;default:null" json:"merchant_request_id,omitempty"` // For tracking STK Push
+	CheckoutRequestID string        `gorm:"uniqueIndex;default:null" json:"checkout_request_id,omitempty"` // For tracking STK Push
+	Status           string         `gorm:"default:'pending'" json:"status"` // "pending", "completed", "failed"
 }
 
 type DepositRequest struct {
@@ -59,4 +65,11 @@ type TransferRecipient struct {
 type MultiTransferRequest struct {
 	SenderIdentifier string              `json:"sender_identifier"`
 	Recipients       []TransferRecipient `json:"recipients"`
+}
+
+
+type MpesaDepositRequest struct{
+	Amount int64 `json:"amount" binding:"required"`
+	PhoneNumber string `json:"phone_number" binding:"required"`
+	AccountNumber string `json:"account_number" binding:"required"`
 }
