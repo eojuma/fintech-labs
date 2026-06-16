@@ -89,3 +89,4 @@ We utilize a .gitignore to ensure that local *.db files stay on the developer's 
 📝 Note
 
 This is a living project. It started simple and will continue to improve as I explore more complex DevOps and Cloud-Native technologies for the Kenyan and remote markets.
+Work in progress. 
