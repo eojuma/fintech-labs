@@ -37,9 +37,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const successMsg = urlParams.get("success");
   const errorMsg = urlParams.get("error");
 
-  if (successMsg) showToast(decodeURIComponent(successMsg), "success");
-  if (errorMsg) showToast(decodeURIComponent(errorMsg), "error");
-
+  if (successMsg) showToast(decodeURIComponent(successMsg.replace(/\+/g, " ")), "success");
+  if (errorMsg) showToast(decodeURIComponent(errorMsg.replace(/\+/g, " ")), "error");
   if (successMsg || errorMsg) {
     window.history.replaceState({}, document.title, window.location.pathname);
   }
