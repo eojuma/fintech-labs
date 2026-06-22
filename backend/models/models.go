@@ -73,3 +73,14 @@ type MpesaDepositRequest struct{
 	PhoneNumber string `json:"phone_number" binding:"required"`
 	AccountNumber string `json:"account_number" binding:"required"`
 }
+
+type Session struct {
+    ID             uint           `gorm:"primaryKey" json:"id"`
+    CreatedAt      time.Time      `json:"created_at"`
+    UpdatedAt      time.Time      `json:"updated_at"`
+    DeletedAt      gorm.DeletedAt `gorm:"index" json:"-"`
+    UserID         uint           `gorm:"not null;index" json:"user_id"`
+    Token          string         `gorm:"uniqueIndex;not null" json:"token"`
+    LastActivityAt time.Time      `gorm:"not null" json:"last_activity_at"`
+    User           User           `json:"user" gorm:"foreignKey:UserID"`
+}
