@@ -83,46 +83,74 @@ document.addEventListener("DOMContentLoaded", () => {
  */
 function startSessionTimer() {
   const TIMEOUT = 10 * 60 * 1000;      // 10 minutes in milliseconds
-  const WARNING = 9 * 60 * 1000;       // 9 minutes in milliseconds
+  const WARNING = 9  *60* 1000;       // 9 minutes in milliseconds
 
   let warningTimer = setTimeout(showSessionWarning, WARNING);
   let logoutTimer = setTimeout(forceLogout, TIMEOUT);
 
   function showSessionWarning() {
-    // Create the popup
     const overlay = document.createElement("div");
     overlay.id = "session-warning-overlay";
+    
+    // Force all styles inline — no parent container can override these
+    Object.assign(overlay.style, {
+      position: "fixed",
+      top: "0",
+      left: "0",
+      width: "100vw",
+      height: "100vh",
+      background: "rgba(0, 0, 0, 0.5)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      zIndex: "999999",
+    });
+
     overlay.innerHTML = `
-      <div class="session-warning-box">
-        <div class="session-warning-icon">⏳</div>
-        <h3>Session Expiring Soon</h3>
-        <p>Your session will expire in <strong>1 minute</strong> due to inactivity. Do you want to stay logged in?</p>
-        <div class="session-warning-actions">
-          <button id="btn-stay-connected">Stay Connected</button>
-          <button id="btn-logout-now">Logout</button>
+      <div style="
+        background: #ffffff;
+        border-radius: 12px;
+        padding: 2.5rem;
+        max-width: 420px;
+        width: 90%;
+        text-align: center;
+        box-shadow: 0 25px 60px rgba(0,0,0,0.4);
+        border: 2px solid #f59e0b;
+        position: relative;
+        z-index: 1000000;
+      ">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">⏳</div>
+        <h3 style="font-size: 1.3rem; font-weight: 700; color: #1e293b; margin-bottom: 0.75rem;">Session Expiring Soon</h3>
+        <p style="color: #64748b; font-size: 0.95rem; margin-bottom: 1.5rem; line-height: 1.6;">
+          Your session will expire in <strong>1 minute</strong> due to inactivity. Do you want to stay logged in?
+        </p>
+        <div style="display: flex; gap: 12px; justify-content: center;">
+          <button id="btn-stay-connected" style="
+            background: #004a99; color: white; padding: 12px 24px;
+            border-radius: 8px; border: none; font-weight: 600;
+            cursor: pointer; font-size: 0.95rem;">Stay Connected</button>
+          <button id="btn-logout-now" style="
+            background: #ef4444; color: white; padding: 12px 24px;
+            border-radius: 8px; border: none; font-weight: 600;
+            cursor: pointer; font-size: 0.95rem;">Logout</button>
         </div>
       </div>
     `;
+
     document.body.appendChild(overlay);
 
-    // Stay Connected — refresh the session and reset timers
     document.getElementById("btn-stay-connected").addEventListener("click", () => {
       fetch("/session/refresh", { method: "POST" })
         .then(() => {
           overlay.remove();
           clearTimeout(warningTimer);
           clearTimeout(logoutTimer);
-          // Restart the timers fresh
           warningTimer = setTimeout(showSessionWarning, WARNING);
           logoutTimer = setTimeout(forceLogout, TIMEOUT);
         })
-        .catch(() => {
-          // If refresh fails, force logout
-          forceLogout();
-        });
+        .catch(() => forceLogout());
     });
 
-    // Logout immediately
     document.getElementById("btn-logout-now").addEventListener("click", () => {
       forceLogout();
     });
