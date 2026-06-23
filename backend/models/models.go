@@ -18,6 +18,8 @@ type User struct {
 	FullName    string         `gorm:"not null" json:"fullname"`
 	PhoneNumber string         `gorm:"uniqueIndex;not null" json:"phonenumber"`
 	NationlID   string         `gorm:"uniqueIndex;not null" json:"national_id"`
+	FailedLoginAttempts int        `gorm:"default:0" json:"failed_login_attempts"`
+	LockedUntil         *time.Time `gorm:"default:null" json:"locked_until"`
 }
 
 type Account struct {
