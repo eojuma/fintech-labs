@@ -70,6 +70,10 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   }
+  if (!window.location.pathname.includes("/login") && 
+    !window.location.pathname.includes("/register")) {
+  startSessionTimer();
+}
 });
 
 
@@ -132,11 +136,4 @@ function startSessionTimer() {
     document.body.appendChild(form);
     form.submit();
   }
-}
-
-// Only start the session timer on protected pages (dashboard, admin)
-// Not on login or register pages
-if (!window.location.pathname.includes("/login") && 
-    !window.location.pathname.includes("/register")) {
-  startSessionTimer();
 }
