@@ -1,11 +1,16 @@
 package handlers
 
 import (
+	"crypto/rand"
+	"encoding/hex"
+	"fintech-labs/backend/db"
+	"fintech-labs/backend/models"
 	"fintech-labs/backend/services"
 	"fintech-labs/backend/utils"
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -20,18 +25,7 @@ func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-func Logout(w http.ResponseWriter, r *http.Request) {
-	http.SetCookie(w, &http.Cookie{
-		Name:     "session_user",
-		Value:    "",
-		Path:     "/",
-		MaxAge:   -1,
-		HttpOnly: true,
-	})
-	http.Redirect(w, r, "/login?success=Logged+out+successfully", http.StatusSeeOther)
-}
-
-func Login(db *gorm.DB) http.HandlerFunc {
+func Login(gormDB *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// 1. Handle the GET request to show the login page
 		if r.Method == http.MethodGet {
@@ -53,8 +47,11 @@ func Login(db *gorm.DB) http.HandlerFunc {
 
 		// 5. Success! Set the session and redirect based on role
 		log.Printf("✅ Login Success: %s logged in as %s", user.Username, user.Role)
-		setSessionUser(w, user.Username)
-
+		// Pass the userID so we can link the session to the correct user
+		if err := setSessionUser(w, user.ID); err != nil {
+			http.Redirect(w, r, "/login?error=Failed+to+create+session", http.StatusSeeOther)
+			return
+		}
 		if user.Role == "admin" {
 			http.Redirect(w, r, "/admin", http.StatusSeeOther)
 		} else {
@@ -63,7 +60,7 @@ func Login(db *gorm.DB) http.HandlerFunc {
 	}
 }
 
-func Register(db *gorm.DB) http.HandlerFunc {
+func Register(gormDB *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -108,6 +105,24 @@ func Register(db *gorm.DB) http.HandlerFunc {
 	}
 }
 
+func Logout(w http.ResponseWriter, r *http.Request) {
+	// Get the token from the cookie and delete the session from the database
+	cookie, err := r.Cookie("session_user")
+	if err == nil {
+		db.DB.Where("token = ?", cookie.Value).Delete(&models.Session{})
+	}
+	// Clear the cookie on the browser
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session_user",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+	})
+	http.Redirect(w, r, "/login?success=Logged+out+successfully", http.StatusSeeOther)
+}
+
 func RegisterPage(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "frontend/templates/register.html")
 }
@@ -115,7 +130,7 @@ func RegisterPage(w http.ResponseWriter, r *http.Request) {
 // AdminRegister handles GET/POST for creating admin users. If there are no admins
 // in the system, the page is open to create the first admin. Otherwise only an
 // existing admin can create other admins.
-func AdminRegister(db *gorm.DB) http.HandlerFunc {
+func AdminRegister(gormDB *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// GET: show form
 		if r.Method == http.MethodGet {
@@ -179,11 +194,31 @@ func AdminRegister(db *gorm.DB) http.HandlerFunc {
 	}
 }
 
-func setSessionUser(w http.ResponseWriter, username string) {
+func setSessionUser(w http.ResponseWriter, userID uint) error {
+	// Generate a random 32-byte token
+	bytes := make([]byte, 32)
+	if _, err := rand.Read(bytes); err != nil {
+		return err
+	}
+	token := hex.EncodeToString(bytes)
+
+	// Save the session to the database
+	session := models.Session{
+		UserID:         userID,
+		Token:          token,
+		LastActivityAt: time.Now(),
+	}
+	if err := db.DB.Create(&session).Error; err != nil {
+		return err
+	}
+
+	// Store only the token in the cookie — never the username
 	http.SetCookie(w, &http.Cookie{
 		Name:     "session_user",
-		Value:    username,
+		Value:    token,
 		Path:     "/",
 		HttpOnly: true,
+		MaxAge:   600, // 10 minutes in seconds
 	})
+	return nil
 }
