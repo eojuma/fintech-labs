@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"fintech-labs/backend/db"
+	"fintech-labs/backend/models"
 	"fmt"
 	"net/http"
 	"regexp"
@@ -76,9 +78,9 @@ func FormatKES(amount int64) string {
 
 func FormatDate(t time.Time) string {
 
-	loc,err:=time.LoadLocation("Africa/Nairobi")
+	loc, err := time.LoadLocation("Africa/Nairobi")
 
-	if err !=nil{
+	if err != nil {
 		return t.Format("02 Jan 2006 15:04:05")
 	}
 	return t.In(loc).Format("02 Jan 2006 15:04:05")
@@ -89,5 +91,25 @@ func GetSessionUser(r *http.Request) string {
 	if err != nil {
 		return ""
 	}
-	return cookie.Value
+
+	token := cookie.Value
+	if token == "" {
+		return ""
+	}
+
+	var session models.Session
+
+	result := db.DB.Preload("User").Where("token = ?", token).First(&session)
+	if result.Error != nil {
+		return ""
+	}
+
+	if time.Since(session.LastActivityAt) > 10*time.Minute {
+		db.DB.Delete(&session)
+		return ""
+	}
+
+	db.DB.Model(&session).Update("last_activity_at", time.Now())
+
+	return session.User.Username
 }
