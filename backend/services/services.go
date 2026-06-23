@@ -21,13 +21,16 @@ const (
 	MaxDeposit    = 250000
 	MinWithdrawal = 100
 	MaxWithdrawal = 40000
-
+	
 	MinTransfer = 10
 	MaxTransfer = 100000
 )
 
+var dummyHash []byte
 func init() {
 	rand.Seed(time.Now().UnixNano())
+	dummyHash, _ = bcrypt.GenerateFromPassword([]byte("dummy"), bcrypt.DefaultCost)
+	
 }
 func CreateUser(fullname, username, email, phone, Id, password, role string) (*models.User, error) {
 	cleanfullname := strings.ToLower(strings.TrimSpace(fullname))
@@ -117,20 +120,50 @@ func CreateAccountForUser(userID uint) (*models.Account, error) {
 	return nil, fmt.Errorf("failed to generate unique account number")
 }
 
-func AuthenticateUser(Identifier, password string) (*models.User, error) {
-	cleanIdentifier := strings.ToLower(strings.TrimSpace(Identifier))
+
+func AuthenticateUser(identifier, password string) (*models.User, error) {
+	cleanIdentifier := strings.ToLower(strings.TrimSpace(identifier))
 
 	var user models.User
 
-	if err := db.DB.Where("email = ? OR phone_number = ? OR username = ?", cleanIdentifier, cleanIdentifier, cleanIdentifier).First(&user).Error; err != nil {
-		return nil, errors.New("invalid credentials")
-	}
-
-	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+	err := db.DB.Where("email = ? OR phone_number = ? OR username = ?",
+		cleanIdentifier, cleanIdentifier, cleanIdentifier).First(&user).Error
 
 	if err != nil {
+		// User not found — run bcrypt anyway to prevent timing attacks
+		bcrypt.CompareHashAndPassword(dummyHash, []byte(password))
 		return nil, errors.New("invalid credentials")
 	}
+
+	// Check if account is currently locked
+	if user.LockedUntil != nil && time.Now().Before(*user.LockedUntil) {
+		remaining := time.Until(*user.LockedUntil).Round(time.Minute)
+		return nil, fmt.Errorf("account locked. Try again in %v", remaining)
+	}
+
+	// Verify password
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+	if err != nil {
+		user.FailedLoginAttempts++
+
+		if user.FailedLoginAttempts >= 5 {
+			lockUntil := time.Now().Add(15 * time.Minute)
+			user.LockedUntil = &lockUntil
+			user.FailedLoginAttempts = 0
+			db.DB.Save(&user)
+			return nil, errors.New("account locked for 15 minutes due to too many failed attempts")
+		}
+
+		db.DB.Save(&user)
+		attemptsLeft := 5 - user.FailedLoginAttempts
+		return nil, fmt.Errorf("invalid credentials. %d attempt(s) remaining before lockout", attemptsLeft)
+	}
+
+	// Success — reset everything
+	user.FailedLoginAttempts = 0
+	user.LockedUntil = nil
+	db.DB.Save(&user)
+
 	return &user, nil
 }
 
