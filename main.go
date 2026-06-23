@@ -32,6 +32,9 @@ func main() {
     http.HandleFunc("/admin", handlers.AdminAuthMiddleware(handlers.AdminDashboardHandler))
     http.HandleFunc("/admin/deposit", handlers.AdminAuthMiddleware(handlers.AdminDepositHandler))
     http.HandleFunc("/admin/withdraw", handlers.AdminAuthMiddleware(handlers.AdminWithdrawHandler))
+    http.HandleFunc("/session/refresh", handlers.AuthMiddleware(handlers.RefreshSession))
+
+
 
     log.Println("🚀 Server running on http://localhost:8080")
     log.Fatal(http.ListenAndServe(":8080", nil))
