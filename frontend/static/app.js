@@ -7,10 +7,10 @@ function togglePassword(inputId, iconElement) {
 
   if (input.type === "password") {
     input.type = "text";
-    iconElement.innerText = "👁️"; // Open eye
+    iconElement.innerText = "👁️";
   } else {
     input.type = "password";
-    iconElement.innerText = "👁️‍🗨️"; // Closed eye
+    iconElement.innerText = "👁️‍🗨️";
   }
 }
 
@@ -48,9 +48,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (regForm) {
     regForm.addEventListener("submit", (e) => {
       const pwd = regForm.querySelector('input[name="password"]').value;
-      const cpwd = regForm.querySelector(
-        'input[name="confirm_password"]',
-      ).value;
+      const cpwd = regForm.querySelector('input[name="confirm_password"]').value;
       if (pwd !== cpwd) {
         e.preventDefault();
         showToast("Passwords do not match", "error");
@@ -59,7 +57,6 @@ document.addEventListener("DOMContentLoaded", () => {
       return true;
     });
 
-    // Prefill form inputs from URL query params (preserve fields after redirect)
     const params = new URLSearchParams(window.location.search);
     const fields = ["fullname", "username", "email", "phone", "id_number"];
     fields.forEach((f) => {
@@ -70,20 +67,61 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   }
-  if (!window.location.pathname.includes("/login") && 
+
+  // Start session timer on protected pages
+  if (!window.location.pathname.includes("/login") &&
     !window.location.pathname.includes("/register")) {
-  startSessionTimer();
-}
+    startSessionTimer();
+  }
 });
 
+/**
+ * ADMIN MODAL TRIGGERS — event delegation
+ */
+document.addEventListener("click", (e) => {
+  const adminModal = document.getElementById("adminModal")
+  if (!adminModal) return
+
+  const modalTitle = document.getElementById("modalTitle")
+  const modalSubtitle = document.getElementById("modalSubtitle")
+  const modalAccountNumber = document.getElementById("modalAccountNumber")
+  const adminActionForm = document.getElementById("adminActionForm")
+  const modalSubmitBtn = document.getElementById("modalSubmitBtn")
+
+  if (e.target.classList.contains("btn-deposit-trigger")) {
+    const account = e.target.getAttribute("data-account")
+    modalTitle.textContent = "Deposit Funds"
+    modalSubtitle.textContent = `Account: ${account}`
+    modalAccountNumber.value = account
+    adminActionForm.action = "/admin/deposit"
+    modalSubmitBtn.textContent = "Deposit"
+    modalSubmitBtn.style.background = "var(--success)"
+    adminModal.style.display = "flex"
+  }
+
+  if (e.target.classList.contains("btn-withdraw-trigger")) {
+    const account = e.target.getAttribute("data-account")
+    modalTitle.textContent = "Withdraw Funds"
+    modalSubtitle.textContent = `Account: ${account}`
+    modalAccountNumber.value = account
+    adminActionForm.action = "/admin/withdraw"
+    modalSubmitBtn.textContent = "Withdraw"
+    modalSubmitBtn.style.background = "var(--warning)"
+    adminModal.style.display = "flex"
+  }
+
+  if (e.target.id === "closeModalBtn" || e.target === adminModal) {
+    adminModal.style.display = "none"
+  }
+})
 
 /**
  * SESSION EXPIRY WARNING
  * Shows a warning popup at 9 minutes, auto-logs out at 10 minutes
  */
 function startSessionTimer() {
-  const TIMEOUT = 10 * 60 * 1000;      // 10 minutes in milliseconds
-  const WARNING = 9  *60* 1000;       // 9 minutes in milliseconds
+  const TIMEOUT = 10 * 60 * 1000;
+  const WARNING = 9 * 60 * 1000;
 
   let warningTimer = setTimeout(showSessionWarning, WARNING);
   let logoutTimer = setTimeout(forceLogout, TIMEOUT);
@@ -91,8 +129,7 @@ function startSessionTimer() {
   function showSessionWarning() {
     const overlay = document.createElement("div");
     overlay.id = "session-warning-overlay";
-    
-    // Force all styles inline — no parent container can override these
+
     Object.assign(overlay.style, {
       position: "fixed",
       top: "0",
@@ -157,7 +194,6 @@ function startSessionTimer() {
   }
 
   function forceLogout() {
-    // Submit the logout form programmatically
     const form = document.createElement("form");
     form.method = "POST";
     form.action = "/logout";

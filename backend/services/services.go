@@ -140,6 +140,13 @@ func AuthenticateUser(identifier, password string) (*models.User, error) {
 		remaining := time.Until(*user.LockedUntil).Round(time.Second)
 		return nil, fmt.Errorf("account locked. Try again in %v", remaining)
 	}
+	// Check if account is suspended
+	var account models.Account
+	if err := db.DB.Where("user_id = ?", user.ID).First(&account).Error; err == nil {
+		if !account.Active {
+			return nil, errors.New("your account has been suspended. Please contact support")
+		}
+	}
 
 	// Verify password
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
