@@ -89,35 +89,38 @@ func CreateUser(fullname, username, email, phone, Id, password, role string) (*m
 	return user, nil
 }
 
-func GenerateAccountNumber() string {
-	return fmt.Sprintf("%06d", rand.Intn(900000)+100000)
-}
+func GenerateAccountNumber() (string,error) {
+
+var count int64
+	if err := db.DB.Model(&models.Account{}).Count(&count).Error; err != nil {
+		return "", err
+	}
+	year := time.Now().Year()
+	sequence := count + 1
+	return fmt.Sprintf("AV%d%08d", year, sequence), nil}
 
 func CreateAccountForUser(userID uint) (*models.Account, error) {
-	// Generate a unique account number, retrying a few times if collisions occur
-	var account *models.Account
-	for i := 0; i < 10; i++ {
-		num := GenerateAccountNumber()
-		var existing models.Account
-		if err := db.DB.Where("number = ?", num).First(&existing).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				account = &models.Account{
-					UserID:  userID,
-					Number:  num,
-					Balance: 0,
-					Active:  true,
-				}
-				if err := db.DB.Create(account).Error; err != nil {
-					return nil, err
-				}
-				return account, nil
-			}
-			// unexpected DB error, return
-			return nil, err
-		}
-		// collision detected; try again
+	num, err := GenerateAccountNumber()
+	if err != nil {
+		return nil, err
 	}
-	return nil, fmt.Errorf("failed to generate unique account number")
+
+	// Check for collision just in case
+	var existing models.Account
+	if err := db.DB.Where("number = ?", num).First(&existing).Error; err == nil {
+		return nil, fmt.Errorf("account number collision, please try again")
+	}
+
+	account := &models.Account{
+		UserID:  userID,
+		Number:  num,
+		Balance: 0,
+		Active:  true,
+	}
+	if err := db.DB.Create(account).Error; err != nil {
+		return nil, err
+	}
+	return account, nil
 }
 
 func AuthenticateUser(identifier, password string) (*models.User, error) {
