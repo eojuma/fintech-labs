@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -16,9 +17,13 @@ import (
 	"gorm.io/gorm"
 )
 
+func isProduction() bool {
+	return os.Getenv("RENDER") == "true"
+}
+
 func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if utils.GetSessionUser(r) == "" {
+		if utils.GetSessionUser(w,r) == "" {
 			http.Redirect(w, r, "/login?error=Please+login+first", http.StatusSeeOther)
 			return
 		}
@@ -121,6 +126,8 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 		Path:     "/",
 		MaxAge:   -1,
 		HttpOnly: true,
+		Secure:   isProduction(),
+		SameSite: http.SameSiteStrictMode,
 	})
 	http.Redirect(w, r, "/login?success=Logged+out+successfully", http.StatusSeeOther)
 }
@@ -165,7 +172,7 @@ func AdminRegister(gormDB *gorm.DB) http.HandlerFunc {
 
 		if hasAdmin {
 			// Must be logged-in admin to create another admin
-			sessionUser := utils.GetSessionUser(r)
+			sessionUser := utils.GetSessionUser(w,r)
 			if sessionUser == "" {
 				http.Redirect(w, r, "/login?error=Please+login+as+admin", http.StatusSeeOther)
 				return
@@ -221,6 +228,8 @@ func setSessionUser(w http.ResponseWriter, userID uint) error {
 		Path:     "/",
 		HttpOnly: true,
 		MaxAge:   600, // 10 minutes in seconds
+		Secure:   isProduction(),
+		SameSite: http.SameSiteStrictMode,
 	})
 	return nil
 }

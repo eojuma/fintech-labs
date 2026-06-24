@@ -10,7 +10,7 @@ import (
 )
 
 func DashboardHandler(w http.ResponseWriter, r *http.Request) {
-	username := utils.GetSessionUser(r)
+	username := utils.GetSessionUser(w,r)
 	if username == "" {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return

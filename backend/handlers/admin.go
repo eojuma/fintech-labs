@@ -14,7 +14,7 @@ import (
 // AdminAuthMiddleware checks authentication AND admin role
 func AdminAuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		username := utils.GetSessionUser(r)
+		username := utils.GetSessionUser(w,r)
 		if username == "" {
 			log.Println("Unauthorized access attempt - no session")
 			http.Redirect(w, r, "/login", http.StatusSeeOther)
@@ -41,7 +41,7 @@ func AdminAuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 
 // AdminDashboardHandler - Shows admin panel
 func AdminDashboardHandler(w http.ResponseWriter, r *http.Request) {
-	username := utils.GetSessionUser(r)
+	username := utils.GetSessionUser(w,r)
 	if username == "" {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
