@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"math/rand"
 	"strings"
 	"time"
 
@@ -89,15 +88,15 @@ func CreateUser(fullname, username, email, phone, Id, password, role string) (*m
 	return user, nil
 }
 
-func GenerateAccountNumber() (string,error) {
-
-var count int64
+func GenerateAccountNumber() (string, error) {
+	var count int64
 	if err := db.DB.Model(&models.Account{}).Count(&count).Error; err != nil {
 		return "", err
 	}
 	year := time.Now().Year()
 	sequence := count + 1
-	return fmt.Sprintf("AV%d%08d", year, sequence), nil}
+	return fmt.Sprintf("AV%d%08d", year, sequence), nil
+}
 
 func CreateAccountForUser(userID uint) (*models.Account, error) {
 	num, err := GenerateAccountNumber()
