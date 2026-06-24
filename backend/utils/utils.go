@@ -119,6 +119,5 @@ func GetSessionUser(w http.ResponseWriter, r *http.Request) string {
 		Secure:   os.Getenv("RENDER") == "true",
 		SameSite: http.SameSiteStrictMode,
 	})
-
 	return session.User.Username
 }
