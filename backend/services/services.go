@@ -21,17 +21,17 @@ const (
 	MaxDeposit    = 250000
 	MinWithdrawal = 100
 	MaxWithdrawal = 40000
-	
+
 	MinTransfer = 10
 	MaxTransfer = 100000
 )
 
 var dummyHash []byte
+
 func init() {
-	rand.Seed(time.Now().UnixNano())
 	dummyHash, _ = bcrypt.GenerateFromPassword([]byte("dummy"), bcrypt.DefaultCost)
-	
 }
+
 func CreateUser(fullname, username, email, phone, Id, password, role string) (*models.User, error) {
 	cleanfullname := strings.ToLower(strings.TrimSpace(fullname))
 	cleanEmail := strings.ToLower(strings.TrimSpace(email))
@@ -120,7 +120,6 @@ func CreateAccountForUser(userID uint) (*models.Account, error) {
 	return nil, fmt.Errorf("failed to generate unique account number")
 }
 
-
 func AuthenticateUser(identifier, password string) (*models.User, error) {
 	cleanIdentifier := strings.ToLower(strings.TrimSpace(identifier))
 
@@ -128,7 +127,6 @@ func AuthenticateUser(identifier, password string) (*models.User, error) {
 
 	err := db.DB.Where("email = ? OR phone_number = ? OR username = ?",
 		cleanIdentifier, cleanIdentifier, cleanIdentifier).First(&user).Error
-
 	if err != nil {
 		// User not found — run bcrypt anyway to prevent timing attacks
 		bcrypt.CompareHashAndPassword(dummyHash, []byte(password))
@@ -178,7 +176,6 @@ func Deposit(Identifier string, amount int64) error {
 	}
 
 	return db.DB.Transaction(func(tx *gorm.DB) error {
-
 		var user models.User
 		query := "email = ? OR phone_number = ? OR username = ?"
 		if err := tx.Where(query, cleanIdentifier, cleanIdentifier, cleanIdentifier).First(&user).Error; err != nil {
