@@ -23,7 +23,7 @@ func isProduction() bool {
 
 func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if utils.GetSessionUser(w,r) == "" {
+		if utils.GetSessionUser(w, r) == "" {
 			http.Redirect(w, r, "/login?error=Please+login+first", http.StatusSeeOther)
 			return
 		}
@@ -82,6 +82,8 @@ func Register(gormDB *gorm.DB) http.HandlerFunc {
 		idNumber := r.FormValue("id_number")
 		password := r.FormValue("password")
 		confirmPassword := r.FormValue("confirm_password")
+		transactionPin := r.FormValue("transaction_pin")
+		confirmPin := r.FormValue("confirm_transaction_pin")
 
 		if password != confirmPassword {
 			// Preserve other fields when redirecting back so user doesn't retype them
@@ -91,7 +93,22 @@ func Register(gormDB *gorm.DB) http.HandlerFunc {
 			return
 		}
 
-		// PASS ALL 7 ARGUMENTS TO THE SERVICE
+		// Validate PIN
+		if len(transactionPin) != 4 {
+			redirectURL := "/register-page?error=PIN+must+be+exactly+4+digits"
+			redirectURL += "&fullname=" + fullname + "&username=" + username + "&email=" + email + "&phone=" + phone + "&id_number=" + idNumber
+			http.Redirect(w, r, redirectURL, http.StatusSeeOther)
+			return
+		}
+
+		if transactionPin != confirmPin {
+			redirectURL := "/register-page?error=PINs+do+not+match"
+			redirectURL += "&fullname=" + fullname + "&username=" + username + "&email=" + email + "&phone=" + phone + "&id_number=" + idNumber
+			http.Redirect(w, r, redirectURL, http.StatusSeeOther)
+			return
+		}
+
+		// PASS ALL 8 ARGUMENTS TO THE SERVICE
 		user, err := services.CreateUser(fullname, username, email, phone, idNumber, password, "customer")
 		if err != nil {
 			// Preserve fields (except passwords) so user only fixes the invalid fields
@@ -108,6 +125,12 @@ func Register(gormDB *gorm.DB) http.HandlerFunc {
 			return
 		}
 
+		// Save the transaction PIN
+		if err := services.SetTransactionPin(user.Username, transactionPin); err != nil {
+			http.Redirect(w, r, "/register-page?error=Failed+to+set+transaction+PIN", http.StatusSeeOther)
+			return
+		}
+		
 		http.Redirect(w, r, "/login?success=Account+created!+Please+login", http.StatusSeeOther)
 	}
 }
@@ -172,7 +195,7 @@ func AdminRegister(gormDB *gorm.DB) http.HandlerFunc {
 
 		if hasAdmin {
 			// Must be logged-in admin to create another admin
-			sessionUser := utils.GetSessionUser(w,r)
+			sessionUser := utils.GetSessionUser(w, r)
 			if sessionUser == "" {
 				http.Redirect(w, r, "/login?error=Please+login+as+admin", http.StatusSeeOther)
 				return
