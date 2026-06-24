@@ -10,8 +10,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-
-	"golang.org/x/crypto/bcrypt"
 )
 
 func Deposit(w http.ResponseWriter, r *http.Request) {
@@ -20,15 +18,29 @@ func Deposit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	username := utils.GetSessionUser(w,r)
+	username := utils.GetSessionUser(w, r)
 	if username == "" {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
 
 	amountStr := r.FormValue("amount")
+	pin := r.FormValue("pin")
+
 	if amountStr == "" {
 		http.Redirect(w, r, "/dashboard?error=Amount+required", http.StatusSeeOther)
+		return
+	}
+
+	if pin == "" {
+		http.Redirect(w, r, "/dashboard?error=Transaction+PIN+required", http.StatusSeeOther)
+		return
+	}
+
+	// Verify PIN before processing
+	if err := services.VerifyTransactionPin(username, pin); err != nil {
+		errorMsg := strings.ReplaceAll(err.Error(), " ", "+")
+		http.Redirect(w, r, "/dashboard?error="+errorMsg, http.StatusSeeOther)
 		return
 	}
 
@@ -58,15 +70,29 @@ func Withdraw(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	username := utils.GetSessionUser(w,r)
+	username := utils.GetSessionUser(w, r)
 	if username == "" {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
 
 	amountStr := r.FormValue("amount")
+	pin := r.FormValue("pin")
+
 	if amountStr == "" {
 		http.Redirect(w, r, "/dashboard?error=Amount+required", http.StatusSeeOther)
+		return
+	}
+
+	if pin == "" {
+		http.Redirect(w, r, "/dashboard?error=Transaction+PIN+required", http.StatusSeeOther)
+		return
+	}
+
+	// Verify PIN before processing
+	if err := services.VerifyTransactionPin(username, pin); err != nil {
+		errorMsg := strings.ReplaceAll(err.Error(), " ", "+")
+		http.Redirect(w, r, "/dashboard?error="+errorMsg, http.StatusSeeOther)
 		return
 	}
 
@@ -96,7 +122,7 @@ func GetBalance(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	username := utils.GetSessionUser(w,r)
+	username := utils.GetSessionUser(w, r)
 	if username == "" {
 		http.Error(w, "Not authenticated", http.StatusUnauthorized)
 		return
@@ -123,7 +149,7 @@ func GetTransactionsAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	username := utils.GetSessionUser(w,r)
+	username := utils.GetSessionUser(w, r)
 	if username == "" {
 		http.Error(w, "Not authenticated", http.StatusUnauthorized)
 		return
@@ -148,13 +174,12 @@ func SendMoneyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	username := utils.GetSessionUser(w,r)
+	username := utils.GetSessionUser(w, r)
 	if username == "" {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
 
-	// Parse form data
 	err := r.ParseForm()
 	if err != nil {
 		http.Redirect(w, r, "/dashboard?error=Failed+to+parse+form", http.StatusSeeOther)
@@ -163,7 +188,7 @@ func SendMoneyHandler(w http.ResponseWriter, r *http.Request) {
 
 	toAccountNumber := r.FormValue("to_account")
 	amountStr := r.FormValue("amount")
-	password := r.FormValue("password")
+	pin := r.FormValue("pin")
 
 	if toAccountNumber == "" {
 		http.Redirect(w, r, "/dashboard?error=Recipient+account+number+required", http.StatusSeeOther)
@@ -175,27 +200,21 @@ func SendMoneyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if password == "" {
-		http.Redirect(w, r, "/dashboard?error=Password+required+to+confirm+transaction", http.StatusSeeOther)
+	if pin == "" {
+		http.Redirect(w, r, "/dashboard?error=Transaction+PIN+required", http.StatusSeeOther)
+		return
+	}
+
+	// Verify PIN before processing
+	if err := services.VerifyTransactionPin(username, pin); err != nil {
+		errorMsg := strings.ReplaceAll(err.Error(), " ", "+")
+		http.Redirect(w, r, "/dashboard?error="+errorMsg, http.StatusSeeOther)
 		return
 	}
 
 	amount, err := strconv.ParseInt(amountStr, 10, 64)
 	if err != nil {
 		http.Redirect(w, r, "/dashboard?error=Invalid+amount", http.StatusSeeOther)
-		return
-	}
-
-	// Verify password before proceeding
-	user, err := services.GetUserByUsername(username)
-	if err != nil {
-		http.Redirect(w, r, "/dashboard?error=User+not+found", http.StatusSeeOther)
-		return
-	}
-
-	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
-	if err != nil {
-		http.Redirect(w, r, "/dashboard?error=Invalid+password", http.StatusSeeOther)
 		return
 	}
 
@@ -216,20 +235,17 @@ func SendMoneyHandler(w http.ResponseWriter, r *http.Request) {
 func MultiTransferHandler(w http.ResponseWriter, r *http.Request) {
 	var req models.MultiTransferRequest
 
-	// 1. Decode the JSON body
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
 		return
 	}
 
-	// 2. Call the service we just built
 	err := services.MultiTransfer(req.SenderIdentifier, req.Recipients)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return
 	}
 
-	// 3. Success Response
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"message": "Batch transfer completed successfully"})
 }
