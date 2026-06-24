@@ -137,7 +137,7 @@ func AuthenticateUser(identifier, password string) (*models.User, error) {
 
 	// Check if account is currently locked
 	if user.LockedUntil != nil && time.Now().Before(*user.LockedUntil) {
-		remaining := time.Until(*user.LockedUntil).Round(time.Minute)
+		remaining := time.Until(*user.LockedUntil).Round(time.Second)
 		return nil, fmt.Errorf("account locked. Try again in %v", remaining)
 	}
 
