@@ -3,14 +3,15 @@ package handlers
 import (
 	"crypto/rand"
 	"encoding/hex"
-	"fintech-labs/backend/db"
-	"fintech-labs/backend/models"
-	"fintech-labs/backend/services"
-	"fintech-labs/backend/utils"
 	"log"
 	"net/http"
 	"strings"
 	"time"
+
+	"fintech-labs/backend/db"
+	"fintech-labs/backend/models"
+	"fintech-labs/backend/services"
+	"fintech-labs/backend/utils"
 
 	"gorm.io/gorm"
 )
@@ -41,7 +42,8 @@ func Login(gormDB *gorm.DB) http.HandlerFunc {
 		user, err := services.AuthenticateUser(username, password)
 		if err != nil {
 			log.Printf("Login Fail for identifier '%s': %v", username, err)
-			http.Redirect(w, r, "/login?error=Invalid+username+or+password", http.StatusSeeOther)
+			errorMsg := strings.ReplaceAll(err.Error(), " ", "+")
+			http.Redirect(w, r, "/login?error="+errorMsg, http.StatusSeeOther)
 			return
 		}
 
@@ -222,7 +224,6 @@ func setSessionUser(w http.ResponseWriter, userID uint) error {
 	})
 	return nil
 }
-
 
 func RefreshSession(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
