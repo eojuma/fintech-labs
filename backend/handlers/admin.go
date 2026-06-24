@@ -88,37 +88,42 @@ func AdminDashboardHandler(w http.ResponseWriter, r *http.Request) {
 
 // AdminToggleAccount - API endpoint to activate/deactivate account
 func AdminToggleAccount(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
+    if r.Method != http.MethodPost {
+        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+        return
+    }
 
-	// Accept form POST from admin UI: account_number
-	accountNumber := r.FormValue("account_number")
-	if accountNumber == "" {
-		http.Redirect(w, r, "/admin?error=Account+number+required", http.StatusSeeOther)
-		return
-	}
+    accountNumber := r.FormValue("account_number")
+    if accountNumber == "" {
+        http.Redirect(w, r, "/admin?error=Account+number+required", http.StatusSeeOther)
+        return
+    }
 
-	// Find account by number using service
-	acc, err := services.GetAccountByNumber(accountNumber)
-	if err != nil || acc == nil {
-		http.Redirect(w, r, "/admin?error=Account+not+found", http.StatusSeeOther)
-		return
-	}
-	account := *acc
+    // Prevent admin from blocking their own account
+    sessionUsername := utils.GetSessionUser(w, r)
+    acc, err := services.GetAccountByNumber(accountNumber)
+    if err != nil || acc == nil {
+        http.Redirect(w, r, "/admin?error=Account+not+found", http.StatusSeeOther)
+        return
+    }
 
-	newActive := !account.Active
-	if err := services.ToggleAccountStatus(account.ID, newActive); err != nil {
-		http.Redirect(w, r, "/admin?error=Failed+to+toggle+status", http.StatusSeeOther)
-		return
-	}
+    if acc.User.Username == sessionUsername {
+        http.Redirect(w, r, "/admin?error=You+cannot+block+your+own+account", http.StatusSeeOther)
+        return
+    }
 
-	action := "activated"
-	if !newActive {
-		action = "deactivated"
-	}
-	http.Redirect(w, r, "/admin?success=Account+"+action+"+successfully", http.StatusSeeOther)
+    account := *acc
+    newActive := !account.Active
+    if err := services.ToggleAccountStatus(account.ID, newActive); err != nil {
+        http.Redirect(w, r, "/admin?error=Failed+to+toggle+status", http.StatusSeeOther)
+        return
+    }
+
+    action := "activated"
+    if !newActive {
+        action = "deactivated"
+    }
+    http.Redirect(w, r, "/admin?success=Account+"+action+"+successfully", http.StatusSeeOther)
 }
 
 // AdminDepositHandler - Admin deposit to any account
