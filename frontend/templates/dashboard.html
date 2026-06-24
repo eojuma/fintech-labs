@@ -21,10 +21,22 @@
         </div>
 
         <div class="card balance-card">
-            <h3>Current Balance</h3>
-            <div class="balance-amount">KES {{.Balance}}</div>
-            <p>Account Number: <span class="account-number-display">{{.AccountNumber}}</span></p>
-        </div>
+    <h3>Current Balance</h3>
+    <div class="balance-amount">
+        <span id="balance-value">KES {{.Balance}}</span>
+        <span id="balance-hidden" style="display:none;">KES ••••••</span>
+        <button id="balance-toggle" onclick="toggleBalance()" style="
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.4rem;
+            margin-left: 10px;
+            vertical-align: middle;
+            opacity: 0.8;
+        ">👁️</button>
+    </div>
+    <p>Account Number: <span class="account-number-display">{{.AccountNumber}}</span></p>
+</div>
 
         <div class="grid-3">
             <div class="card">

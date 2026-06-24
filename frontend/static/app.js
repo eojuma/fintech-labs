@@ -14,6 +14,35 @@ function togglePassword(inputId, iconElement) {
   }
 }
 
+
+/**
+ * BALANCE VISIBILITY TOGGLE
+ */
+function toggleBalance() {
+  const balanceValue = document.getElementById("balance-value")
+  const balanceHidden = document.getElementById("balance-hidden")
+  const toggleBtn = document.getElementById("balance-toggle")
+
+  if (!balanceValue) return
+
+  const isHidden = balanceValue.style.display === "none"
+
+  if (isHidden) {
+    // Show balance
+    balanceValue.style.display = "inline"
+    balanceHidden.style.display = "none"
+    toggleBtn.textContent = "👁️"
+    localStorage.setItem("balanceVisible", "true")
+  } else {
+    // Hide balance
+    balanceValue.style.display = "none"
+    balanceHidden.style.display = "inline"
+    toggleBtn.textContent = "🙈"
+    localStorage.setItem("balanceVisible", "false")
+  }
+}
+
+
 /**
  * TOAST NOTIFICATIONS
  */
@@ -66,6 +95,17 @@ document.addEventListener("DOMContentLoaded", () => {
         if (input) input.value = decodeURIComponent(val);
       }
     });
+  }
+
+  // Restore balance visibility preference
+  const balanceValue = document.getElementById("balance-value")
+  const balanceHidden = document.getElementById("balance-hidden")
+  const toggleBtn = document.getElementById("balance-toggle")
+
+  if (balanceValue && localStorage.getItem("balanceVisible") === "false") {
+    balanceValue.style.display = "none"
+    balanceHidden.style.display = "inline"
+    toggleBtn.textContent = "🙈"
   }
 
   // Start session timer on protected pages
