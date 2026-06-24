@@ -98,7 +98,50 @@
               >
             </div>
           </div>
+<div class="form-group">
+            <label>Transaction PIN</label>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px;">
+              Set a 4-digit PIN to authorize your transactions
+            </p>
+            <div class="password-container">
+              <input
+                type="password"
+                name="transaction_pin"
+                id="transaction-pin"
+                required
+                placeholder="••••"
+                maxlength="4"
+                pattern="[0-9]{4}"
+                inputmode="numeric"
+              />
+              <span
+                class="password-toggle"
+                onclick="togglePassword('transaction-pin', this)"
+                >👁️‍🗨️</span
+              >
+            </div>
+          </div>
 
+          <div class="form-group">
+            <label>Confirm Transaction PIN</label>
+            <div class="password-container">
+              <input
+                type="password"
+                name="confirm_transaction_pin"
+                id="confirm-transaction-pin"
+                required
+                placeholder="••••"
+                maxlength="4"
+                pattern="[0-9]{4}"
+                inputmode="numeric"
+              />
+              <span
+                class="password-toggle"
+                onclick="togglePassword('confirm-transaction-pin', this)"
+                >👁️‍🗨️</span
+              >
+            </div>
+          </div>
           <button type="submit" class="btn-auth">Register Account</button>
         </form>
         <p style="text-align: center; margin-top: 20px">
