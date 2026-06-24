@@ -622,3 +622,47 @@ func HasAdmin() (bool, error) {
 	}
 	return count > 0, nil
 }
+
+// SetTransactionPin — hashes and saves the user's transaction PIN
+func SetTransactionPin(username, pin string) error {
+	pin = strings.TrimSpace(pin)
+
+	if len(pin) != 4 {
+		return errors.New("PIN must be exactly 4 digits")
+	}
+
+	for _, ch := range pin {
+		if ch < '0' || ch > '9' {
+			return errors.New("PIN must contain digits only")
+		}
+	}
+
+	hashedPin, err := bcrypt.GenerateFromPassword([]byte(pin), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	return db.DB.Model(&models.User{}).
+		Where("username = ?", username).
+		Update("transaction_pin", string(hashedPin)).Error
+}
+
+// VerifyTransactionPin — checks the provided PIN against the stored hash
+func VerifyTransactionPin(username, pin string) error {
+	pin = strings.TrimSpace(pin)
+
+	var user models.User
+	if err := db.DB.Where("username = ?", username).First(&user).Error; err != nil {
+		return errors.New("user not found")
+	}
+
+	if user.TransactionPin == "" {
+		return errors.New("transaction PIN not set. Please set your PIN first")
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.TransactionPin), []byte(pin)); err != nil {
+		return errors.New("incorrect PIN")
+	}
+
+	return nil
+}
