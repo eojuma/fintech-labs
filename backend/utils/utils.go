@@ -1,13 +1,15 @@
 package utils
 
 import (
-	"fintech-labs/backend/db"
-	"fintech-labs/backend/models"
 	"fmt"
 	"net/http"
+	"os"
 	"regexp"
 	"strings"
 	"time"
+
+	"fintech-labs/backend/db"
+	"fintech-labs/backend/models"
 )
 
 func ValidUsername(username string) bool {
@@ -44,14 +46,14 @@ func ValidEmail(email string) bool {
 	if len(email) < 5 || len(email) > 254 {
 		return false
 	}
-	var emailRegex = regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$`)
+	emailRegex := regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$`)
 	return emailRegex.MatchString(strings.ToLower(email))
 }
 
 func ValidPhoneNumber(phone string) bool {
 	phone = strings.TrimSpace(phone)
 
-	var phoneRegex = regexp.MustCompile(`^(?:254|\+254|0)?(7|1|2)\d{8}$`)
+	phoneRegex := regexp.MustCompile(`^(?:254|\+254|0)?(7|1|2)\d{8}$`)
 
 	return phoneRegex.MatchString(phone)
 }
@@ -77,16 +79,14 @@ func FormatKES(amount int64) string {
 }
 
 func FormatDate(t time.Time) string {
-
 	loc, err := time.LoadLocation("Africa/Nairobi")
-
 	if err != nil {
 		return t.Format("02 Jan 2006 15:04:05")
 	}
 	return t.In(loc).Format("02 Jan 2006 15:04:05")
 }
 
-func GetSessionUser(r *http.Request) string {
+func GetSessionUser(w http.ResponseWriter, r *http.Request) string {
 	cookie, err := r.Cookie("session_user")
 	if err != nil {
 		return ""
@@ -110,6 +110,15 @@ func GetSessionUser(r *http.Request) string {
 	}
 
 	db.DB.Model(&session).Update("last_activity_at", time.Now())
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session_user",
+		Value:    token,
+		Path:     "/",
+		HttpOnly: true,
+		MaxAge:   600,
+		Secure:   os.Getenv("RENDER") == "true",
+		SameSite: http.SameSiteStrictMode,
+	})
 
 	return session.User.Username
 }
