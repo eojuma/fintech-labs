@@ -39,15 +39,48 @@
 </div>
 
         <div class="grid-3">
-            <div class="card">
-                <h3>💰 Deposit</h3>
-                <form action="/deposit" method="POST">
-                    <div class="form-group">
-                        <input type="number" name="amount" placeholder="Amount (KES)" required min="50">
-                    </div>
-                    <button type="submit" class="btn-deposit" style="width: 100%; background: var(--success); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600;">Deposit Funds</button>
-                </form>
+    <div class="card">
+        <h3>💰 Deposit</h3>
+        <form action="/deposit" method="POST">
+            <div class="form-group">
+                <input type="number" name="amount" placeholder="Amount (KES)" required min="50">
             </div>
+            <div class="form-group">
+                <input type="password" name="pin" placeholder="Enter PIN" required maxlength="4" inputmode="numeric">
+            </div>
+            <button type="submit" class="btn-deposit" style="width: 100%; background: var(--success); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600;">Deposit Funds</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <h3>🤝 Transfer</h3>
+        <form action="/transfer" method="POST">
+            <div class="form-group">
+                <input type="text" name="to_account" placeholder="Recipient Account #" required>
+            </div>
+            <div class="form-group">
+                <input type="number" name="amount" placeholder="Amount (KES)" required>
+            </div>
+            <div class="form-group">
+                <input type="password" name="pin" placeholder="Enter PIN" required maxlength="4" inputmode="numeric">
+            </div>
+            <button type="submit" class="btn-transfer">Send Money</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <h3>💸 Withdraw</h3>
+        <form action="/withdraw" method="POST">
+            <div class="form-group">
+                <input type="number" name="amount" placeholder="Amount (KES)" required min="100">
+            </div>
+            <div class="form-group">
+                <input type="password" name="pin" placeholder="Enter PIN" required maxlength="4" inputmode="numeric">
+            </div>
+            <button type="submit" class="btn-withdraw" style="width: 100%; background: var(--danger); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600;">Withdraw Cash</button>
+        </form>
+    </div>
+</div>
 
             <div class="card">
                 <h3>🤝 Transfer</h3>
