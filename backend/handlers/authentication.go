@@ -130,7 +130,7 @@ func Register(gormDB *gorm.DB) http.HandlerFunc {
 			http.Redirect(w, r, "/register-page?error=Failed+to+set+transaction+PIN", http.StatusSeeOther)
 			return
 		}
-		
+
 		http.Redirect(w, r, "/login?success=Account+created!+Please+login", http.StatusSeeOther)
 	}
 }
@@ -219,6 +219,25 @@ func AdminRegister(gormDB *gorm.DB) http.HandlerFunc {
 		_, err = services.CreateAccountForUser(user.ID)
 		if err != nil {
 			http.Redirect(w, r, "/register-admin?error=Failed+to+create+bank+account", http.StatusSeeOther)
+			return
+		}
+
+		// Validate and save transaction PIN
+		transactionPin := r.FormValue("transaction_pin")
+		confirmPin := r.FormValue("confirm_transaction_pin")
+
+		if len(transactionPin) != 4 {
+			http.Redirect(w, r, "/register-admin?error=PIN+must+be+exactly+4+digits", http.StatusSeeOther)
+			return
+		}
+
+		if transactionPin != confirmPin {
+			http.Redirect(w, r, "/register-admin?error=PINs+do+not+match", http.StatusSeeOther)
+			return
+		}
+
+		if err := services.SetTransactionPin(user.Username, transactionPin); err != nil {
+			http.Redirect(w, r, "/register-admin?error=Failed+to+set+transaction+PIN", http.StatusSeeOther)
 			return
 		}
 
