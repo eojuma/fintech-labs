@@ -97,6 +97,21 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // PIN length validation on registration
+const pinInput = document.getElementById("transaction-pin")
+const confirmPinInput = document.getElementById("confirm-transaction-pin")
+
+if (pinInput) {
+  pinInput.addEventListener("input", () => {
+    pinInput.value = pinInput.value.replace(/[^0-9]/g, "")
+  })
+}
+
+if (confirmPinInput) {
+  confirmPinInput.addEventListener("input", () => {
+    confirmPinInput.value = confirmPinInput.value.replace(/[^0-9]/g, "")
+  })
+}
   // Restore balance visibility preference
   const balanceValue = document.getElementById("balance-value")
   const balanceHidden = document.getElementById("balance-hidden")

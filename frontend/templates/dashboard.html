@@ -21,22 +21,22 @@
         </div>
 
         <div class="card balance-card">
-    <h3>Current Balance</h3>
-    <div class="balance-amount">
-        <span id="balance-value">KES {{.Balance}}</span>
-        <span id="balance-hidden" style="display:none;">KES ••••••</span>
-        <button id="balance-toggle" onclick="toggleBalance()" style="
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 1.4rem;
-            margin-left: 10px;
-            vertical-align: middle;
-            opacity: 0.8;
-        ">👁️</button>
-    </div>
-    <p>Account Number: <span class="account-number-display">{{.AccountNumber}}</span></p>
-</div>
+            <h3>Current Balance</h3>
+            <div class="balance-amount">
+                <span id="balance-value">KES {{.Balance}}</span>
+                <span id="balance-hidden" style="display:none;">KES ••••••</span>
+                <button id="balance-toggle" onclick="toggleBalance()" style="
+                    background: none;
+                    border: none;
+                    cursor: pointer;
+                    font-size: 1.4rem;
+                    margin-left: 10px;
+                    vertical-align: middle;
+                    opacity: 0.8;
+                ">👁️</button>
+            </div>
+            <p>Account Number: <span class="account-number-display">{{.AccountNumber}}</span></p>
+        </div>
 
         <div class="grid-3">
             <div class="card">
@@ -45,16 +45,25 @@
                     <div class="form-group">
                         <input type="number" name="amount" placeholder="Amount (KES)" required min="50">
                     </div>
+                    <div class="form-group">
+                        <input type="password" name="pin" placeholder="Enter PIN" required maxlength="4" inputmode="numeric">
+                    </div>
                     <button type="submit" class="btn-deposit" style="width: 100%; background: var(--success); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600;">Deposit Funds</button>
                 </form>
             </div>
 
             <div class="card">
                 <h3>🤝 Transfer</h3>
-                <form action="/transfer" method="POST" onsubmit="return validateTransfer()">
-                    <input type="text" name="to_account" id="to_account" placeholder="Recipient Account #">
-                    <input type="number" name="amount" id="amount" placeholder="Amount (KES)">
-                    <input type="password" name="password" id="password" placeholder="Confirm Password">
+                <form action="/transfer" method="POST">
+                    <div class="form-group">
+                        <input type="text" name="to_account" placeholder="Recipient Account #" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="number" name="amount" placeholder="Amount (KES)" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="password" name="pin" placeholder="Enter PIN" required maxlength="4" inputmode="numeric">
+                    </div>
                     <button type="submit" class="btn-transfer">Send Money</button>
                 </form>
             </div>
@@ -64,6 +73,9 @@
                 <form action="/withdraw" method="POST">
                     <div class="form-group">
                         <input type="number" name="amount" placeholder="Amount (KES)" required min="100">
+                    </div>
+                    <div class="form-group">
+                        <input type="password" name="pin" placeholder="Enter PIN" required maxlength="4" inputmode="numeric">
                     </div>
                     <button type="submit" class="btn-withdraw" style="width: 100%; background: var(--danger); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600;">Withdraw Cash</button>
                 </form>
