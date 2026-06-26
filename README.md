@@ -82,7 +82,7 @@ We utilize a .gitignore to ensure that local *.db files stay on the developer's 
 
 👥 Authors & Contributors
 
-    Evans Juma - [@eojuma](https://github.com/eojuma) - Lead Backend Developer
+    Evans Juma - [@eojuma](https://github.com/eojuma)
 
     Special thanks to Silas Lelei for peer-reviewing,the GORM logic and testing the endpoints during transition from maps to a persistent storage.
 
