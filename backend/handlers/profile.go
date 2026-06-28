@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"fintech-labs/backend/db"
+	"fintech-labs/backend/models"
 	"fintech-labs/backend/services"
 	"fintech-labs/backend/utils"
 	"html/template"
@@ -89,4 +91,78 @@ func UpdateProfileHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/profile?success=Profile+updated+successfully", http.StatusSeeOther)
+}
+func ChangePinHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	username := utils.GetSessionUser(w, r)
+	if username == "" {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	currentPin := r.FormValue("current_pin")
+	newPin := r.FormValue("new_pin")
+	confirmPin := r.FormValue("confirm_new_pin")
+
+	if newPin != confirmPin {
+		http.Redirect(w, r, "/profile?error=New+PINs+do+not+match", http.StatusSeeOther)
+		return
+	}
+
+	if err := services.ChangeTransactionPin(username, currentPin, newPin); err != nil {
+		errorMsg := strings.ReplaceAll(err.Error(), " ", "+")
+		http.Redirect(w, r, "/profile?error="+errorMsg, http.StatusSeeOther)
+		return
+	}
+
+	http.Redirect(w, r, "/profile?success=Transaction+PIN+changed+successfully", http.StatusSeeOther)
+}
+
+func ChangePasswordHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	username := utils.GetSessionUser(w, r)
+	if username == "" {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	currentPassword := r.FormValue("current_password")
+	newPassword := r.FormValue("new_password")
+	confirmPassword := r.FormValue("confirm_new_password")
+
+	if newPassword != confirmPassword {
+		http.Redirect(w, r, "/profile?error=New+passwords+do+not+match", http.StatusSeeOther)
+		return
+	}
+
+	if err := services.ChangePassword(username, currentPassword, newPassword); err != nil {
+		errorMsg := strings.ReplaceAll(err.Error(), " ", "+")
+		http.Redirect(w, r, "/profile?error="+errorMsg, http.StatusSeeOther)
+		return
+	}
+
+	// Log out after password change for security
+	cookie, err := r.Cookie("session_user")
+	if err == nil {
+		db.DB.Where("token = ?", cookie.Value).Delete(&models.Session{})
+	}
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session_user",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   isProduction(),
+		SameSite: http.SameSiteStrictMode,
+	})
+
+	http.Redirect(w, r, "/login?success=Password+changed!+Please+login+again", http.StatusSeeOther)
 }

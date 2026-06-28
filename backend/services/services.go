@@ -726,3 +726,47 @@ func UpdateUserProfile(username, email, phone, currentPassword string) error {
 	log.Printf("✅ Profile updated for %s", username)
 	return nil
 }
+
+// ChangeTransactionPin — verifies current PIN then sets a new one
+func ChangeTransactionPin(username, currentPin, newPin string) error {
+	// Verify current PIN first
+	if err := VerifyTransactionPin(username, currentPin); err != nil {
+		return errors.New("current PIN is incorrect")
+	}
+
+	if len(newPin) != 4 {
+		return errors.New("new PIN must be exactly 4 digits")
+	}
+
+	for _, ch := range newPin {
+		if ch < '0' || ch > '9' {
+			return errors.New("PIN must contain digits only")
+		}
+	}
+
+	return SetTransactionPin(username, newPin)
+}
+
+// ChangePassword — verifies current password then sets a new one
+func ChangePassword(username, currentPassword, newPassword string) error {
+	var user models.User
+	if err := db.DB.Where("username = ?", username).First(&user).Error; err != nil {
+		return errors.New("user not found")
+	}
+
+	// Verify current password
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(currentPassword)); err != nil {
+		return errors.New("current password is incorrect")
+	}
+
+	if len(newPassword) < 6 {
+		return errors.New("new password must be at least 6 characters")
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	return db.DB.Model(&user).Update("password", string(hashedPassword)).Error
+}
