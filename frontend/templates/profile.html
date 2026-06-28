@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile - African Vault</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>My Profile</h1>
+            <div class="header-actions">
+                <a href="/dashboard" class="btn-secondary" style="text-decoration: none; padding: 10px 20px; border-radius: 8px; margin-right: 10px;">Back to Dashboard</a>
+                <form action="/logout" method="POST" style="display: inline;">
+                    <button type="submit" class="btn-logout">Logout</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Account Overview -->
+        <div class="card">
+            <h3>Account Overview</h3>
+            <table>
+                <tbody>
+                    <tr>
+                        <td style="font-weight: 600; color: var(--text-muted); width: 200px;">Full Name</td>
+                        <td>{{.FullName}}</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: 600; color: var(--text-muted);">Username</td>
+                        <td>{{.Username}}</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: 600; color: var(--text-muted);">Email</td>
+                        <td>{{.Email}}</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: 600; color: var(--text-muted);">Phone Number</td>
+                        <td>{{.PhoneNumber}}</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: 600; color: var(--text-muted);">Account Number</td>
+                        <td><code>{{.AccountNumber}}</code></td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: 600; color: var(--text-muted);">Role</td>
+                        <td style="text-transform: capitalize;">{{.Role}}</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: 600; color: var(--text-muted);">Account Status</td>
+                        <td>
+                            {{if .Active}}
+                            <span class="badge badge-success">Active</span>
+                            {{else}}
+                            <span class="badge badge-danger">Suspended</span>
+                            {{end}}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: 600; color: var(--text-muted);">Member Since</td>
+                        <td>{{.CreatedAt}}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Update Profile -->
+        <div class="card">
+            <h3>Update Contact Details</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">
+                You can update your email and phone number. Your current password is required to confirm any changes.
+            </p>
+            <form action="/profile/update" method="POST">
+                <div class="form-group">
+                    <label>New Email Address</label>
+                    <input type="email" name="email" placeholder="Leave blank to keep current">
+                </div>
+                <div class="form-group">
+                    <label>New Phone Number</label>
+                    <input type="tel" name="phone" placeholder="Leave blank to keep current">
+                </div>
+                <div class="form-group">
+                    <label>Current Password <span style="color: var(--danger);">*</span></label>
+                    <div class="password-container">
+                        <input type="password" name="current_password" id="current-password" required placeholder="••••••••">
+                        <span class="password-toggle" onclick="togglePassword('current-password', this)">👁️‍🗨️</span>
+                    </div>
+                </div>
+                <button type="submit" class="btn-auth" style="max-width: 200px;">Save Changes</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
