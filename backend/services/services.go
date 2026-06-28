@@ -531,7 +531,11 @@ func ToggleAccountStatus(accountID uint, active bool) error {
 		if err := tx.Save(&account).Error; err != nil {
 			return err
 		}
-
+		// Invalidate all active sessions when blocking
+		if !active {
+			db.DB.Where("user_id = ?", account.UserID).Delete(&models.Session{})
+			log.Printf("Admin: All sessions invalidated for user ID %d", account.UserID)
+		}
 		status := "deactivated"
 		if active {
 			status = "activated"
@@ -664,5 +668,61 @@ func VerifyTransactionPin(username, pin string) error {
 		return errors.New("incorrect PIN")
 	}
 
+	return nil
+}
+
+// UpdateUserProfile — updates a user's email and phone number
+func UpdateUserProfile(username, email, phone, currentPassword string) error {
+	username = strings.ToLower(strings.TrimSpace(username))
+
+	var user models.User
+	if err := db.DB.Where("username = ?", username).First(&user).Error; err != nil {
+		return errors.New("user not found")
+	}
+
+	// Verify current password before allowing changes
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(currentPassword)); err != nil {
+		return errors.New("incorrect password")
+	}
+
+	// Validate and clean new values
+	cleanEmail := strings.ToLower(strings.TrimSpace(email))
+	cleanPhone := strings.TrimSpace(phone)
+
+	if cleanEmail != "" && !utils.ValidEmail(cleanEmail) {
+		return errors.New("invalid email address")
+	}
+
+	if cleanPhone != "" {
+		if strings.HasPrefix(cleanPhone, "0") {
+			cleanPhone = "254" + cleanPhone[1:]
+		}
+		if !utils.ValidPhoneNumber(cleanPhone) {
+			return errors.New("invalid phone number")
+		}
+	}
+
+	// Apply updates
+	updates := map[string]interface{}{}
+	if cleanEmail != "" {
+		updates["email"] = cleanEmail
+	}
+	if cleanPhone != "" {
+		updates["phone_number"] = cleanPhone
+	}
+
+	if len(updates) == 0 {
+		return errors.New("no changes provided")
+	}
+
+	result := db.DB.Model(&user).Updates(updates)
+	if result.Error != nil {
+		if strings.Contains(result.Error.Error(), "UNIQUE constraint failed") {
+			return errors.New("email or phone number already in use")
+		}
+		return result.Error
+	}
+
+	log.Printf("✅ Profile updated for %s", username)
 	return nil
 }
