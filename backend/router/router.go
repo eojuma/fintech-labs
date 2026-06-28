@@ -32,4 +32,10 @@ func Setup() {
 	http.HandleFunc("/admin/withdraw", handlers.AdminAuthMiddleware(handlers.AdminWithdrawHandler))
 	http.HandleFunc("/session/refresh", handlers.AuthMiddleware(handlers.RefreshSession))
 	http.HandleFunc("/admin/toggle", handlers.AdminAuthMiddleware(handlers.AdminToggleAccount))
+
+	// 5. PROFILE ROUTE
+	http.HandleFunc("/profile", handlers.AuthMiddleware(handlers.ProfileHandler))
+	http.HandleFunc("/profile/update", handlers.AuthMiddleware(handlers.UpdateProfileHandler))
+	http.HandleFunc("/profile/change-pin", handlers.AuthMiddleware(handlers.ChangePinHandler))
+	http.HandleFunc("/profile/change-password", handlers.AuthMiddleware(handlers.ChangePasswordHandler))
 }
