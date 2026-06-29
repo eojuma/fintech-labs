@@ -483,10 +483,10 @@ func GetUserByID(userID uint) (*models.User, error) {
 }
 
 // GetAccountByUserID - Fetch primary account by user id
-
 func GetAccountByUserID(userID uint) (*models.Account, error) {
 	var account models.Account
-	err := db.DB.Where("user_id = ?", userID).Preload("User").First(&account).Error
+	err := db.DB.Where("user_id = ? AND account_type = ?", userID, "current").
+		Preload("User").First(&account).Error
 	if err != nil {
 		return nil, err
 	}
@@ -498,7 +498,7 @@ func GetAccountByUsername(username string) (*models.Account, error) {
 	username = strings.ToLower(strings.TrimSpace(username))
 	var account models.Account
 	err := db.DB.Joins("JOIN users ON users.id = accounts.user_id").
-		Where("users.username = ?", username).
+		Where("users.username = ? AND accounts.account_type = ?", username, "current").
 		Preload("User").
 		First(&account).Error
 	if err != nil {
@@ -506,7 +506,6 @@ func GetAccountByUsername(username string) (*models.Account, error) {
 	}
 	return &account, nil
 }
-
 // GetAccountByNumber - Fetch account by account number
 func GetAccountByNumber(accountNumber string) (*models.Account, error) {
 	var account models.Account
