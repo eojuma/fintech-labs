@@ -115,6 +115,7 @@ func CreateAccountForUser(userID uint) (*models.Account, error) {
 		Number:  num,
 		Balance: 0,
 		Active:  true,
+		AccountType: "current",
 	}
 	if err := db.DB.Create(account).Error; err != nil {
 		return nil, err
@@ -481,6 +482,8 @@ func GetUserByID(userID uint) (*models.User, error) {
 	return &user, nil
 }
 
+// GetAccountByUserID - Fetch primary account by user id
+
 func GetAccountByUserID(userID uint) (*models.Account, error) {
 	var account models.Account
 	err := db.DB.Where("user_id = ?", userID).Preload("User").First(&account).Error
@@ -489,6 +492,7 @@ func GetAccountByUserID(userID uint) (*models.Account, error) {
 	}
 	return &account, nil
 }
+// GetAccountByUsername - Fetch primary account by username
 
 func GetAccountByUsername(username string) (*models.Account, error) {
 	username = strings.ToLower(strings.TrimSpace(username))
@@ -769,4 +773,57 @@ func ChangePassword(username, currentPassword, newPassword string) error {
 	}
 
 	return db.DB.Model(&user).Update("password", string(hashedPassword)).Error
+}
+
+// GetUserAccounts — fetches all accounts belonging to a user
+func GetUserAccounts(username string) ([]models.Account, error) {
+	username = strings.ToLower(strings.TrimSpace(username))
+
+	var user models.User
+	if err := db.DB.Where("username = ?", username).First(&user).Error; err != nil {
+		return nil, errors.New("user not found")
+	}
+
+	var accounts []models.Account
+	if err := db.DB.Where("user_id = ?", user.ID).Find(&accounts).Error; err != nil {
+		return nil, err
+	}
+
+	return accounts, nil
+}
+
+// CreateSavingsAccount — opens a savings account for a user who already has a current account
+func CreateSavingsAccount(username string) (*models.Account, error) {
+	username = strings.ToLower(strings.TrimSpace(username))
+
+	var user models.User
+	if err := db.DB.Where("username = ?", username).First(&user).Error; err != nil {
+		return nil, errors.New("user not found")
+	}
+
+	// Check if user already has a savings account
+	var existing models.Account
+	if err := db.DB.Where("user_id = ? AND account_type = ?", user.ID, "savings").First(&existing).Error; err == nil {
+		return nil, errors.New("you already have a savings account")
+	}
+
+	num, err := GenerateAccountNumber()
+	if err != nil {
+		return nil, err
+	}
+
+	account := &models.Account{
+		UserID:      user.ID,
+		Number:      num,
+		Balance:     0,
+		Active:      true,
+		AccountType: "savings",
+	}
+
+	if err := db.DB.Create(account).Error; err != nil {
+		return nil, err
+	}
+
+	log.Printf("✅ Savings account created for %s: %s", username, num)
+	return account, nil
 }
