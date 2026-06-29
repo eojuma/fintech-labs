@@ -9,7 +9,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>Welcome, {{.Username}}!</h1>
+            <h1>Welcome, {{.FullName}}!</h1>
             <div class="header-actions">
                 {{if eq .Role "admin"}}
                 <a href="/admin" class="btn-secondary" style="text-decoration: none; padding: 10px 20px; border-radius: 8px; margin-right: 10px;">Admin Panel</a>
@@ -38,11 +38,55 @@
             </div>
             <p>Account Number: <span class="account-number-display">{{.AccountNumber}}</span></p>
         </div>
+        
+        {{if .Accounts}}
+        <div class="card">
+            <h3>My Accounts</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Account Number</th>
+                        <th>Type</th>
+                        <th>Balance</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range .Accounts}}
+                    <tr>
+                        <td><code>{{.Number}}</code></td>
+                        <td style="text-transform: capitalize;">{{.AccountType}}</td>
+                        <td>KES {{.Balance}}</td>
+                        <td>
+                            {{if .Active}}
+                            <span class="badge badge-success">Active</span>
+                            {{else}}
+                            <span class="badge badge-danger">Blocked</span>
+                            {{end}}
+                        </td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+            {{if lt (len .Accounts) 2}}
+            <form action="/accounts/open" method="POST" style="margin-top: 15px;">
+                <button type="submit" class="btn-secondary" style="cursor: pointer;">+ Open Savings Account</button>
+            </form>
+            {{end}}
+        </div>
+        {{end}}
 
         <div class="grid-3">
             <div class="card">
                 <h3>💰 Deposit</h3>
                 <form action="/deposit" method="POST">
+                    <div class="form-group">
+                        <select name="account_number" required style="width:100%; padding:12px; border:1px solid var(--border); border-radius:8px; font-size:1rem;">
+                            {{range .Accounts}}
+                            <option value="{{.Number}}">{{.AccountType}} — {{.Number}}</option>
+                            {{end}}
+                        </select>
+                    </div>
                     <div class="form-group">
                         <input type="number" name="amount" placeholder="Amount (KES)" required min="50">
                     </div>
@@ -56,6 +100,13 @@
             <div class="card">
                 <h3>🤝 Transfer</h3>
                 <form action="/transfer" method="POST">
+                    <div class="form-group">
+                        <select name="account_number" required style="width:100%; padding:12px; border:1px solid var(--border); border-radius:8px; font-size:1rem;">
+                            {{range .Accounts}}
+                            <option value="{{.Number}}">{{.AccountType}} — {{.Number}}</option>
+                            {{end}}
+                        </select>
+                    </div>
                     <div class="form-group">
                         <input type="text" name="to_account" placeholder="Recipient Account #" required>
                     </div>
@@ -72,6 +123,13 @@
             <div class="card">
                 <h3>💸 Withdraw</h3>
                 <form action="/withdraw" method="POST">
+                    <div class="form-group">
+                        <select name="account_number" required style="width:100%; padding:12px; border:1px solid var(--border); border-radius:8px; font-size:1rem;">
+                            {{range .Accounts}}
+                            <option value="{{.Number}}">{{.AccountType}} — {{.Number}}</option>
+                            {{end}}
+                        </select>
+                    </div>
                     <div class="form-group">
                         <input type="number" name="amount" placeholder="Amount (KES)" required min="100">
                     </div>
