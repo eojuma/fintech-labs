@@ -44,7 +44,7 @@ type Transaction struct {
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 	Username  string         `gorm:"index" json:"username"`
 	Type      string         `json:"type"`
-	Amount    int64          `json:"amount"`
+	Amount    int64          `json:"amount"` // amounts stored in whole numbers
 	Balance   int64          `json:"balance"`
 	// Mpesa integration
 	MpesaReceiptCode  string `gorm:"uniqueIndex;default:null" json:"mpesa_receipt_code,omitempty"`
