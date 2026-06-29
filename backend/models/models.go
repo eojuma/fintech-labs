@@ -25,15 +25,16 @@ type User struct {
 }
 
 type Account struct {
-	ID        uint           `gorm:"primaryKey" json:"id"`
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
-	UserID    uint           `json:"user_id"`
-	Number    string         `gorm:"uniqueIndex" json:"number"`
-	Balance   int64          `json:"balance"`
-	Active    bool           `gorm:"default:true" json:"active"`
-	User      User           `json:"user" gorm:"foreignKey:UserID"`
+	ID          uint           `gorm:"primaryKey" json:"id"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
+	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
+	UserID      uint           `json:"user_id"`
+	Number      string         `gorm:"uniqueIndex" json:"number"`
+	Balance     int64          `json:"balance"`
+	Active      bool           `gorm:"default:true" json:"active"`
+	AccountType string         `gorm:"default:'current'" json:"account_type"`
+	User        User           `json:"user" gorm:"foreignKey:UserID"`
 }
 
 type Transaction struct {
