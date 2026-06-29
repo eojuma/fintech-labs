@@ -38,4 +38,8 @@ func Setup() {
 	http.HandleFunc("/profile/update", handlers.AuthMiddleware(handlers.UpdateProfileHandler))
 	http.HandleFunc("/profile/change-pin", handlers.AuthMiddleware(handlers.ChangePinHandler))
 	http.HandleFunc("/profile/change-password", handlers.AuthMiddleware(handlers.ChangePasswordHandler))
+
+	//other accounts
+	http.HandleFunc("/accounts/open", handlers.AuthMiddleware(handlers.OpenSavingsAccountHandler))
+
 }
