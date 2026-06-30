@@ -32,7 +32,7 @@ func init() {
 }
 
 func CreateUser(fullname, username, email, phone, Id, password, role string) (*models.User, error) {
-	cleanfullname := strings.ToLower(strings.TrimSpace(fullname))
+	cleanfullname := strings.TrimSpace(fullname)
 	cleanEmail := strings.ToLower(strings.TrimSpace(email))
 	cleanUsername := strings.ToLower(strings.TrimSpace(username))
 	cleanPhoneNumber := strings.TrimSpace(phone)
