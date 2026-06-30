@@ -27,14 +27,19 @@
                 <span id="balance-value">KES {{.Balance}}</span>
                 <span id="balance-hidden" style="display:none;">KES ••••••</span>
                 <button id="balance-toggle" onclick="toggleBalance()" style="
-                    background: none;
-                    border: none;
-                    cursor: pointer;
-                    font-size: 1.4rem;
-                    margin-left: 10px;
-                    vertical-align: middle;
-                    opacity: 0.8;
-                ">👁️‍🗨️</button>
+    background: none;
+    border: none;
+    cursor: pointer;
+    margin-left: 10px;
+    vertical-align: middle;
+    opacity: 0.8;
+    padding: 0;
+">
+    <svg id="balance-toggle-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+        <circle cx="12" cy="12" r="3"></circle>
+    </svg>
+</button>
             </div>
             <p>Account Number: <span class="account-number-display">{{.AccountNumber}}</span></p>
         </div>

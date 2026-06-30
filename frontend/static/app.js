@@ -18,26 +18,27 @@ function togglePassword(inputId, iconElement) {
 /**
  * BALANCE VISIBILITY TOGGLE
  */
+const EYE_OPEN = `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>`;
+const EYE_STRIKEN = `<path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a18.5 18.5 0 0 1 5.06-5.94"></path><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"></path><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>`;
+
 function toggleBalance() {
   const balanceValue = document.getElementById("balance-value")
   const balanceHidden = document.getElementById("balance-hidden")
-  const toggleBtn = document.getElementById("balance-toggle")
+  const toggleIcon = document.getElementById("balance-toggle-icon")
 
   if (!balanceValue) return
 
   const isHidden = balanceValue.style.display === "none"
 
   if (isHidden) {
-    // Show balance
     balanceValue.style.display = "inline"
     balanceHidden.style.display = "none"
-    toggleBtn.textContent = "👁️"
+    toggleIcon.innerHTML = EYE_OPEN
     localStorage.setItem("balanceVisible", "true")
   } else {
-    // Hide balance
     balanceValue.style.display = "none"
     balanceHidden.style.display = "inline"
-    toggleBtn.textContent = "👁️‍🗨️"
+    toggleIcon.innerHTML = EYE_STRIKEN
     localStorage.setItem("balanceVisible", "false")
   }
 }
@@ -115,14 +116,19 @@ if (confirmPinInput) {
   // Restore balance visibility preference
   const balanceValue = document.getElementById("balance-value")
   const balanceHidden = document.getElementById("balance-hidden")
-  const toggleBtn = document.getElementById("balance-toggle")
+  const toggleIcon = document.getElementById("balance-toggle-icon")
 
- if (balanceValue && localStorage.getItem("balanceVisible") === "false") {
-  balanceValue.style.display = "none"
-  balanceHidden.style.display = "inline"
-  toggleBtn.textContent = "👁️‍🗨️"
-}
-
+  if (balanceValue && balanceHidden && toggleIcon) {
+    if (localStorage.getItem("balanceVisible") === "false") {
+      balanceValue.style.display = "none"
+      balanceHidden.style.display = "inline"
+      toggleIcon.innerHTML = EYE_STRIKEN
+    } else {
+      balanceValue.style.display = "inline"
+      balanceHidden.style.display = "none"
+      toggleIcon.innerHTML = EYE_OPEN
+    }
+  }
   // Start session timer on protected pages
   if (!window.location.pathname.includes("/login") &&
     !window.location.pathname.includes("/register")) {
