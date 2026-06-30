@@ -37,7 +37,7 @@ function toggleBalance() {
     // Hide balance
     balanceValue.style.display = "none"
     balanceHidden.style.display = "inline"
-    toggleBtn.textContent = "🙈"
+    toggleBtn.textContent = "👁️‍🗨️"
     localStorage.setItem("balanceVisible", "false")
   }
 }
@@ -117,11 +117,11 @@ if (confirmPinInput) {
   const balanceHidden = document.getElementById("balance-hidden")
   const toggleBtn = document.getElementById("balance-toggle")
 
-  if (balanceValue && localStorage.getItem("balanceVisible") === "false") {
-    balanceValue.style.display = "none"
-    balanceHidden.style.display = "inline"
-    toggleBtn.textContent = "🙈"
-  }
+ if (balanceValue && localStorage.getItem("balanceVisible") === "false") {
+  balanceValue.style.display = "none"
+  balanceHidden.style.display = "inline"
+  toggleBtn.textContent = "👁️‍🗨️"
+}
 
   // Start session timer on protected pages
   if (!window.location.pathname.includes("/login") &&
