@@ -24,8 +24,14 @@ func Deposit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	accountNumber := r.FormValue("account_number")
 	amountStr := r.FormValue("amount")
 	pin := r.FormValue("pin")
+
+	if accountNumber == "" {
+		http.Redirect(w, r, "/dashboard?error=Account+is+required", http.StatusSeeOther)
+		return
+	}
 
 	if amountStr == "" {
 		http.Redirect(w, r, "/dashboard?error=Amount+required", http.StatusSeeOther)
@@ -37,7 +43,6 @@ func Deposit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify PIN before processing
 	if err := services.VerifyTransactionPin(username, pin); err != nil {
 		errorMsg := strings.ReplaceAll(err.Error(), " ", "+")
 		http.Redirect(w, r, "/dashboard?error="+errorMsg, http.StatusSeeOther)
@@ -50,9 +55,9 @@ func Deposit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("💰 Processing deposit for %s: KES %d", username, amount)
+	log.Printf("💰 Processing deposit for %s to account %s: KES %d", username, accountNumber, amount)
 
-	err = services.Deposit(username, amount)
+	err = services.Deposit(accountNumber, amount)
 	if err != nil {
 		log.Printf("Deposit error for %s: %v", username, err)
 		errorMsg := strings.ReplaceAll(err.Error(), " ", "+")
@@ -76,8 +81,14 @@ func Withdraw(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	accountNumber := r.FormValue("account_number")
 	amountStr := r.FormValue("amount")
 	pin := r.FormValue("pin")
+
+	if accountNumber == "" {
+		http.Redirect(w, r, "/dashboard?error=Account+is+required", http.StatusSeeOther)
+		return
+	}
 
 	if amountStr == "" {
 		http.Redirect(w, r, "/dashboard?error=Amount+required", http.StatusSeeOther)
@@ -89,7 +100,6 @@ func Withdraw(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify PIN before processing
 	if err := services.VerifyTransactionPin(username, pin); err != nil {
 		errorMsg := strings.ReplaceAll(err.Error(), " ", "+")
 		http.Redirect(w, r, "/dashboard?error="+errorMsg, http.StatusSeeOther)
@@ -102,9 +112,9 @@ func Withdraw(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("💸 Processing withdrawal for %s: KES %d", username, amount)
+	log.Printf("💸 Processing withdrawal for %s from account %s: KES %d", username, accountNumber, amount)
 
-	err = services.Withdraw(username, amount)
+	err = services.Withdraw(accountNumber, amount)
 	if err != nil {
 		log.Printf("Withdrawal error for %s: %v", username, err)
 		errorMsg := strings.ReplaceAll(err.Error(), " ", "+")
@@ -186,9 +196,15 @@ func SendMoneyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	fromAccountNumber := r.FormValue("account_number")
 	toAccountNumber := r.FormValue("to_account")
 	amountStr := r.FormValue("amount")
 	pin := r.FormValue("pin")
+
+	if fromAccountNumber == "" {
+		http.Redirect(w, r, "/dashboard?error=Source+account+required", http.StatusSeeOther)
+		return
+	}
 
 	if toAccountNumber == "" {
 		http.Redirect(w, r, "/dashboard?error=Recipient+account+number+required", http.StatusSeeOther)
@@ -205,7 +221,6 @@ func SendMoneyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify PIN before processing
 	if err := services.VerifyTransactionPin(username, pin); err != nil {
 		errorMsg := strings.ReplaceAll(err.Error(), " ", "+")
 		http.Redirect(w, r, "/dashboard?error="+errorMsg, http.StatusSeeOther)
@@ -218,9 +233,9 @@ func SendMoneyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("💸 Processing transfer from %s to account %s: KES %d", username, toAccountNumber, amount)
+	log.Printf("💸 Processing transfer from %s (account %s) to account %s: KES %d", username, fromAccountNumber, toAccountNumber, amount)
 
-	err = services.SendMoney(username, toAccountNumber, amount)
+	err = services.SendMoney(fromAccountNumber, toAccountNumber, amount)
 	if err != nil {
 		log.Printf("Transfer error from %s to %s: %v", username, toAccountNumber, err)
 		errorMsg := strings.ReplaceAll(err.Error(), " ", "+")
