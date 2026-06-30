@@ -174,9 +174,8 @@ func AuthenticateUser(identifier, password string) (*models.User, error) {
 
 	return &user, nil
 }
-
-func Deposit(Identifier string, amount int64) error {
-	cleanIdentifier := strings.ToLower(strings.TrimSpace(Identifier))
+func Deposit(accountNumber string, amount int64) error {
+	accountNumber = strings.TrimSpace(accountNumber)
 
 	if amount < MinDeposit {
 		return fmt.Errorf("minimum deposit is KES %d", MinDeposit)
@@ -186,19 +185,18 @@ func Deposit(Identifier string, amount int64) error {
 	}
 
 	return db.DB.Transaction(func(tx *gorm.DB) error {
-		var user models.User
-		query := "email = ? OR phone_number = ? OR username = ?"
-		if err := tx.Where(query, cleanIdentifier, cleanIdentifier, cleanIdentifier).First(&user).Error; err != nil {
-			return errors.New("user not found")
-		}
-
 		var account models.Account
-		if err := tx.Where("user_id = ?", user.ID).First(&account).Error; err != nil {
+		if err := tx.Where("number = ?", accountNumber).First(&account).Error; err != nil {
 			return errors.New("account not found")
 		}
 
 		if !account.Active {
 			return errors.New("account is inactive")
+		}
+
+		var user models.User
+		if err := tx.First(&user, account.UserID).Error; err != nil {
+			return errors.New("user not found")
 		}
 
 		oldBalance := account.Balance
@@ -219,8 +217,8 @@ func Deposit(Identifier string, amount int64) error {
 			return err
 		}
 
-		log.Printf("💰 Deposit: %s deposited KES %d (Balance: KES %d → KES %d)",
-			user.Username, amount, oldBalance, account.Balance)
+		log.Printf("💰 Deposit: %s deposited KES %d to account %s (Balance: KES %d → KES %d)",
+			user.Username, amount, account.Number, oldBalance, account.Balance)
 		return nil
 	})
 }
@@ -267,8 +265,8 @@ func AdminDeposit(accountNumber string, amount int64) error {
 	})
 }
 
-func Withdraw(Identifier string, amount int64) error {
-	cleanIdentifier := strings.ToLower(strings.TrimSpace(Identifier))
+func Withdraw(accountNumber string, amount int64) error {
+	accountNumber = strings.TrimSpace(accountNumber)
 
 	if amount < MinWithdrawal {
 		return fmt.Errorf("minimum withdrawal is KES %d", MinWithdrawal)
@@ -278,19 +276,18 @@ func Withdraw(Identifier string, amount int64) error {
 	}
 
 	return db.DB.Transaction(func(tx *gorm.DB) error {
-		var user models.User
-		query := ("email = ? OR username = ? OR phone_number = ?")
-		if err := tx.Where(query, cleanIdentifier, cleanIdentifier, cleanIdentifier).First(&user).Error; err != nil {
-			return errors.New("user not found")
-		}
-
 		var account models.Account
-		if err := tx.Where("user_id = ?", user.ID).First(&account).Error; err != nil {
+		if err := tx.Where("number = ?", accountNumber).First(&account).Error; err != nil {
 			return errors.New("account not found")
 		}
 
 		if !account.Active {
 			return errors.New("account is inactive")
+		}
+
+		var user models.User
+		if err := tx.First(&user, account.UserID).Error; err != nil {
+			return errors.New("user not found")
 		}
 
 		if account.Balance < amount {
@@ -315,8 +312,8 @@ func Withdraw(Identifier string, amount int64) error {
 			return err
 		}
 
-		log.Printf("💸 Withdrawal: %s withdrew KES %d (Balance: KES %d → KES %d)",
-			user.Username, amount, oldBalance, account.Balance)
+		log.Printf("💸 Withdrawal: %s withdrew KES %d from account %s (Balance: KES %d → KES %d)",
+			user.Username, amount, account.Number, oldBalance, account.Balance)
 		return nil
 	})
 }
@@ -367,8 +364,8 @@ func AdminWithdraw(accountNumber string, amount int64) error {
 	})
 }
 
-func SendMoney(fromIdentifier, toIdentifier string, amount int64) error {
-	fromIdentifier = strings.ToLower(strings.TrimSpace(fromIdentifier))
+func SendMoney(fromAccountNumber, toIdentifier string, amount int64) error {
+	fromAccountNumber = strings.TrimSpace(fromAccountNumber)
 	toIdentifier = strings.TrimSpace(toIdentifier)
 
 	if amount < MinTransfer || amount > MaxTransfer {
@@ -376,16 +373,8 @@ func SendMoney(fromIdentifier, toIdentifier string, amount int64) error {
 	}
 
 	return db.DB.Transaction(func(tx *gorm.DB) error {
-		// 1. Get sender with corrected query
-		var fromUser models.User
-		query := "email = ? OR phone_number = ? OR username = ?"
-		if err := tx.Where(query, fromIdentifier, fromIdentifier, fromIdentifier).First(&fromUser).Error; err != nil {
-			return errors.New("sender not found")
-		}
-
-		// 2. Get sender's account
 		var fromAccount models.Account
-		if err := tx.Where("user_id = ?", fromUser.ID).First(&fromAccount).Error; err != nil {
+		if err := tx.Where("number = ?", fromAccountNumber).First(&fromAccount).Error; err != nil {
 			return errors.New("sender account not found")
 		}
 
@@ -393,11 +382,15 @@ func SendMoney(fromIdentifier, toIdentifier string, amount int64) error {
 			return errors.New("transaction denied: account inactive")
 		}
 
+		var fromUser models.User
+		if err := tx.First(&fromUser, fromAccount.UserID).Error; err != nil {
+			return errors.New("sender not found")
+		}
+
 		if fromAccount.Balance < amount {
 			return fmt.Errorf("insufficient funds. Your balance is KES %d", fromAccount.Balance)
 		}
 
-		// 3. Get receiver's account by account number
 		var toAccount models.Account
 		if err := tx.Where("number = ?", toIdentifier).First(&toAccount).Error; err != nil {
 			return errors.New("recipient account not found")
@@ -407,13 +400,11 @@ func SendMoney(fromIdentifier, toIdentifier string, amount int64) error {
 			return errors.New("invalid recipient account")
 		}
 
-		// 4. Get receiver user info for logging
 		var toUser models.User
 		if err := tx.Where("id = ?", toAccount.UserID).First(&toUser).Error; err != nil {
 			return errors.New("recipient user not found")
 		}
 
-		// 5. ATOMIC SWAP: Execute the transfer[cite: 1]
 		fromOldBalance := fromAccount.Balance
 		fromAccount.Balance -= amount
 		toOldBalance := toAccount.Balance
@@ -426,11 +417,9 @@ func SendMoney(fromIdentifier, toIdentifier string, amount int64) error {
 			return err
 		}
 
-		// 6. RECORD LOGS: Both sides see the history[cite: 1]
 		tx.Create(&models.Transaction{Username: fromUser.Username, Type: "transfer_out", Amount: amount, Balance: fromAccount.Balance})
 		tx.Create(&models.Transaction{Username: toUser.Username, Type: "transfer_in", Amount: amount, Balance: toAccount.Balance})
 
-		// FIXED LOGGING: Using correct variable types[cite: 1]
 		log.Printf("💸 Transfer: %s sent KES %d to %s (Acc: %s) | Sender: %d -> %d | Recipient: %d -> %d",
 			fromUser.Username, amount, toUser.Username, toAccount.Number, fromOldBalance, fromAccount.Balance, toOldBalance, toAccount.Balance)
 
