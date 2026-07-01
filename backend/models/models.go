@@ -88,3 +88,14 @@ type Session struct {
 	LastActivityAt time.Time      `gorm:"not null" json:"last_activity_at"`
 	User           User           `json:"user" gorm:"foreignKey:UserID"`
 }
+
+
+type StatementData struct {
+	AccountHolderName string
+	AccountNumber     string
+	From              time.Time
+	To                time.Time
+	OpeningBalance    int64
+	ClosingBalance    int64
+	Transactions      []Transaction
+}
