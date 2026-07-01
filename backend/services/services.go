@@ -815,3 +815,53 @@ func CreateSavingsAccount(username string) (*models.Account, error) {
 	log.Printf("✅ Savings account created for %s: %s", username, num)
 	return account, nil
 }
+
+// GenerateStatement builds a statement for a user's account over a date range.
+// NOTE: Transactions are not currently tied to a specific account number in the
+// schema, so this reflects all of the user's transactions across every account,
+// labeled under the account number passed in.
+func GenerateStatement(username, accountNumber string, from, to time.Time) (*models.StatementData, error) {
+	username = strings.ToLower(strings.TrimSpace(username))
+	var user models.User
+	if err := db.DB.Where("username = ?", username).First(&user).Error; err != nil {
+		return nil, errors.New("user not found")
+	}
+	var account models.Account
+	if err := db.DB.Where("number = ? AND user_id = ?", accountNumber, user.ID).First(&account).Error; err != nil {
+		return nil, errors.New("account not found or does not belong to you")
+	}
+
+	toInclusive := to.Add(24*time.Hour - time.Second)
+
+	var openingBalance int64 = 0
+	var lastBefore models.Transaction
+	err := db.DB.Where("username = ? AND created_at < ?", user.Username, from).
+		Order("created_at desc").First(&lastBefore).Error
+	if err == nil {
+		openingBalance = lastBefore.Balance
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
+	}
+
+	var transactions []models.Transaction
+	if err := db.DB.Where("username = ? AND created_at >= ? AND created_at <= ?", user.Username, from, toInclusive).
+		Order("created_at asc").
+		Find(&transactions).Error; err != nil {
+		return nil, err
+	}
+
+	closingBalance := openingBalance
+	if len(transactions) > 0 {
+		closingBalance = transactions[len(transactions)-1].Balance
+	}
+
+	return &models.StatementData{
+		AccountHolderName: user.FullName,
+		AccountNumber:     account.Number,
+		From:              from,
+		To:                to,
+		OpeningBalance:    openingBalance,
+		ClosingBalance:    closingBalance,
+		Transactions:      transactions,
+	}, nil
+}
