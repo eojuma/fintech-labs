@@ -42,4 +42,7 @@ func Setup() {
 	//other accounts
 	http.HandleFunc("/accounts/open", handlers.AuthMiddleware(handlers.OpenSavingsAccountHandler))
 
+	//download statement
+	http.HandleFunc("/statement/download", handlers.AuthMiddleware(handlers.DownloadStatementHandler))
+
 }
