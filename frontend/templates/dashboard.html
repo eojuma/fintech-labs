@@ -147,6 +147,38 @@
         </div>
 
         <div class="card">
+    <h3>📄 Download Statement</h3>
+    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">
+        Download your transaction history as a PDF or CSV file.
+    </p>
+    <form action="/statement/download" method="GET" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end;">
+        <div class="form-group" style="margin: 0; flex: 1; min-width: 150px;">
+            <label>Account</label>
+            <select name="account" required style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; font-size:0.9rem;">
+                {{range .Accounts}}
+                <option value="{{.Number}}">{{.AccountType}} — {{.Number}}</option>
+                {{end}}
+            </select>
+        </div>
+        <div class="form-group" style="margin: 0; flex: 1; min-width: 130px;">
+            <label>From</label>
+            <input type="date" name="from" required style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; font-size:0.9rem;">
+        </div>
+        <div class="form-group" style="margin: 0; flex: 1; min-width: 130px;">
+            <label>To</label>
+            <input type="date" name="to" required style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; font-size:0.9rem;">
+        </div>
+        <div class="form-group" style="margin: 0; flex: 1; min-width: 130px;">
+            <label>Format</label>
+            <select name="format" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; font-size:0.9rem;">
+                <option value="pdf">PDF</option>
+                <option value="csv">CSV</option>
+            </select>
+        </div>
+        <button type="submit" class="btn-auth" style="max-width: 150px; padding: 10px;">Download</button>
+    </form>
+</div>
+        <div class="card">
             <h3>Recent Transactions</h3>
             <table>
                 <thead>
