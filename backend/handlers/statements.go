@@ -90,7 +90,7 @@ func DownloadStatementHandler(w http.ResponseWriter, r *http.Request) {
 	pdf := gofpdf.New("P", "mm", "A4", "")
 	pdf.AddPage()
 	pdf.SetFont("Arial", "B", 16)
-	pdf.Cell(0, 10, "African Vault — Account Statement")
+	pdf.Cell(0, 10, "African Vault - Account Statement")
 	pdf.Ln(12)
 
 	pdf.SetFont("Arial", "", 11)
