@@ -207,10 +207,11 @@ func Deposit(accountNumber string, amount int64) error {
 		}
 
 		transaction := models.Transaction{
-			Username: user.Username,
-			Type:     "deposit",
-			Amount:   amount,
-			Balance:  account.Balance,
+			Username:      user.Username,
+			AccountNumber: account.Number,
+			Type:          "deposit",
+			Amount:        amount,
+			Balance:       account.Balance,
 		}
 
 		if err := tx.Create(&transaction).Error; err != nil {
@@ -251,10 +252,11 @@ func AdminDeposit(accountNumber string, amount int64) error {
 		}
 
 		transaction := models.Transaction{
-			Username: user.Username,
-			Type:     "deposit",
-			Amount:   amount,
-			Balance:  account.Balance,
+			Username:      user.Username,
+			AccountNumber: account.Number,
+			Type:          "deposit",
+			Amount:        amount,
+			Balance:       account.Balance,
 		}
 		if err := tx.Create(&transaction).Error; err != nil {
 			return err
@@ -302,10 +304,11 @@ func Withdraw(accountNumber string, amount int64) error {
 		}
 
 		transaction := models.Transaction{
-			Username: user.Username,
-			Type:     "withdrawal",
-			Amount:   amount,
-			Balance:  account.Balance,
+			Username:      user.Username,
+			AccountNumber: account.Number,
+			Type:          "withdrawal",
+			Amount:        amount,
+			Balance:       account.Balance,
 		}
 
 		if err := tx.Create(&transaction).Error; err != nil {
@@ -350,10 +353,11 @@ func AdminWithdraw(accountNumber string, amount int64) error {
 		}
 
 		transaction := models.Transaction{
-			Username: user.Username,
-			Type:     "withdrawal",
-			Amount:   amount,
-			Balance:  account.Balance,
+			Username:      user.Username,
+			AccountNumber: account.Number,
+			Type:          "withdrawal",
+			Amount:        amount,
+			Balance:       account.Balance,
 		}
 		if err := tx.Create(&transaction).Error; err != nil {
 			return err
@@ -418,8 +422,8 @@ func SendMoney(fromAccountNumber, toIdentifier string, amount int64) error {
 			return err
 		}
 
-		tx.Create(&models.Transaction{Username: fromUser.Username, Type: "transfer_out", Amount: amount, Balance: fromAccount.Balance})
-		tx.Create(&models.Transaction{Username: toUser.Username, Type: "transfer_in", Amount: amount, Balance: toAccount.Balance})
+		tx.Create(&models.Transaction{Username: fromUser.Username, AccountNumber: fromAccount.Number, Type: "transfer_out", Amount: amount, Balance: fromAccount.Balance})
+		tx.Create(&models.Transaction{Username: toUser.Username, AccountNumber: toAccount.Number, Type: "transfer_in", Amount: amount, Balance: toAccount.Balance})
 
 		log.Printf("💸 Transfer: %s sent KES %d to %s (Acc: %s) | Sender: %d -> %d | Recipient: %d -> %d",
 			fromUser.Username, amount, toUser.Username, toAccount.Number, fromOldBalance, fromAccount.Balance, toOldBalance, toAccount.Balance)
@@ -594,11 +598,11 @@ func MultiTransfer(senderIdentifier string, recipients []models.TransferRecipien
 			// Record Log for Recipient
 			var recUser models.User
 			tx.Where("id = ?", recAcc.UserID).First(&recUser)
-			tx.Create(&models.Transaction{Username: recUser.Username, Type: "transfer_in", Amount: r.Amount, Balance: recAcc.Balance})
+			tx.Create(&models.Transaction{Username: recUser.Username, AccountNumber: recAcc.Number, Type: "transfer_in", Amount: r.Amount, Balance: recAcc.Balance})
 		}
 
 		// 4. Record one final log for Sender's total exit
-		tx.Create(&models.Transaction{Username: sender.Username, Type: "batch_transfer_out", Amount: totalAmount, Balance: senderAcc.Balance})
+		tx.Create(&models.Transaction{Username: sender.Username, AccountNumber: senderAcc.Number, Type: "batch_transfer_out", Amount: totalAmount, Balance: senderAcc.Balance})
 
 		return nil
 	})
@@ -820,9 +824,6 @@ func CreateSavingsAccount(username string) (*models.Account, error) {
 }
 
 // GenerateStatement builds a statement for a user's account over a date range.
-// NOTE: Transactions are not currently tied to a specific account number in the
-// schema, so this reflects all of the user's transactions across every account,
-// labeled under the account number passed in.
 func GenerateStatement(username, accountNumber string, from, to time.Time) (*models.StatementData, error) {
 	username = strings.ToLower(strings.TrimSpace(username))
 	var user models.User
@@ -838,7 +839,7 @@ func GenerateStatement(username, accountNumber string, from, to time.Time) (*mod
 
 	var openingBalance int64 = 0
 	var lastBefore models.Transaction
-	err := db.DB.Where("username = ? AND created_at < ?", user.Username, from).
+	err := db.DB.Where("account_number = ? AND created_at < ?", accountNumber, from).
 		Order("created_at desc").First(&lastBefore).Error
 	if err == nil {
 		openingBalance = lastBefore.Balance
@@ -847,7 +848,7 @@ func GenerateStatement(username, accountNumber string, from, to time.Time) (*mod
 	}
 
 	var transactions []models.Transaction
-	if err := db.DB.Where("username = ? AND created_at >= ? AND created_at <= ?", user.Username, from, toInclusive).
+	if err := db.DB.Where("account_number = ? AND created_at >= ? AND created_at <= ?", accountNumber, from, toInclusive).
 		Order("created_at asc").
 		Find(&transactions).Error; err != nil {
 		return nil, err
