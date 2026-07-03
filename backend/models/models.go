@@ -89,10 +89,10 @@ type Session struct {
 	User           User           `json:"user" gorm:"foreignKey:UserID"`
 }
 
-
 type StatementData struct {
 	AccountHolderName string
 	AccountNumber     string
+	AccountType       string
 	From              time.Time
 	To                time.Time
 	OpeningBalance    int64

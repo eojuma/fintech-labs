@@ -2,11 +2,13 @@ package handlers
 
 import (
 	"encoding/csv"
-	"fintech-labs/backend/services"
-	"fintech-labs/backend/utils"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
+
+	"fintech-labs/backend/services"
+	"fintech-labs/backend/utils"
 
 	"github.com/jung-kurt/gofpdf"
 )
@@ -67,6 +69,7 @@ func DownloadStatementHandler(w http.ResponseWriter, r *http.Request) {
 		writer.Write([]string{"African Vault — Account Statement"})
 		writer.Write([]string{"Account Holder", data.AccountHolderName})
 		writer.Write([]string{"Account Number", data.AccountNumber})
+		writer.Write([]string{"Account Type", strings.Title(data.AccountType)})
 		writer.Write([]string{"Period", fmt.Sprintf("%s to %s", fromStr, toStr)})
 		writer.Write([]string{"Opening Balance", fmt.Sprintf("KES %d", data.OpeningBalance)})
 		writer.Write([]string{})
@@ -99,6 +102,9 @@ func DownloadStatementHandler(w http.ResponseWriter, r *http.Request) {
 	pdf.Ln(8)
 	pdf.Cell(60, 8, "Account Number:")
 	pdf.Cell(0, 8, data.AccountNumber)
+	pdf.Cell(60, 8, "Account Type:")
+	pdf.Cell(0, 8, strings.Title(data.AccountType))
+	pdf.Ln(8)
 	pdf.Ln(8)
 	pdf.Cell(60, 8, "Period:")
 	pdf.Cell(0, 8, fmt.Sprintf("%s to %s", fromStr, toStr))
@@ -125,7 +131,7 @@ func DownloadStatementHandler(w http.ResponseWriter, r *http.Request) {
 			pdf.SetFillColor(255, 255, 255)
 		}
 		pdf.CellFormat(45, 7, tx.CreatedAt.Format("02 Jan 2006 15:04"), "1", 0, "L", true, 0, "")
-		pdf.CellFormat(45, 7, tx.Type, "1", 0, "L", true, 0, "")
+		pdf.CellFormat(45, 7, strings.Title(tx.Type), "1", 0, "L", true, 0, "")
 		pdf.CellFormat(45, 7, fmt.Sprintf("%d", tx.Amount), "1", 0, "R", true, 0, "")
 		pdf.CellFormat(45, 7, fmt.Sprintf("%d", tx.Balance), "1", 1, "R", true, 0, "")
 		fill = !fill

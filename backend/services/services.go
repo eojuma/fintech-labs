@@ -111,10 +111,10 @@ func CreateAccountForUser(userID uint) (*models.Account, error) {
 	}
 
 	account := &models.Account{
-		UserID:  userID,
-		Number:  num,
-		Balance: 0,
-		Active:  true,
+		UserID:      userID,
+		Number:      num,
+		Balance:     0,
+		Active:      true,
 		AccountType: "current",
 	}
 	if err := db.DB.Create(account).Error; err != nil {
@@ -174,6 +174,7 @@ func AuthenticateUser(identifier, password string) (*models.User, error) {
 
 	return &user, nil
 }
+
 func Deposit(accountNumber string, amount int64) error {
 	accountNumber = strings.TrimSpace(accountNumber)
 
@@ -481,6 +482,7 @@ func GetAccountByUserID(userID uint) (*models.Account, error) {
 	}
 	return &account, nil
 }
+
 // GetAccountByUsername - Fetch primary account by username
 
 func GetAccountByUsername(username string) (*models.Account, error) {
@@ -495,6 +497,7 @@ func GetAccountByUsername(username string) (*models.Account, error) {
 	}
 	return &account, nil
 }
+
 // GetAccountByNumber - Fetch account by account number
 func GetAccountByNumber(accountNumber string) (*models.Account, error) {
 	var account models.Account
@@ -858,6 +861,7 @@ func GenerateStatement(username, accountNumber string, from, to time.Time) (*mod
 	return &models.StatementData{
 		AccountHolderName: user.FullName,
 		AccountNumber:     account.Number,
+		AccountType:       account.AccountType,
 		From:              from,
 		To:                to,
 		OpeningBalance:    openingBalance,
