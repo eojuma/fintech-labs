@@ -369,6 +369,44 @@ func AdminWithdraw(accountNumber string, amount int64) error {
 	})
 }
 
+// ResolveRecipientAccount finds a recipient's account using either an account
+// number or a phone number. Account numbers follow the "AV" prefix convention
+// (e.g. AV202600000001); anything else is treated as a phone number and
+// normalized the same way as registration (leading 0 -> 254).
+func ResolveRecipientAccount(tx *gorm.DB, identifier string) (*models.Account, error) {
+	identifier = strings.TrimSpace(identifier)
+	if identifier == "" {
+		return nil, errors.New("recipient identifier is required")
+	}
+
+	// Looks like an account number
+	if strings.HasPrefix(strings.ToUpper(identifier), "AV") {
+		var account models.Account
+		if err := tx.Where("number = ?", identifier).First(&account).Error; err != nil {
+			return nil, errors.New("recipient account not found")
+		}
+		return &account, nil
+	}
+
+	// Otherwise, treat it as a phone number
+	cleanPhone := identifier
+	if strings.HasPrefix(cleanPhone, "0") {
+		cleanPhone = "254" + cleanPhone[1:]
+	}
+
+	var user models.User
+	if err := tx.Where("phone_number = ?", cleanPhone).First(&user).Error; err != nil {
+		return nil, errors.New("recipient not found")
+	}
+
+	var account models.Account
+	if err := tx.Where("user_id = ? AND account_type = ?", user.ID, "current").First(&account).Error; err != nil {
+		return nil, errors.New("recipient account not found")
+	}
+
+	return &account, nil
+}
+
 func SendMoney(fromAccountNumber, toIdentifier string, amount int64) error {
 	fromAccountNumber = strings.TrimSpace(fromAccountNumber)
 	toIdentifier = strings.TrimSpace(toIdentifier)
@@ -396,10 +434,11 @@ func SendMoney(fromAccountNumber, toIdentifier string, amount int64) error {
 			return fmt.Errorf("insufficient funds. Your balance is KES %d", fromAccount.Balance)
 		}
 
-		var toAccount models.Account
-		if err := tx.Where("number = ?", toIdentifier).First(&toAccount).Error; err != nil {
-			return errors.New("recipient account not found")
+		toAccountPtr, err := ResolveRecipientAccount(tx, toIdentifier)
+		if err != nil {
+			return err
 		}
+		toAccount := *toAccountPtr
 
 		if !toAccount.Active || fromAccount.ID == toAccount.ID {
 			return errors.New("invalid recipient account")
