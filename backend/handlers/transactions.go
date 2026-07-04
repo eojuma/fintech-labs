@@ -207,10 +207,9 @@ func SendMoneyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if toAccountNumber == "" {
-		http.Redirect(w, r, "/dashboard?error=Recipient+account+number+required", http.StatusSeeOther)
-		return
-	}
-
+    http.Redirect(w, r, "/dashboard?error=Recipient+is+required", http.StatusSeeOther)
+    return
+}
 	if amountStr == "" {
 		http.Redirect(w, r, "/dashboard?error=Amount+required", http.StatusSeeOther)
 		return
@@ -244,8 +243,7 @@ func SendMoneyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Printf("Transfer successful from %s to account %s: KES %d", username, toAccountNumber, amount)
-	http.Redirect(w, r, "/dashboard?success=Transfer+successful!+KES+"+amountStr+"+sent+to+account+"+toAccountNumber, http.StatusSeeOther)
-}
+http.Redirect(w, r, "/dashboard?success=Transfer+successful!+KES+"+amountStr+"+sent+to+"+toAccountNumber, http.StatusSeeOther)}
 
 func MultiTransferHandler(w http.ResponseWriter, r *http.Request) {
 	var req models.MultiTransferRequest
