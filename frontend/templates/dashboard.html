@@ -153,7 +153,7 @@
     <form action="/statement/download" method="GET" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end;">
         <div class="form-group" style="margin: 0; flex: 1; min-width: 150px;">
             <label>Account</label>
-            <select name="account" required style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; font-size:0.9rem;">
+            <select name="account_number" required style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; font-size:0.9rem;">
                 {{range .Accounts}}
                 <option value="{{.Number}}">{{.AccountType}} — {{.Number}}</option>
                 {{end}}
