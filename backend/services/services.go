@@ -390,10 +390,11 @@ func ResolveRecipientAccount(tx *gorm.DB, identifier string) (*models.Account, e
 
 	// Otherwise, treat it as a phone number
 	cleanPhone := identifier
-	if strings.HasPrefix(cleanPhone, "0") {
-		cleanPhone = "254" + cleanPhone[1:]
-	}
-
+if strings.HasPrefix(cleanPhone, "0") {
+    cleanPhone = "254" + cleanPhone[1:]
+} else if strings.HasPrefix(cleanPhone, "+") {
+    cleanPhone = cleanPhone[1:]
+}
 	var user models.User
 	if err := tx.Where("phone_number = ?", cleanPhone).First(&user).Error; err != nil {
 		return nil, errors.New("recipient not found")
