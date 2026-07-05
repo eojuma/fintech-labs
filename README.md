@@ -1,92 +1,167 @@
-💳 Fintech Labs:A persistent ledger and transaction audit logs
+# 🏦 African Vault — Mobile Banking System
 
-This repository documents my professional journey from building basic Go experiments to developing a persistent, production-ready fintech API.
+A production-grade mobile banking backend built from scratch in Go. African Vault is a learning project that teaches the internals of modern banking systems — ledger design, atomic transactions, session management, payment integrations, and security engineering.
 
-📈 The Journey So Far
+---
 
-What started as a collection of practice scripts has evolved into a structured system centered on Data Integrity and User Persistence.
+## 📈 The Journey
 
-Phase 1: The Foundation (Original Goals)
+What started as a collection of Go experiments has evolved into a structured, secure, and scalable banking system built with real-world standards in mind.
 
-    Learn fintech concepts by building from scratch.
+### Phase 1 — Foundation
+- Basic account creation and balance tracking
+- In-memory storage with Go maps and slices
+- Simple deposit and withdrawal logic
 
-    Practice backend development using the Go standard library.
+### Phase 2 — Persistence & Integrity
+- Migrated from maps to SQLite via GORM
+- Atomic DB transactions — money never gets lost mid-operation
+- Soft delete system preserving financial audit trails
+- Clean architecture — models, services, handlers, router
 
-    Explore payment systems and transaction simulations.
+### Phase 3 — Security Engineering (Current)
+- Secure session management with random token generation and server-side expiry
+- 10-minute inactivity timeout with browser warning popup
+- Login rate limiting — 5 attempts before 15-minute lockout
+- Timing attack prevention on authentication
+- Secure cookie flags — HttpOnly, Secure, SameSite=Strict
+- HTTPS enforcement in production
+- 4-digit transaction PIN separate from login password
+- Suspended accounts blocked at login with session invalidation
 
-Phase 2: Professional Grade (Current State)
+### Phase 4 — Banking Features (In Progress)
+- Multi-account support — current and savings accounts per user
+- Transfer by phone number or account number
+- Account statements — PDF and CSV download with date range
+- User profile management — update contact details, change password, change PIN
+- Balance visibility toggle
+- Admin panel — deposit, withdraw, block/unblock accounts
 
-    GORM & SQLite Integration: Transitioned from temporary memory (maps) to permanent disk storage to prevent data loss.
+---
 
-    Atomic Transactions: Implemented db.Transaction logic to ensure that money is never "lost in the air" during a crash.
+## Completed Issues
 
-    Soft Delete System: Created an "Inactive/Reactivate" flow to preserve financial audit trails—essential for fintech compliance.
+| # | Feature |
+|---|---------|
+| 1 | Session expiry with 10-minute inactivity timeout |
+| 2 | Login rate limiting with lockout |
+| 3 | Secure cookie flags and HTTPS enforcement |
+| 4 | Transaction PIN on all financial operations |
+| 5 | User profile page |
+| 6 | Change password and change PIN |
+| 7 | Multiple accounts per user (current + savings) |
+| 8 | Transfer by phone number or account number |
+| 12 | Account statement download (PDF + CSV) |
+| 26 | Balance visibility toggle |
 
-    Clean Architecture: Separated the project into models, services, and handlers for better scalability and team collaboration.
+---
 
-    Currently a user can:
-    
--   Register and log in securely.
--   View their real-time balance.
--   Deposit and withdraw funds.
--   See a complete, color-coded transaction history.
+## Upcoming Features
 
-   Working on:
+- Transaction search and filtering
+- Transaction receipts
+- Email and SMS notifications
+- M-Pesa STK Push deposit and B2C withdrawal
+- Admin audit log and transaction analytics
+- Suspicious transaction flagging
+- Scheduled recurring transfers
+- Device verification and admin approval
+- Role-based access control (teller, admin, super admin)
+- Biometric authentication (WebAuthn)
+- Currency precision migration to minor units
 
-  -   **Sending money to other users** via a simple form.
+---
 
+## Tech Stack
 
-🛠️ Technical Stack
+- Language: Go (Golang)
+- Database: SQLite with GORM ORM
+- Frontend: HTML, CSS, Vanilla JavaScript
+- Auth: Custom session management with bcrypt
+- PDF Generation: gofpdf
+- Deployment: Render (https://fintech-labs-uaph.onrender.com)
 
-    Language: Go (Golang)
+---
 
-    Database: SQLite (Local persistence)
+## Getting Started
 
-    ORM: GORM (Object Relational Mapping)
+Clone the repository:
 
-    Environment: Developed on Linux(Ubuntu)
+    git clone https://github.com/eojuma/fintech-labs.git
+    cd fintech-labs
 
-🚀 Getting Started
-
-To run this project locally and see the evolution in action:
-
-    Sync Dependencies:
-    Bash
+Sync dependencies:
 
     go mod tidy
 
-    Initialize & Run:
-    Bash
+Run the app:
 
     go run .
 
-    GORM will automatically perform an AutoMigration and create your transaction.db file locally.
+GORM will automatically run AutoMigrate and create transaction.db locally. Visit http://localhost:8080 to access the app.
 
-📡 API Reference
-|| Endpoint | Method | Purpose |
-| :--- | :--- | :--- |
-| `/account` | `POST` | Create a new persistent account in SQLite. |
-| `/accounts` | `GET` | List all usernames currently registered in the system. |
-| `/balance` | `GET` | Fetch real-time account balance from SQLite. |
-| `/deposit` | `POST` | Securely add funds via GORM transactions. |
-| `/withdraw` | `POST` | Deduct funds with "Insufficient Funds" protection. |
-| `/transactions` | `GET` | View the complete audit log (history) for a user. |
-| `/deactivate` | `DELETE` | Mark an account as **Inactive** (Soft Delete). |
-| `/reactivate` | `POST` | Restore an account to **Active** status. |
+---
 
+## API Routes
 
-🛡️ Data Safety & Git Hygiene
+| Endpoint | Method | Auth | Purpose |
+|----------|--------|------|---------|
+| /login | GET, POST | Public | User login |
+| /register-page | GET | Public | Registration page |
+| /register | POST | Public | Create account |
+| /logout | POST | Session | Log out |
+| /dashboard | GET | Session | User dashboard |
+| /deposit | POST | Session + PIN | Deposit funds |
+| /withdraw | POST | Session + PIN | Withdraw funds |
+| /transfer | POST | Session + PIN | Send money |
+| /accounts/open | POST | Session | Open savings account |
+| /statement/download | GET | Session | Download statement |
+| /profile | GET | Session | View profile |
+| /profile/update | POST | Session | Update contact details |
+| /profile/change-pin | POST | Session | Change transaction PIN |
+| /profile/change-password | POST | Session | Change password |
+| /session/refresh | POST | Session | Keepalive |
+| /admin | GET | Admin | Admin dashboard |
+| /admin/deposit | POST | Admin | Deposit to user account |
+| /admin/withdraw | POST | Admin | Withdraw from user account |
+| /admin/toggle | POST | Admin | Block or unblock account |
 
-We utilize a .gitignore to ensure that local *.db files stay on the developer's machine. This prevents sensitive test data from being pushed to GitHub and avoids merge conflicts between team members.
+---
 
+## Security Features
 
-👥 Authors & Contributors
+- Passwords hashed with bcrypt
+- Session tokens are cryptographically random 32-byte hex strings
+- Sessions stored server-side and validated on every request
+- Cookie flags: HttpOnly, Secure (production), SameSite=Strict
+- Session expires after 10 minutes of inactivity
+- Warning popup at 9 minutes with keepalive option
+- Login locked after 5 failed attempts for 15 minutes
+- Timing attack prevention on authentication
+- Transaction PIN separate from login password
+- Suspended accounts blocked at login, all sessions invalidated
+- Admin cannot block their own account
+- HTTPS enforced in production
 
-    Evans Juma - [@eojuma](https://github.com/eojuma)
+---
 
-    Special thanks to Silas Lelei for peer-reviewing,the GORM logic and testing the endpoints during transition from maps to a persistent storage.
+## Data Safety
 
-📝 Note
+- .db files excluded from git via .gitignore
+- Soft deletes via GORM DeletedAt — financial records never deleted
+- Atomic DB transactions on every financial operation
+- All session records cleaned up on logout and account suspension
 
-This is a living project. It started simple and will continue to improve as I explore more complex DevOps and Cloud-Native technologies for the Kenyan and remote markets.
-Work in progress. 
+---
+
+## Authors
+
+Evans Juma — @eojuma (https://github.com/eojuma)
+
+Special thanks to Silas Lelei for peer-reviewing the GORM logic and testing the endpoints during the transition from maps to persistent storage.
+
+---
+
+## Note
+
+African Vault is a living project built to understand banking internals deeply. It started simple and grows with every issue closed. Built at Zone01 Kisumu — where we understand the why before writing the code.
