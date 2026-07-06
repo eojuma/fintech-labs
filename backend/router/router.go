@@ -39,10 +39,10 @@ func Setup() {
 	http.HandleFunc("/profile/change-pin", handlers.AuthMiddleware(handlers.ChangePinHandler))
 	http.HandleFunc("/profile/change-password", handlers.AuthMiddleware(handlers.ChangePasswordHandler))
 
-	//other accounts
+	// other accounts
 	http.HandleFunc("/accounts/open", handlers.AuthMiddleware(handlers.OpenSavingsAccountHandler))
 
-	//download statement
+	// download statement and reciepts
 	http.HandleFunc("/statement/download", handlers.AuthMiddleware(handlers.DownloadStatementHandler))
-
+	http.HandleFunc("/receipt/", handlers.AuthMiddleware(handlers.ReceiptHandler))
 }
