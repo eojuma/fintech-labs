@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transaction Receipt - African Vault</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <style>
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white; }
+            .receipt-card { box-shadow: none; border: 1px solid #ddd; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container" style="max-width: 600px; margin: 40px auto;">
+
+        <div class="card receipt-card" style="text-align: center; padding: 2.5rem;">
+            <!-- Header -->
+            <div style="margin-bottom: 2rem;">
+                <div style="font-size: 3rem;">🏦</div>
+                <h2 style="color: var(--primary); margin: 10px 0 5px;">African Vault</h2>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">Transaction Receipt</p>
+            </div>
+
+            <!-- Status Badge -->
+            <div style="margin-bottom: 1.5rem;">
+                <span style="
+                    background: #ecfdf5;
+                    color: #065f46;
+                    padding: 8px 20px;
+                    border-radius: 20px;
+                    font-weight: 600;
+                    font-size: 0.9rem;
+                    border: 1px solid #6ee7b7;
+                ">✅ {{.Status}}</span>
+            </div>
+
+            <!-- Amount -->
+            <div style="margin-bottom: 2rem;">
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 5px;">Amount</p>
+                <h1 style="font-size: 2.5rem; color: var(--primary); margin: 0;">KES {{.Amount}}</h1>
+            </div>
+
+            <!-- Transaction Details -->
+            <div style="background: var(--background); border-radius: var(--radius); padding: 1.5rem; text-align: left; margin-bottom: 2rem;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        <td style="padding: 12px 0; color: var(--text-muted); font-size: 0.9rem;">Reference Number</td>
+                        <td style="padding: 12px 0; font-weight: 600; text-align: right; font-family: monospace;">{{.ReferenceNumber}}</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        <td style="padding: 12px 0; color: var(--text-muted); font-size: 0.9rem;">Transaction Type</td>
+                        <td style="padding: 12px 0; font-weight: 600; text-align: right;">{{.Type}}</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        <td style="padding: 12px 0; color: var(--text-muted); font-size: 0.9rem;">Account Number</td>
+                        <td style="padding: 12px 0; font-weight: 600; text-align: right; font-family: monospace;">{{.AccountNumber}}</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        <td style="padding: 12px 0; color: var(--text-muted); font-size: 0.9rem;">New Balance</td>
+                        <td style="padding: 12px 0; font-weight: 600; text-align: right;">KES {{.Balance}}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 12px 0; color: var(--text-muted); font-size: 0.9rem;">Date & Time</td>
+                        <td style="padding: 12px 0; font-weight: 600; text-align: right;">{{.Date}}</td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- Actions -->
+            <div class="no-print" style="display: flex; gap: 12px; justify-content: center;">
+                <button onclick="window.print()" style="
+                    background: var(--primary);
+                    color: white;
+                    padding: 12px 24px;
+                    border-radius: 8px;
+                    border: none;
+                    font-weight: 600;
+                    cursor: pointer;
+                    font-size: 0.95rem;
+                ">🖨️ Print Receipt</button>
+                <a href="/dashboard" style="
+                    background: var(--background);
+                    color: var(--text-main);
+                    padding: 12px 24px;
+                    border-radius: 8px;
+                    border: 1px solid var(--border);
+                    font-weight: 600;
+                    text-decoration: none;
+                    font-size: 0.95rem;
+                ">← Back to Dashboard</a>
+            </div>
+
+            <!-- Footer -->
+            <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 2rem;">
+                Keep this receipt for your records. For support contact us at support@africanvault.co.ke
+            </p>
+        </div>
+    </div>
+    <script src="/static/app.js"></script>
+</body>
+</html>
