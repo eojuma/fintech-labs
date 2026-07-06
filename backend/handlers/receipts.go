@@ -1,12 +1,13 @@
 package handlers
 
 import (
-	"fintech-labs/backend/services"
-	"fintech-labs/backend/utils"
 	"html/template"
 	"log"
 	"net/http"
 	"strings"
+
+	"fintech-labs/backend/services"
+	"fintech-labs/backend/utils"
 )
 
 func ReceiptHandler(w http.ResponseWriter, r *http.Request) {
@@ -19,6 +20,7 @@ func ReceiptHandler(w http.ResponseWriter, r *http.Request) {
 	// Extract reference number from URL path /receipt/AV-2026-00000001
 	path := strings.TrimPrefix(r.URL.Path, "/receipt/")
 	path = strings.TrimSpace(path)
+	log.Printf("DEBUG receipt path: '%s'", path)
 
 	if path == "" {
 		http.Redirect(w, r, "/dashboard?error=Invalid+receipt+reference", http.StatusSeeOther)
