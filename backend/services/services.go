@@ -220,7 +220,7 @@ func Deposit(accountNumber string, amount int64) (string, error) {
 		if err := tx.Create(&transaction).Error; err != nil {
 			return err
 		}
-
+		refNum = transaction.ReferenceNumber
 		log.Printf("💰 Deposit: %s deposited KES %d to account %s (Balance: KES %d → KES %d)",
 			user.Username, amount, account.Number, oldBalance, account.Balance)
 		return nil
@@ -319,7 +319,7 @@ func Withdraw(accountNumber string, amount int64) (string, error) {
 		if err := tx.Create(&transaction).Error; err != nil {
 			return err
 		}
-
+		refNum = transaction.ReferenceNumber
 		log.Printf("💸 Withdrawal: %s withdrew KES %d from account %s (Balance: KES %d → KES %d)",
 			user.Username, amount, account.Number, oldBalance, account.Balance)
 		return nil
