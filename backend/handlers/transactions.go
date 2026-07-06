@@ -2,14 +2,15 @@ package handlers
 
 import (
 	"encoding/json"
-	"fintech-labs/backend/models"
-	"fintech-labs/backend/services"
-	"fintech-labs/backend/utils"
 	"fmt"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"fintech-labs/backend/models"
+	"fintech-labs/backend/services"
+	"fintech-labs/backend/utils"
 )
 
 func Deposit(w http.ResponseWriter, r *http.Request) {
@@ -57,16 +58,15 @@ func Deposit(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("💰 Processing deposit for %s to account %s: KES %d", username, accountNumber, amount)
 
-	err = services.Deposit(accountNumber, amount)
+	refNum, err := services.Deposit(accountNumber, amount)
 	if err != nil {
 		log.Printf("Deposit error for %s: %v", username, err)
 		errorMsg := strings.ReplaceAll(err.Error(), " ", "+")
 		http.Redirect(w, r, "/dashboard?error="+errorMsg, http.StatusSeeOther)
 		return
 	}
-
 	log.Printf("Deposit successful for %s: KES %d", username, amount)
-	http.Redirect(w, r, "/dashboard?success=Deposit+successful!+KES+"+amountStr, http.StatusSeeOther)
+	http.Redirect(w, r, "/receipt/"+refNum, http.StatusSeeOther)
 }
 
 func Withdraw(w http.ResponseWriter, r *http.Request) {
@@ -114,7 +114,7 @@ func Withdraw(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("💸 Processing withdrawal for %s from account %s: KES %d", username, accountNumber, amount)
 
-	err = services.Withdraw(accountNumber, amount)
+	refNum, err := services.Withdraw(accountNumber, amount)
 	if err != nil {
 		log.Printf("Withdrawal error for %s: %v", username, err)
 		errorMsg := strings.ReplaceAll(err.Error(), " ", "+")
@@ -123,7 +123,7 @@ func Withdraw(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Printf("Withdrawal successful for %s: KES %d", username, amount)
-	http.Redirect(w, r, "/dashboard?success=Withdrawal+successful!+KES+"+amountStr, http.StatusSeeOther)
+	http.Redirect(w, r, "/receipt/"+refNum, http.StatusSeeOther)
 }
 
 func GetBalance(w http.ResponseWriter, r *http.Request) {
@@ -207,9 +207,9 @@ func SendMoneyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if toAccountNumber == "" {
-    http.Redirect(w, r, "/dashboard?error=Recipient+is+required", http.StatusSeeOther)
-    return
-}
+		http.Redirect(w, r, "/dashboard?error=Recipient+is+required", http.StatusSeeOther)
+		return
+	}
 	if amountStr == "" {
 		http.Redirect(w, r, "/dashboard?error=Amount+required", http.StatusSeeOther)
 		return
@@ -234,16 +234,17 @@ func SendMoneyHandler(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("💸 Processing transfer from %s (account %s) to account %s: KES %d", username, fromAccountNumber, toAccountNumber, amount)
 
-	err = services.SendMoney(fromAccountNumber, toAccountNumber, amount)
-	if err != nil {
-		log.Printf("Transfer error from %s to %s: %v", username, toAccountNumber, err)
-		errorMsg := strings.ReplaceAll(err.Error(), " ", "+")
-		http.Redirect(w, r, "/dashboard?error="+errorMsg, http.StatusSeeOther)
-		return
-	}
+	refNum, err := services.SendMoney(fromAccountNumber, toAccountNumber, amount)
+if err != nil {
+    log.Printf("Transfer error from %s to %s: %v", username, toAccountNumber, err)
+    errorMsg := strings.ReplaceAll(err.Error(), " ", "+")
+    http.Redirect(w, r, "/dashboard?error="+errorMsg, http.StatusSeeOther)
+    return
+}
 
-	log.Printf("Transfer successful from %s to account %s: KES %d", username, toAccountNumber, amount)
-http.Redirect(w, r, "/dashboard?success=Transfer+successful!+KES+"+amountStr+"+sent+to+"+toAccountNumber, http.StatusSeeOther)}
+log.Printf("Transfer successful from %s to account %s: KES %d", username, toAccountNumber, amount)
+http.Redirect(w, r, "/receipt/"+refNum, http.StatusSeeOther)
+}
 
 func MultiTransferHandler(w http.ResponseWriter, r *http.Request) {
 	var req models.MultiTransferRequest
