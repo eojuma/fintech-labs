@@ -38,15 +38,16 @@ type Account struct {
 }
 
 type Transaction struct {
-	ID            uint           `gorm:"primaryKey" json:"id"`
-	CreatedAt     time.Time      `json:"created_at"`
-	UpdatedAt     time.Time      `json:"updated_at"`
-	DeletedAt     gorm.DeletedAt `gorm:"index" json:"-"`
-	Username      string         `gorm:"index" json:"username"`
-	AccountNumber string         `gorm:"index;default:''" json:"account_number"`
-	Type          string         `json:"type"`
-	Amount        int64          `json:"amount"` // amounts stored in whole numbers
-	Balance       int64          `json:"balance"`
+	ID              uint           `gorm:"primaryKey" json:"id"`
+	CreatedAt       time.Time      `json:"created_at"`
+	UpdatedAt       time.Time      `json:"updated_at"`
+	DeletedAt       gorm.DeletedAt `gorm:"index" json:"-"`
+	Username        string         `gorm:"index" json:"username"`
+	AccountNumber   string         `gorm:"index;default:''" json:"account_number"`
+	Type            string         `json:"type"`
+	Amount          int64          `json:"amount"` // amounts stored in whole numbers
+	Balance         int64          `json:"balance"`
+	ReferenceNumber string         `gorm:"uniqueIndex;default:''" json:"reference_number"`
 	// Mpesa integration
 	MpesaReceiptCode  string `gorm:"uniqueIndex;default:null" json:"mpesa_receipt_code,omitempty"`
 	MpesaPhoneNumber  string `json:"mpesa_phone_number,omitempty"`
