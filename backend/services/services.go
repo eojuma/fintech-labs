@@ -655,11 +655,25 @@ func MultiTransfer(senderIdentifier string, recipients []models.TransferRecipien
 			// Record Log for Recipient
 			var recUser models.User
 			tx.Where("id = ?", recAcc.UserID).First(&recUser)
-			tx.Create(&models.Transaction{Username: recUser.Username, AccountNumber: recAcc.Number, Type: "transfer_in", Amount: r.Amount, Balance: recAcc.Balance})
+			tx.Create(&models.Transaction{
+				Username:        recUser.Username,
+				AccountNumber:   recAcc.Number,
+				ReferenceNumber: GenerateReferenceNumber(),
+				Type:            "transfer_in",
+				Amount:          r.Amount,
+				Balance:         recAcc.Balance,
+			})
 		}
 
 		// 4. Record one final log for Sender's total exit
-		tx.Create(&models.Transaction{Username: sender.Username, AccountNumber: senderAcc.Number, Type: "batch_transfer_out", Amount: totalAmount, Balance: senderAcc.Balance})
+		tx.Create(&models.Transaction{
+			Username:        sender.Username,
+			AccountNumber:   senderAcc.Number,
+			ReferenceNumber: GenerateReferenceNumber(),
+			Type:            "batch_transfer_out",
+			Amount:          totalAmount,
+			Balance:         senderAcc.Balance,
+		})
 
 		return nil
 	})
