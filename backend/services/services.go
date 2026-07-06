@@ -207,11 +207,12 @@ func Deposit(accountNumber string, amount int64) error {
 		}
 
 		transaction := models.Transaction{
-			Username:      user.Username,
-			AccountNumber: account.Number,
-			Type:          "deposit",
-			Amount:        amount,
-			Balance:       account.Balance,
+			Username:        user.Username,
+			AccountNumber:   account.Number,
+			ReferenceNumber: GenerateReferenceNumber(),
+			Type:            "deposit",
+			Amount:          amount,
+			Balance:         account.Balance,
 		}
 
 		if err := tx.Create(&transaction).Error; err != nil {
@@ -252,11 +253,12 @@ func AdminDeposit(accountNumber string, amount int64) error {
 		}
 
 		transaction := models.Transaction{
-			Username:      user.Username,
-			AccountNumber: account.Number,
-			Type:          "deposit",
-			Amount:        amount,
-			Balance:       account.Balance,
+			Username:        user.Username,
+			AccountNumber:   account.Number,
+			ReferenceNumber: GenerateReferenceNumber(),
+			Type:            "deposit",
+			Amount:          amount,
+			Balance:         account.Balance,
 		}
 		if err := tx.Create(&transaction).Error; err != nil {
 			return err
@@ -304,11 +306,12 @@ func Withdraw(accountNumber string, amount int64) error {
 		}
 
 		transaction := models.Transaction{
-			Username:      user.Username,
-			AccountNumber: account.Number,
-			Type:          "withdrawal",
-			Amount:        amount,
-			Balance:       account.Balance,
+			Username:        user.Username,
+			AccountNumber:   account.Number,
+			ReferenceNumber: GenerateReferenceNumber(),
+			Type:            "withdrawal",
+			Amount:          amount,
+			Balance:         account.Balance,
 		}
 
 		if err := tx.Create(&transaction).Error; err != nil {
@@ -353,11 +356,12 @@ func AdminWithdraw(accountNumber string, amount int64) error {
 		}
 
 		transaction := models.Transaction{
-			Username:      user.Username,
-			AccountNumber: account.Number,
-			Type:          "withdrawal",
-			Amount:        amount,
-			Balance:       account.Balance,
+			Username:        user.Username,
+			AccountNumber:   account.Number,
+			ReferenceNumber: GenerateReferenceNumber(),
+			Type:            "withdrawal",
+			Amount:          amount,
+			Balance:         account.Balance,
 		}
 		if err := tx.Create(&transaction).Error; err != nil {
 			return err
@@ -390,11 +394,11 @@ func ResolveRecipientAccount(tx *gorm.DB, identifier string) (*models.Account, e
 
 	// Otherwise, treat it as a phone number
 	cleanPhone := identifier
-if strings.HasPrefix(cleanPhone, "0") {
-    cleanPhone = "254" + cleanPhone[1:]
-} else if strings.HasPrefix(cleanPhone, "+") {
-    cleanPhone = cleanPhone[1:]
-}
+	if strings.HasPrefix(cleanPhone, "0") {
+		cleanPhone = "254" + cleanPhone[1:]
+	} else if strings.HasPrefix(cleanPhone, "+") {
+		cleanPhone = cleanPhone[1:]
+	}
 	var user models.User
 	if err := tx.Where("phone_number = ?", cleanPhone).First(&user).Error; err != nil {
 		return nil, errors.New("recipient not found")
@@ -462,8 +466,21 @@ func SendMoney(fromAccountNumber, toIdentifier string, amount int64) error {
 			return err
 		}
 
-		tx.Create(&models.Transaction{Username: fromUser.Username, AccountNumber: fromAccount.Number, Type: "transfer_out", Amount: amount, Balance: fromAccount.Balance})
-		tx.Create(&models.Transaction{Username: toUser.Username, AccountNumber: toAccount.Number, Type: "transfer_in", Amount: amount, Balance: toAccount.Balance})
+		tx.Create(&models.Transaction{
+			Username:        fromUser.Username,
+			AccountNumber:   fromAccount.Number,
+			ReferenceNumber: GenerateReferenceNumber(),
+			Type:            "transfer_out",
+			Amount:          amount,
+			Balance:         fromAccount.Balance,
+		})
+		tx.Create(&models.Transaction{
+			Username:      toUser.Username,
+			AccountNumber: toAccount.Number,
+			Type:          "transfer_in",
+			Amount:        amount,
+			Balance:       toAccount.Balance,
+		})
 
 		log.Printf("💸 Transfer: %s sent KES %d to %s (Acc: %s) | Sender: %d -> %d | Recipient: %d -> %d",
 			fromUser.Username, amount, toUser.Username, toAccount.Number, fromOldBalance, fromAccount.Balance, toOldBalance, toAccount.Balance)
@@ -909,4 +926,20 @@ func GenerateStatement(username, accountNumber string, from, to time.Time) (*mod
 		ClosingBalance:    closingBalance,
 		Transactions:      transactions,
 	}, nil
+}
+
+// GenerateReferenceNumber — creates a unique transaction reference number
+func GenerateReferenceNumber() string {
+	var count int64
+	db.DB.Model(&models.Transaction{}).Count(&count)
+	return fmt.Sprintf("AV-%d-%08d", time.Now().Year(), count+1)
+}
+
+// GetTransactionByReference — fetches a transaction by its reference number
+func GetTransactionByReference(reference string) (*models.Transaction, error) {
+	var transaction models.Transaction
+	if err := db.DB.Where("reference_number = ?", reference).First(&transaction).Error; err != nil {
+		return nil, errors.New("transaction not found")
+	}
+	return &transaction, nil
 }
