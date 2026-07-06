@@ -175,17 +175,19 @@ func AuthenticateUser(identifier, password string) (*models.User, error) {
 	return &user, nil
 }
 
-func Deposit(accountNumber string, amount int64) error {
+func Deposit(accountNumber string, amount int64) (string, error) {
 	accountNumber = strings.TrimSpace(accountNumber)
 
+	var refNum string
+
 	if amount < MinDeposit {
-		return fmt.Errorf("minimum deposit is KES %d", MinDeposit)
+		return "", fmt.Errorf("minimum deposit is KES %d", MinDeposit)
 	}
 	if amount > MaxDeposit {
-		return fmt.Errorf("maximum deposit is KES %d", MaxDeposit)
+		return "", fmt.Errorf("maximum deposit is KES %d", MaxDeposit)
 	}
 
-	return db.DB.Transaction(func(tx *gorm.DB) error {
+	err := db.DB.Transaction(func(tx *gorm.DB) error {
 		var account models.Account
 		if err := tx.Where("number = ?", accountNumber).First(&account).Error; err != nil {
 			return errors.New("account not found")
@@ -216,7 +218,6 @@ func Deposit(accountNumber string, amount int64) error {
 		}
 
 		if err := tx.Create(&transaction).Error; err != nil {
-			log.Printf("Failed to record transaction: %v", err)
 			return err
 		}
 
@@ -224,6 +225,7 @@ func Deposit(accountNumber string, amount int64) error {
 			user.Username, amount, account.Number, oldBalance, account.Balance)
 		return nil
 	})
+	return refNum, err
 }
 
 // AdminDeposit - Admin deposit to any user account
@@ -270,17 +272,17 @@ func AdminDeposit(accountNumber string, amount int64) error {
 	})
 }
 
-func Withdraw(accountNumber string, amount int64) error {
+func Withdraw(accountNumber string, amount int64) (string, error) {
 	accountNumber = strings.TrimSpace(accountNumber)
-
+	var refNum string
 	if amount < MinWithdrawal {
-		return fmt.Errorf("minimum withdrawal is KES %d", MinWithdrawal)
+		return "", fmt.Errorf("minimum withdrawal is KES %d", MinWithdrawal)
 	}
 	if amount > MaxWithdrawal {
-		return fmt.Errorf("maximum withdrawal is KES %d", MaxWithdrawal)
+		return "", fmt.Errorf("maximum withdrawal is KES %d", MaxWithdrawal)
 	}
 
-	return db.DB.Transaction(func(tx *gorm.DB) error {
+	err := db.DB.Transaction(func(tx *gorm.DB) error {
 		var account models.Account
 		if err := tx.Where("number = ?", accountNumber).First(&account).Error; err != nil {
 			return errors.New("account not found")
@@ -315,7 +317,6 @@ func Withdraw(accountNumber string, amount int64) error {
 		}
 
 		if err := tx.Create(&transaction).Error; err != nil {
-			log.Printf("Failed to record transaction: %v", err)
 			return err
 		}
 
@@ -323,6 +324,7 @@ func Withdraw(accountNumber string, amount int64) error {
 			user.Username, amount, account.Number, oldBalance, account.Balance)
 		return nil
 	})
+	return refNum, err
 }
 
 // AdminWithdraw - Admin withdrawal from any user account
@@ -412,15 +414,16 @@ func ResolveRecipientAccount(tx *gorm.DB, identifier string) (*models.Account, e
 	return &account, nil
 }
 
-func SendMoney(fromAccountNumber, toIdentifier string, amount int64) error {
+func SendMoney(fromAccountNumber, toIdentifier string, amount int64) (string, error) {
 	fromAccountNumber = strings.TrimSpace(fromAccountNumber)
 	toIdentifier = strings.TrimSpace(toIdentifier)
+	var refNum string
 
 	if amount < MinTransfer || amount > MaxTransfer {
-		return fmt.Errorf("transfer must be between KES %d and KES %d", MinTransfer, MaxTransfer)
+		return "", fmt.Errorf("transfer must be between KES %d and KES %d", MinTransfer, MaxTransfer)
 	}
 
-	return db.DB.Transaction(func(tx *gorm.DB) error {
+	err := db.DB.Transaction(func(tx *gorm.DB) error {
 		var fromAccount models.Account
 		if err := tx.Where("number = ?", fromAccountNumber).First(&fromAccount).Error; err != nil {
 			return errors.New("sender account not found")
@@ -465,28 +468,32 @@ func SendMoney(fromAccountNumber, toIdentifier string, amount int64) error {
 		if err := tx.Save(&toAccount).Error; err != nil {
 			return err
 		}
-
+		outRef := GenerateReferenceNumber()
+		inRef := GenerateReferenceNumber()
 		tx.Create(&models.Transaction{
 			Username:        fromUser.Username,
 			AccountNumber:   fromAccount.Number,
-			ReferenceNumber: GenerateReferenceNumber(),
+			ReferenceNumber: outRef,
 			Type:            "transfer_out",
 			Amount:          amount,
 			Balance:         fromAccount.Balance,
 		})
 		tx.Create(&models.Transaction{
-			Username:      toUser.Username,
-			AccountNumber: toAccount.Number,
-			Type:          "transfer_in",
-			Amount:        amount,
-			Balance:       toAccount.Balance,
+			Username:        toUser.Username,
+			AccountNumber:   toAccount.Number,
+			ReferenceNumber: inRef,
+			Type:            "transfer_in",
+			Amount:          amount,
+			Balance:         toAccount.Balance,
 		})
+		refNum = outRef
 
 		log.Printf("💸 Transfer: %s sent KES %d to %s (Acc: %s) | Sender: %d -> %d | Recipient: %d -> %d",
 			fromUser.Username, amount, toUser.Username, toAccount.Number, fromOldBalance, fromAccount.Balance, toOldBalance, toAccount.Balance)
 
 		return nil
 	})
+	return refNum, err
 }
 
 func GetTransactions(Identifier string) ([]models.Transaction, error) {
