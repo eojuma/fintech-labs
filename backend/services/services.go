@@ -964,3 +964,93 @@ func GetTransactionByReference(reference string) (*models.Transaction, error) {
 	}
 	return &transaction, nil
 }
+
+
+// FilterTransactions — fetches paginated and filtered transactions for a user
+func FilterTransactions(username string, f models.TransactionFilter) (*models.FilterResult, error) {
+	username = strings.ToLower(strings.TrimSpace(username))
+
+	// Default values
+	if f.Limit == 0 {
+		f.Limit = 20
+	}
+	if f.Page == 0 {
+		f.Page = 1
+	}
+	if f.SortOrder != "asc" {
+		f.SortOrder = "desc"
+	}
+
+	query := db.DB.Model(&models.Transaction{}).Where("username = ?", username)
+
+	// Apply account number filter
+	if f.AccountNumber != "" {
+		query = query.Where("account_number = ?", f.AccountNumber)
+	}
+
+	// Apply type filter
+	if f.Type != "" {
+		query = query.Where("type = ?", f.Type)
+	}
+
+	// Apply date range filter
+	if f.From != "" {
+		from, err := time.Parse("2006-01-02", f.From)
+		if err == nil {
+			query = query.Where("created_at >= ?", from)
+		}
+	}
+	if f.To != "" {
+		to, err := time.Parse("2006-01-02", f.To)
+		if err == nil {
+			query = query.Where("created_at <= ?", to.Add(24*time.Hour))
+		}
+	}
+
+	// Apply amount range filter
+	if f.MinAmount > 0 {
+		query = query.Where("amount >= ?", f.MinAmount)
+	}
+	if f.MaxAmount > 0 {
+		query = query.Where("amount <= ?", f.MaxAmount)
+	}
+
+	// Get total count
+	var totalCount int64
+	query.Count(&totalCount)
+
+	// Get aggregate amounts
+	var deposits, withdrawals struct{ Total int64 }
+	db.DB.Model(&models.Transaction{}).
+		Where("username = ? AND type = ?", username, "deposit").
+		Select("SUM(amount) as total").Scan(&deposits)
+	db.DB.Model(&models.Transaction{}).
+		Where("username = ? AND (type = ? OR type = ?)", username, "withdrawal", "transfer_out").
+		Select("SUM(amount) as total").Scan(&withdrawals)
+
+	// Apply pagination and sort
+	offset := (f.Page - 1) * f.Limit
+	var transactions []models.Transaction
+	if err := query.
+		Order("created_at " + f.SortOrder).
+		Limit(f.Limit).
+		Offset(offset).
+		Find(&transactions).Error; err != nil {
+		return nil, err
+	}
+
+	totalPages := int(totalCount) / f.Limit
+	if int(totalCount)%f.Limit != 0 {
+		totalPages++
+	}
+
+	return &models.FilterResult{
+		Transactions:     transactions,
+		TotalCount:       totalCount,
+		TotalDeposits:    deposits.Total,
+		TotalWithdrawals: withdrawals.Total,
+		Page:             f.Page,
+		Limit:            f.Limit,
+		TotalPages:       totalPages,
+	}, nil
+}
