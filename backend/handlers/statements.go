@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/csv"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -14,6 +15,8 @@ import (
 )
 
 func DownloadStatementHandler(w http.ResponseWriter, r *http.Request) {
+	log.Printf("DEBUG statement handler hit — method: %s, url: %s", r.Method, r.URL.String())
+
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -25,7 +28,7 @@ func DownloadStatementHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accountNumber := r.URL.Query().Get("account")
+	accountNumber := r.URL.Query().Get("account_number")
 	fromStr := r.URL.Query().Get("from")
 	toStr := r.URL.Query().Get("to")
 	format := r.URL.Query().Get("format") // "pdf" or "csv"
