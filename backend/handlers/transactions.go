@@ -263,3 +263,46 @@ func MultiTransferHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"message": "Batch transfer completed successfully"})
 }
+
+func FilterTransactionsHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	username := utils.GetSessionUser(w, r)
+	if username == "" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// Read filter params from query string
+	q := r.URL.Query()
+
+	minAmount, _ := strconv.ParseInt(q.Get("min_amount"), 10, 64)
+	maxAmount, _ := strconv.ParseInt(q.Get("max_amount"), 10, 64)
+	page, _ := strconv.Atoi(q.Get("page"))
+	limit, _ := strconv.Atoi(q.Get("limit"))
+
+	filter := models.TransactionFilter{
+		AccountNumber: q.Get("account"),
+		Type:          q.Get("type"),
+		From:          q.Get("from"),
+		To:            q.Get("to"),
+		MinAmount:     minAmount,
+		MaxAmount:     maxAmount,
+		SortOrder:     q.Get("sort"),
+		Page:          page,
+		Limit:         limit,
+	}
+
+	result, err := services.FilterTransactions(username, filter)
+	if err != nil {
+		log.Printf("Filter error for %s: %v", username, err)
+		http.Error(w, "Failed to fetch transactions", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(result)
+}
