@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"os"
 
-	"fintech-labs/backend/db"
-	"fintech-labs/backend/router"
+	"fintech-labs/internal/db"
+	"fintech-labs/internal/router"
 )
 
 func httpsRedirect(next http.Handler) http.Handler {

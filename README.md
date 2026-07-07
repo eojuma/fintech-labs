@@ -1,6 +1,6 @@
 # 🏦 African Vault — Mobile Banking System
 
-A production-grade mobile banking backend built from scratch in Go. African Vault is a learning project that teaches the internals of modern banking systems — ledger design, atomic transactions, session management, payment integrations, and security engineering.
+A production-grade mobile banking  built from scratch in Go. African Vault is a learning project that teaches the internals of modern banking systems — ledger design, atomic transactions, session management, payment integrations, and security engineering.
 
 ---
 
