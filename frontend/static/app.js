@@ -129,6 +129,8 @@ if (confirmPinInput) {
       toggleIcon.innerHTML = EYE_OPEN
     }
   }
+
+
   // Start session timer on protected pages
   if (!window.location.pathname.includes("/login") &&
     !window.location.pathname.includes("/register") &&
@@ -177,6 +179,162 @@ document.addEventListener("click", (e) => {
   }
 })
 
+
+/**
+ * TRANSACTION FILTERS
+ */
+let currentPage = 1
+
+function setQuickDate(range) {
+  const today = new Date()
+  const from = document.getElementById("filter-from")
+  const to = document.getElementById("filter-to")
+  const fmt = d => d.toISOString().split("T")[0]
+
+  to.value = fmt(today)
+
+  if (range === "today") {
+    from.value = fmt(today)
+  } else if (range === "week") {
+    const start = new Date(today)
+    start.setDate(today.getDate() - 7)
+    from.value = fmt(start)
+  } else if (range === "month") {
+    const start = new Date(today.getFullYear(), today.getMonth(), 1)
+    from.value = fmt(start)
+  } else if (range === "3months") {
+    const start = new Date(today)
+    start.setMonth(today.getMonth() - 3)
+    from.value = fmt(start)
+  }
+
+  applyFilters(1)
+}
+
+function applyFilters(page) {
+  currentPage = page || 1
+
+  const account = document.getElementById("filter-account")?.value || ""
+  const type = document.getElementById("filter-type")?.value || ""
+  const from = document.getElementById("filter-from")?.value || ""
+  const to = document.getElementById("filter-to")?.value || ""
+  const min = document.getElementById("filter-min")?.value || ""
+  const max = document.getElementById("filter-max")?.value || ""
+  const sort = document.getElementById("filter-sort")?.value || "desc"
+
+  const params = new URLSearchParams({
+    account, type, from, to,
+    min_amount: min,
+    max_amount: max,
+    sort,
+    page: currentPage,
+    limit: 20
+  })
+
+  fetch(`/transactions/filter?${params.toString()}`)
+    .then(res => res.json())
+    .then(data => {
+      renderTransactions(data.Transactions)
+      renderSummary(data)
+      renderPagination(data)
+    })
+    .catch(err => {
+      console.error("Filter error:", err)
+      showToast("Failed to load transactions", "error")
+    })
+}
+
+function renderTransactions(transactions) {
+  const tbody = document.getElementById("transaction-tbody")
+  if (!tbody) return
+
+  if (!transactions || transactions.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#666;padding:20px;">No transactions found.</td></tr>`
+    return
+  }
+
+  tbody.innerHTML = transactions.map(tx => {
+    const isCredit = tx.type === "deposit" || tx.type === "transfer_in"
+    const colorClass = isCredit ? "text-success" : "text-danger"
+    const ref = tx.reference_number
+      ? `<a href="/receipt/${tx.reference_number}" style="color:var(--primary);text-decoration:none;">${tx.reference_number}</a>`
+      : "—"
+    const date = new Date(tx.created_at).toLocaleString("en-KE", {
+      day: "2-digit", month: "short", year: "numeric",
+      hour: "2-digit", minute: "2-digit", hour12: false
+    })
+    const type = tx.type.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())
+
+    return `
+      <tr>
+        <td style="font-family:monospace;font-size:0.8rem;">${ref}</td>
+        <td class="${colorClass}">${type}</td>
+        <td>KES ${tx.amount.toLocaleString()}</td>
+        <td>KES ${tx.balance.toLocaleString()}</td>
+        <td class="status-active">Completed</td>
+        <td>${date}</td>
+      </tr>
+    `
+  }).join("")
+}
+
+function renderSummary(data) {
+  const summary = document.getElementById("filter-summary")
+  if (!summary) return
+
+  const showing = data.Transactions ? data.Transactions.length : 0
+  const total = data.TotalCount || 0
+  const deposits = (data.TotalDeposits || 0).toLocaleString()
+  const withdrawals = (data.TotalWithdrawals || 0).toLocaleString()
+
+  summary.style.display = "block"
+  summary.innerHTML = `
+    Showing <strong>${showing}</strong> of <strong>${total}</strong> transactions &nbsp;|&nbsp;
+    Deposits: <strong style="color:var(--success)">KES ${deposits}</strong> &nbsp;|&nbsp;
+    Withdrawals: <strong style="color:var(--danger)">KES ${withdrawals}</strong>
+  `
+}
+
+function renderPagination(data) {
+  const controls = document.getElementById("pagination-controls")
+  const pageInfo = document.getElementById("page-info")
+  const btnPrev = document.getElementById("btn-prev")
+  const btnNext = document.getElementById("btn-next")
+
+  if (!controls || !data.TotalPages || data.TotalPages <= 1) {
+    if (controls) controls.style.display = "none"
+    return
+  }
+
+  controls.style.display = "flex"
+  pageInfo.textContent = `Page ${data.Page} of ${data.TotalPages}`
+  btnPrev.disabled = data.Page <= 1
+  btnNext.disabled = data.Page >= data.TotalPages
+  btnPrev.style.opacity = data.Page <= 1 ? "0.5" : "1"
+  btnNext.style.opacity = data.Page >= data.TotalPages ? "0.5" : "1"
+}
+
+function changePage(direction) {
+  applyFilters(currentPage + direction)
+}
+
+function clearFilters() {
+  document.getElementById("filter-account").value = ""
+  document.getElementById("filter-type").value = ""
+  document.getElementById("filter-from").value = ""
+  document.getElementById("filter-to").value = ""
+  document.getElementById("filter-min").value = ""
+  document.getElementById("filter-max").value = ""
+  document.getElementById("filter-sort").value = "desc"
+
+  const summary = document.getElementById("filter-summary")
+  const controls = document.getElementById("pagination-controls")
+  if (summary) summary.style.display = "none"
+  if (controls) controls.style.display = "none"
+
+  // Restore original server-rendered table
+  location.reload()
+}
 /**
  * SESSION EXPIRY WARNING
  * Shows a warning popup at 9 minutes, auto-logs out at 10 minutes
