@@ -115,11 +115,11 @@ type TransactionFilter struct {
 }
 
 type FilterResult struct {
-	Transactions      []Transaction
-	TotalCount        int64
-	TotalDeposits     int64
-	TotalWithdrawals  int64
-	Page              int
-	Limit             int
-	TotalPages        int
+	Transactions     []Transaction
+	TotalCount       int64
+	TotalDeposits    int64
+	TotalWithdrawals int64
+	Page             int
+	Limit            int
+	TotalPages       int
 }
