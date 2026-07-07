@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Create Account - African Vault</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body class="auth-page">
+    <div class="auth-container">
+      <div class="auth-header">
+        <h2>🏦 Create Account</h2>
+        <p>Join African Vault Today</p>
+      </div>
+      <div class="card auth-card">
+        <form id="registerForm" action="/register" method="POST">
+          <div class="form-group">
+            <label>Full Name</label>
+            <input
+              type="text"
+              name="fullname"
+              required
+              placeholder="John Doe"
+            />
+          </div>
+          <div class="form-group">
+            <label>Username</label>
+            <input
+              type="text"
+              name="username"
+              required
+              placeholder="johndoe123"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Email Address</label>
+            <input
+              type="email"
+              name="email"
+              required
+              placeholder="you@example.com"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Phone Number</label>
+            <input
+              type="tel"
+              name="phone"
+              required
+              placeholder="07XXXXXXXX or +2547XXXXXXXX"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>National ID Number</label>
+            <input
+              type="text"
+              name="id_number"
+              required
+              placeholder="e.g. 12345678"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Password</label>
+            <div class="password-container">
+              <input
+                type="password"
+                name="password"
+                id="reg-password"
+                required
+                placeholder="••••••••"
+              />
+              <span
+                class="password-toggle"
+                onclick="togglePassword('reg-password', this)"
+                >👁️‍🗨️</span
+              >
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Confirm Password</label>
+            <div class="password-container">
+              <input
+                type="password"
+                name="confirm_password"
+                id="confirm-password"
+                required
+                placeholder="••••••••"
+              />
+              <span
+                class="password-toggle"
+                onclick="togglePassword('confirm-password', this)"
+                >👁️‍🗨️</span
+              >
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Transaction PIN</label>
+            <p
+              style="
+                font-size: 0.8rem;
+                color: var(--text-muted);
+                margin-bottom: 8px;
+              "
+            >
+              Set a 4-digit PIN to authorize your transactions
+            </p>
+            <div class="password-container">
+              <input
+                type="password"
+                name="transaction_pin"
+                id="transaction-pin"
+                required
+                placeholder="••••"
+                maxlength="4"
+                pattern="[0-9]{4}"
+                inputmode="numeric"
+              />
+              <span
+                class="password-toggle"
+                onclick="togglePassword('transaction-pin', this)"
+                >👁️‍🗨️</span
+              >
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Confirm Transaction PIN</label>
+            <div class="password-container">
+              <input
+                type="password"
+                name="confirm_transaction_pin"
+                id="confirm-transaction-pin"
+                required
+                placeholder="••••"
+                maxlength="4"
+                pattern="[0-9]{4}"
+                inputmode="numeric"
+              />
+              <span
+                class="password-toggle"
+                onclick="togglePassword('confirm-transaction-pin', this)"
+                >👁️‍🗨️</span
+              >
+            </div>
+          </div>
+          <button type="submit" class="btn-auth">Register Account</button>
+        </form>
+        <p style="text-align: center; margin-top: 20px">
+          Already have an account?
+          <a
+            href="/login"
+            style="
+              color: var(--primary);
+              text-decoration: none;
+              font-weight: 600;
+            "
+            >Login</a
+          >
+        </p>
+      </div>
+    </div>
+    <script src="/static/app.js"></script>
+  </body>
+</html>
