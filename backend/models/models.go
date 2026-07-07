@@ -101,3 +101,25 @@ type StatementData struct {
 	ClosingBalance    int64
 	Transactions      []Transaction
 }
+
+type TransactionFilter struct {
+	AccountNumber string
+	Type          string
+	From          string
+	To            string
+	MinAmount     int64
+	MaxAmount     int64
+	SortOrder     string // "desc" or "asc"
+	Page          int
+	Limit         int
+}
+
+type FilterResult struct {
+	Transactions      []Transaction
+	TotalCount        int64
+	TotalDeposits     int64
+	TotalWithdrawals  int64
+	Page              int
+	Limit             int
+	TotalPages        int
+}
