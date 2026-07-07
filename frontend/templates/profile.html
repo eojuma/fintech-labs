@@ -1,160 +1,298 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>My Profile - African Vault</title>
-    <link rel="stylesheet" href="/static/styles.css">
-</head>
-<body>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
     <div class="container">
-        <div class="header">
-            <h1>My Profile</h1>
-            <div class="header-actions">
-                <a href="/dashboard" class="btn-secondary" style="text-decoration: none; padding: 10px 20px; border-radius: 8px; margin-right: 10px;">Back to Dashboard</a>
-                <form action="/logout" method="POST" style="display: inline;">
-                    <button type="submit" class="btn-logout">Logout</button>
-                </form>
+      <div class="header">
+        <h1>My Profile</h1>
+        <div class="header-actions">
+          <a
+            href="/dashboard"
+            class="btn-secondary"
+            style="
+              text-decoration: none;
+              padding: 10px 20px;
+              border-radius: 8px;
+              margin-right: 10px;
+            "
+            >Back to Dashboard</a
+          >
+          <form action="/logout" method="POST" style="display: inline">
+            <button type="submit" class="btn-logout">Logout</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Account Overview -->
+      <div class="card">
+        <h3>Account Overview</h3>
+        <table>
+          <tbody>
+            <tr>
+              <td
+                style="font-weight: 600; color: var(--text-muted); width: 200px"
+              >
+                Full Name
+              </td>
+              <td>{{.FullName}}</td>
+            </tr>
+            <tr>
+              <td style="font-weight: 600; color: var(--text-muted)">
+                Username
+              </td>
+              <td>{{.Username}}</td>
+            </tr>
+            <tr>
+              <td style="font-weight: 600; color: var(--text-muted)">Email</td>
+              <td>{{.Email}}</td>
+            </tr>
+            <tr>
+              <td style="font-weight: 600; color: var(--text-muted)">
+                Phone Number
+              </td>
+              <td>{{.PhoneNumber}}</td>
+            </tr>
+            <tr>
+              <td style="font-weight: 600; color: var(--text-muted)">
+                Account Number
+              </td>
+              <td><code>{{.AccountNumber}}</code></td>
+            </tr>
+            <tr>
+              <td style="font-weight: 600; color: var(--text-muted)">Role</td>
+              <td style="text-transform: capitalize">{{.Role}}</td>
+            </tr>
+            <tr>
+              <td style="font-weight: 600; color: var(--text-muted)">
+                Account Status
+              </td>
+              <td>
+                {{if .Active}}
+                <span class="badge badge-success">Active</span>
+                {{else}}
+                <span class="badge badge-danger">Suspended</span>
+                {{end}}
+              </td>
+            </tr>
+            <tr>
+              <td style="font-weight: 600; color: var(--text-muted)">
+                Member Since
+              </td>
+              <td>{{.CreatedAt}}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Update Profile -->
+      <div class="card">
+        <h3>Update Contact Details</h3>
+        <p
+          style="
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+          "
+        >
+          You can update your email and phone number. Your current password is
+          required to confirm any changes.
+        </p>
+        <form action="/profile/update" method="POST">
+          <div class="form-group">
+            <label>New Email Address</label>
+            <input
+              type="email"
+              name="email"
+              placeholder="Leave blank to keep current"
+            />
+          </div>
+          <div class="form-group">
+            <label>New Phone Number</label>
+            <input
+              type="tel"
+              name="phone"
+              placeholder="Leave blank to keep current"
+            />
+          </div>
+          <div class="form-group">
+            <label
+              >Current Password
+              <span style="color: var(--danger)">*</span></label
+            >
+            <div class="password-container">
+              <input
+                type="password"
+                name="current_password"
+                id="current-password"
+                required
+                placeholder="••••••••"
+              />
+              <span
+                class="password-toggle"
+                onclick="togglePassword('current-password', this)"
+                >👁️‍🗨️</span
+              >
             </div>
-        </div>
+          </div>
+          <button type="submit" class="btn-auth" style="max-width: 200px">
+            Save Changes
+          </button>
+        </form>
+      </div>
+      <!-- Change Transaction PIN -->
+      <div class="card">
+        <h3>Change Transaction PIN</h3>
+        <p
+          style="
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+          "
+        >
+          Change your 4-digit transaction PIN. Required to authorize all
+          deposits, withdrawals and transfers.
+        </p>
+        <form action="/profile/change-pin" method="POST">
+          <div class="form-group">
+            <label>Current PIN</label>
+            <div class="password-container">
+              <input
+                type="password"
+                name="current_pin"
+                id="current-pin"
+                required
+                placeholder="••••"
+                maxlength="4"
+                inputmode="numeric"
+              />
+              <span
+                class="password-toggle"
+                onclick="togglePassword('current-pin', this)"
+                >👁️‍🗨️</span
+              >
+            </div>
+          </div>
+          <div class="form-group">
+            <label>New PIN</label>
+            <div class="password-container">
+              <input
+                type="password"
+                name="new_pin"
+                id="new-pin"
+                required
+                placeholder="••••"
+                maxlength="4"
+                inputmode="numeric"
+              />
+              <span
+                class="password-toggle"
+                onclick="togglePassword('new-pin', this)"
+                >👁️‍🗨️</span
+              >
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Confirm New PIN</label>
+            <div class="password-container">
+              <input
+                type="password"
+                name="confirm_new_pin"
+                id="confirm-new-pin"
+                required
+                placeholder="••••"
+                maxlength="4"
+                inputmode="numeric"
+              />
+              <span
+                class="password-toggle"
+                onclick="togglePassword('confirm-new-pin', this)"
+                >👁️‍🗨️</span
+              >
+            </div>
+          </div>
+          <button type="submit" class="btn-auth" style="max-width: 200px">
+            Change PIN
+          </button>
+        </form>
+      </div>
 
-        <!-- Account Overview -->
-        <div class="card">
-            <h3>Account Overview</h3>
-            <table>
-                <tbody>
-                    <tr>
-                        <td style="font-weight: 600; color: var(--text-muted); width: 200px;">Full Name</td>
-                        <td>{{.FullName}}</td>
-                    </tr>
-                    <tr>
-                        <td style="font-weight: 600; color: var(--text-muted);">Username</td>
-                        <td>{{.Username}}</td>
-                    </tr>
-                    <tr>
-                        <td style="font-weight: 600; color: var(--text-muted);">Email</td>
-                        <td>{{.Email}}</td>
-                    </tr>
-                    <tr>
-                        <td style="font-weight: 600; color: var(--text-muted);">Phone Number</td>
-                        <td>{{.PhoneNumber}}</td>
-                    </tr>
-                    <tr>
-                        <td style="font-weight: 600; color: var(--text-muted);">Account Number</td>
-                        <td><code>{{.AccountNumber}}</code></td>
-                    </tr>
-                    <tr>
-                        <td style="font-weight: 600; color: var(--text-muted);">Role</td>
-                        <td style="text-transform: capitalize;">{{.Role}}</td>
-                    </tr>
-                    <tr>
-                        <td style="font-weight: 600; color: var(--text-muted);">Account Status</td>
-                        <td>
-                            {{if .Active}}
-                            <span class="badge badge-success">Active</span>
-                            {{else}}
-                            <span class="badge badge-danger">Suspended</span>
-                            {{end}}
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="font-weight: 600; color: var(--text-muted);">Member Since</td>
-                        <td>{{.CreatedAt}}</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Update Profile -->
-        <div class="card">
-            <h3>Update Contact Details</h3>
-            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">
-                You can update your email and phone number. Your current password is required to confirm any changes.
-            </p>
-            <form action="/profile/update" method="POST">
-                <div class="form-group">
-                    <label>New Email Address</label>
-                    <input type="email" name="email" placeholder="Leave blank to keep current">
-                </div>
-                <div class="form-group">
-                    <label>New Phone Number</label>
-                    <input type="tel" name="phone" placeholder="Leave blank to keep current">
-                </div>
-                <div class="form-group">
-                    <label>Current Password <span style="color: var(--danger);">*</span></label>
-                    <div class="password-container">
-                        <input type="password" name="current_password" id="current-password" required placeholder="••••••••">
-                        <span class="password-toggle" onclick="togglePassword('current-password', this)">👁️‍🗨️</span>
-                    </div>
-                </div>
-                <button type="submit" class="btn-auth" style="max-width: 200px;">Save Changes</button>
-            </form>
-        </div>
-        <!-- Change Transaction PIN -->
-        <div class="card">
-            <h3>Change Transaction PIN</h3>
-            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">
-                Change your 4-digit transaction PIN. Required to authorize all deposits, withdrawals and transfers.
-            </p>
-            <form action="/profile/change-pin" method="POST">
-                <div class="form-group">
-                    <label>Current PIN</label>
-                    <div class="password-container">
-                        <input type="password" name="current_pin" id="current-pin" required placeholder="••••" maxlength="4" inputmode="numeric">
-                        <span class="password-toggle" onclick="togglePassword('current-pin', this)">👁️‍🗨️</span>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>New PIN</label>
-                    <div class="password-container">
-                        <input type="password" name="new_pin" id="new-pin" required placeholder="••••" maxlength="4" inputmode="numeric">
-                        <span class="password-toggle" onclick="togglePassword('new-pin', this)">👁️‍🗨️</span>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Confirm New PIN</label>
-                    <div class="password-container">
-                        <input type="password" name="confirm_new_pin" id="confirm-new-pin" required placeholder="••••" maxlength="4" inputmode="numeric">
-                        <span class="password-toggle" onclick="togglePassword('confirm-new-pin', this)">👁️‍🗨️</span>
-                    </div>
-                </div>
-                <button type="submit" class="btn-auth" style="max-width: 200px;">Change PIN</button>
-            </form>
-        </div>
-
-        <!-- Change Password -->
-        <div class="card">
-            <h3>Change Password</h3>
-            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">
-                Update your login password. You will be logged out after a successful password change.
-            </p>
-            <form action="/profile/change-password" method="POST">
-                <div class="form-group">
-                    <label>Current Password</label>
-                    <div class="password-container">
-                        <input type="password" name="current_password" id="cp-current" required placeholder="••••••••">
-                        <span class="password-toggle" onclick="togglePassword('cp-current', this)">👁️‍🗨️</span>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>New Password</label>
-                    <div class="password-container">
-                        <input type="password" name="new_password" id="cp-new" required placeholder="••••••••">
-                        <span class="password-toggle" onclick="togglePassword('cp-new', this)">👁️‍🗨️</span>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Confirm New Password</label>
-                    <div class="password-container">
-                        <input type="password" name="confirm_new_password" id="cp-confirm" required placeholder="••••••••">
-                        <span class="password-toggle" onclick="togglePassword('cp-confirm', this)">👁️‍🗨️</span>
-                    </div>
-                </div>
-                <button type="submit" class="btn-auth" style="max-width: 200px;">Change Password</button>
-            </form>
-        </div>
+      <!-- Change Password -->
+      <div class="card">
+        <h3>Change Password</h3>
+        <p
+          style="
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+          "
+        >
+          Update your login password. You will be logged out after a successful
+          password change.
+        </p>
+        <form action="/profile/change-password" method="POST">
+          <div class="form-group">
+            <label>Current Password</label>
+            <div class="password-container">
+              <input
+                type="password"
+                name="current_password"
+                id="cp-current"
+                required
+                placeholder="••••••••"
+              />
+              <span
+                class="password-toggle"
+                onclick="togglePassword('cp-current', this)"
+                >👁️‍🗨️</span
+              >
+            </div>
+          </div>
+          <div class="form-group">
+            <label>New Password</label>
+            <div class="password-container">
+              <input
+                type="password"
+                name="new_password"
+                id="cp-new"
+                required
+                placeholder="••••••••"
+              />
+              <span
+                class="password-toggle"
+                onclick="togglePassword('cp-new', this)"
+                >👁️‍🗨️</span
+              >
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Confirm New Password</label>
+            <div class="password-container">
+              <input
+                type="password"
+                name="confirm_new_password"
+                id="cp-confirm"
+                required
+                placeholder="••••••••"
+              />
+              <span
+                class="password-toggle"
+                onclick="togglePassword('cp-confirm', this)"
+                >👁️‍🗨️</span
+              >
+            </div>
+          </div>
+          <button type="submit" class="btn-auth" style="max-width: 200px">
+            Change Password
+          </button>
+        </form>
+      </div>
     </div>
 
     <script src="/static/app.js"></script>
-</body>
+  </body>
 </html>

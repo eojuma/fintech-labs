@@ -177,35 +177,133 @@
         <button type="submit" class="btn-auth" style="max-width: 150px; padding: 10px;">Download</button>
     </form>
 </div>
-        <div class="card">
-            <h3>Recent Transactions</h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Type</th>
-                        <th>Amount</th>
-                        <th>Status</th>
-                        <th>Date</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {{range .Transactions}}
-                    <tr>
-                        <td class="{{if eq .Type "deposit"}}text-success{{else}}text-danger{{end}}" style="text-transform: capitalize;">
-                            {{.Type}}
-                        </td>
-                        <td>KES {{.Amount}}</td>
-                        <td class="status-active">Completed</td>
-                        <td>{{.CreatedAt.Format "02 Jan 2006 15:04"}}</td>
-                    </tr>
-                    {{else}}
-                    <tr>
-                        <td colspan="4" style="text-align: center; color: #666; padding: 20px;">No transactions yet.</td>
-                    </tr>
-                    {{end}}
-                </tbody>
-            </table>
+        <!-- Transaction Filter Controls -->
+<div class="card">
+    <h3>📊 Transaction History</h3>
+
+    <!-- Quick Date Shortcuts -->
+    <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 15px;">
+        <button onclick="setQuickDate('today')" class="btn-quick-filter">Today</button>
+        <button onclick="setQuickDate('week')" class="btn-quick-filter">This Week</button>
+        <button onclick="setQuickDate('month')" class="btn-quick-filter">This Month</button>
+        <button onclick="setQuickDate('3months')" class="btn-quick-filter">Last 3 Months</button>
+    </div>
+
+    <!-- Filter Form -->
+    <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 15px;">
+        <div class="form-group" style="margin: 0; flex: 1; min-width: 130px;">
+            <label>Account</label>
+            <select id="filter-account" style="width:100%; padding:8px; border:1px solid var(--border); border-radius:8px; font-size:0.9rem;">
+                <option value="">All Accounts</option>
+                {{range .Accounts}}
+                <option value="{{.Number}}">{{.AccountType}} — {{.Number}}</option>
+                {{end}}
+            </select>
         </div>
+        <div class="form-group" style="margin: 0; flex: 1; min-width: 120px;">
+            <label>Type</label>
+            <select id="filter-type" style="width:100%; padding:8px; border:1px solid var(--border); border-radius:8px; font-size:0.9rem;">
+                <option value="">All Types</option>
+                <option value="deposit">Deposit</option>
+                <option value="withdrawal">Withdrawal</option>
+                <option value="transfer_out">Transfer Out</option>
+                <option value="transfer_in">Transfer In</option>
+            </select>
+        </div>
+        <div class="form-group" style="margin: 0; flex: 1; min-width: 120px;">
+            <label>From</label>
+            <input type="date" id="filter-from" style="width:100%; padding:8px; border:1px solid var(--border); border-radius:8px; font-size:0.9rem;">
+        </div>
+        <div class="form-group" style="margin: 0; flex: 1; min-width: 120px;">
+            <label>To</label>
+            <input type="date" id="filter-to" style="width:100%; padding:8px; border:1px solid var(--border); border-radius:8px; font-size:0.9rem;">
+        </div>
+        <div class="form-group" style="margin: 0; flex: 1; min-width: 100px;">
+            <label>Min (KES)</label>
+            <input type="number" id="filter-min" placeholder="0" style="width:100%; padding:8px; border:1px solid var(--border); border-radius:8px; font-size:0.9rem;">
+        </div>
+        <div class="form-group" style="margin: 0; flex: 1; min-width: 100px;">
+            <label>Max (KES)</label>
+            <input type="number" id="filter-max" placeholder="Any" style="width:100%; padding:8px; border:1px solid var(--border); border-radius:8px; font-size:0.9rem;">
+        </div>
+        <div class="form-group" style="margin: 0; flex: 1; min-width: 120px;">
+            <label>Sort</label>
+            <select id="filter-sort" style="width:100%; padding:8px; border:1px solid var(--border); border-radius:8px; font-size:0.9rem;">
+                <option value="desc">Newest First</option>
+                <option value="asc">Oldest First</option>
+            </select>
+        </div>
+        <button onclick="applyFilters(1)" style="
+            background: var(--primary); color: white; padding: 8px 20px;
+            border-radius: 8px; border: none; font-weight: 600;
+            cursor: pointer; font-size: 0.9rem; height: 38px;">Search</button>
+        <button onclick="clearFilters()" style="
+            background: var(--background); color: var(--text-main); padding: 8px 20px;
+            border-radius: 8px; border: 1px solid var(--border); font-weight: 600;
+            cursor: pointer; font-size: 0.9rem; height: 38px;">Clear</button>
+    </div>
+
+    <!-- Summary Line -->
+    <div id="filter-summary" style="
+        background: var(--background);
+        border-radius: 8px;
+        padding: 10px 15px;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin-bottom: 15px;
+        display: none;">
+    </div>
+
+    <!-- Transaction Table -->
+    <table>
+        <thead>
+            <tr>
+                <th>Reference</th>
+                <th>Type</th>
+                <th>Amount</th>
+                <th>Balance</th>
+                <th>Status</th>
+                <th>Date</th>
+            </tr>
+        </thead>
+        <tbody id="transaction-tbody">
+            {{range .Transactions}}
+            <tr>
+                <td style="font-family: monospace; font-size: 0.8rem;">
+                    {{if .ReferenceNumber}}
+                    <a href="/receipt/{{.ReferenceNumber}}" style="color: var(--primary); text-decoration: none;">{{.ReferenceNumber}}</a>
+                    {{else}}—{{end}}
+                </td>
+                <td class="{{if eq .Type "deposit"}}text-success{{else if eq .Type "transfer_in"}}text-success{{else}}text-danger{{end}}" style="text-transform: capitalize;">
+                    {{.Type}}
+                </td>
+                <td>KES {{.Amount}}</td>
+                <td>KES {{.Balance}}</td>
+                <td class="status-active">Completed</td>
+                <td>{{.CreatedAt.Format "02 Jan 2006 15:04"}}</td>
+            </tr>
+            {{else}}
+            <tr>
+                <td colspan="6" style="text-align: center; color: #666; padding: 20px;">No transactions yet.</td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+
+    <!-- Pagination -->
+    <div id="pagination-controls" style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; display: none;">
+        <button id="btn-prev" onclick="changePage(-1)" style="
+            background: var(--background); color: var(--text-main); padding: 8px 16px;
+            border-radius: 8px; border: 1px solid var(--border); cursor: pointer; font-weight: 600;">
+            ← Previous
+        </button>
+        <span id="page-info" style="color: var(--text-muted); font-size: 0.9rem;"></span>
+        <button id="btn-next" onclick="changePage(1)" style="
+            background: var(--background); color: var(--text-main); padding: 8px 16px;
+            border-radius: 8px; border: 1px solid var(--border); cursor: pointer; font-weight: 600;">
+            Next →
+        </button>
+    </div>
     </div>
 
     <script src="/static/app.js"></script>
