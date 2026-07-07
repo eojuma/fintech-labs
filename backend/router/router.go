@@ -42,7 +42,8 @@ func Setup() {
 	// other accounts
 	http.HandleFunc("/accounts/open", handlers.AuthMiddleware(handlers.OpenSavingsAccountHandler))
 
-	// download statement and reciepts
+	// download statement,history and reciepts
 	http.HandleFunc("/statement/download", handlers.AuthMiddleware(handlers.DownloadStatementHandler))
 	http.HandleFunc("/receipt/", handlers.AuthMiddleware(handlers.ReceiptHandler))
+	http.HandleFunc("/transactions/filter", handlers.AuthMiddleware(handlers.FilterTransactionsHandler))
 }
