@@ -448,3 +448,22 @@ td {
 #btn-logout-now:hover {
   filter: brightness(0.9);
 }
+
+/* --- TRANSACTION FILTERS --- */
+.btn-quick-filter {
+  background: var(--background);
+  color: var(--text-main);
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.btn-quick-filter:hover {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
