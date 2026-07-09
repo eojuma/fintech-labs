@@ -10,6 +10,7 @@ import (
 	"fintech-labs/internal/db"
 	"fintech-labs/internal/models"
 	"fintech-labs/internal/utils"
+	"fintech-labs/internal/notifications"
 
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -1055,20 +1056,22 @@ func FilterTransactions(username string, f models.TransactionFilter) (*models.Fi
 	}, nil
 }
 
-func (s *AccountService) CreateTransaction(userEmail string, tx models.Transaction, newBalance float64) error {
+
+func  CreateTransaction(userEmail string, tx models.Transaction, newBalance float64) error {
 	// 1. Process your DB logic here (saving the transaction, updating balance)...
 	// err := s.db.SaveTransaction(...) 
 
 	// 2. Once DB transaction succeeds, fire off the email in a goroutine
-	emailData := notifications.TransactionEmailData{
-		Type:      tx.Type, // e.g., "Deposit" or "Withdrawal"
-		Amount:    fmt.Sprintf("%.2f", tx.Amount),
-		Balance:   fmt.Sprintf("%.2f", newBalance),
-		Timestamp: time.Now().Format("2006-01-02 15:04:05 MST"),
-	}
+	// Inside your service function...
+emailData := models.TransactionEmailData{
+    Type:      tx.Type, 
+    Amount:    fmt.Sprintf("%.2f", tx.Amount),
+    Balance:   fmt.Sprintf("%.2f", newBalance),
+    Timestamp: time.Now().Format("2006-01-02 15:04:05 MST"),
+}
 
 	// Spin up a concurrent routine so the user doesn't wait on SMTP network delays
-	go func(email string, data notifications.TransactionEmailData) {
+	go func(email string, data models.TransactionEmailData) {
 		if err := notifications.SendTransactionEmail(email, data); err != nil {
 			// Log the error but don't crash the app or block the transaction response
 			log.Printf("ERROR: Failed to send transaction email to %s: %v", email, err)

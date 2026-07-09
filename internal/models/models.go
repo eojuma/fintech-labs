@@ -123,3 +123,12 @@ type FilterResult struct {
 	Limit            int
 	TotalPages       int
 }
+
+
+// TransactionEmailData holds the template placeholders for emails
+type TransactionEmailData struct {
+	Type      string
+	Amount    string
+	Balance   string
+	Timestamp string
+}
