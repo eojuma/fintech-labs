@@ -127,8 +127,12 @@ type FilterResult struct {
 
 // TransactionEmailData holds the template placeholders for emails
 type TransactionEmailData struct {
-	Type      string
-	Amount    string
-	Balance   string
-	Timestamp string
+	FullName      string
+	Email         string
+	Type          string
+	Amount        int64
+	Balance       int64
+	AccountNumber string
+	ReferenceNumber string
+	Timestamp     string
 }
