@@ -23,7 +23,7 @@ func SendTransactionEmail(toEmail string, data models.TransactionEmailData) erro
 		return fmt.Errorf("SMTP configuration is incomplete")
 	}
 
-	tmpl, err := template.ParseFiles("web/templates/email_template.html")
+	tmpl, err := template.ParseFiles("web/templates/email.html")
 	if err != nil {
 		return fmt.Errorf("failed to parse template: %w", err)
 	}
