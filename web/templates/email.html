@@ -18,12 +18,12 @@
             <h2>Transaction Notification</h2>
         </div>
         <div class="details">
-            <p>Hello,</p>
+           <p>Dear {{.FullName}},</p>
             <p>A new transaction has occurred on your account. Here are the details:</p>
             <ul>
                 <li><strong>Type:</strong> {{.Type}}</li>
-                <li><strong>Amount:</strong> ${{.Amount}}</li>
-                <li><strong>Current Balance:</strong> ${{.Balance}}</li>
+                <li><strong>Amount:</strong> KES {{.Amount}}</li>
+                <li><strong>Current Balance:</strong> kES {{.Balance}}</li>
                 <li><strong>Timestamp:</strong> {{.Timestamp}}</li>
             </ul>
         </div>
