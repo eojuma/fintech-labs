@@ -1057,7 +1057,7 @@ func FilterTransactions(username string, f models.TransactionFilter) (*models.Fi
 }
 
 
-func  CreateTransaction(userEmail string, tx models.Transaction, newBalance float64) error {
+func  CreateTransaction(userEmail string,amount int64, tx models.Transaction, newBalance float64) error {
 	// 1. Process your DB logic here (saving the transaction, updating balance)...
 	// err := s.db.SaveTransaction(...) 
 
@@ -1065,8 +1065,8 @@ func  CreateTransaction(userEmail string, tx models.Transaction, newBalance floa
 	// Inside your service function...
 emailData := models.TransactionEmailData{
     Type:      tx.Type, 
-    Amount:    fmt.Sprintf("%.2f", tx.Amount),
-    Balance:   fmt.Sprintf("%.2f", newBalance),
+    Amount:  amount,
+    Balance:   int64(newBalance),
     Timestamp: time.Now().Format("2006-01-02 15:04:05 MST"),
 }
 
