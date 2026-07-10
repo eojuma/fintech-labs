@@ -267,7 +267,6 @@ func AdminDeposit(accountNumber string, amount int64) error {
 			return errors.New("user not found")
 		}
 
-		oldBalance := account.Balance
 		account.Balance += amount
 		if err := tx.Save(&account).Error; err != nil {
 			return err
@@ -402,8 +401,6 @@ func AdminWithdraw(accountNumber string, amount int64) error {
 		if account.Balance < amount {
 			return fmt.Errorf("insufficient funds. Account balance is KES %d", account.Balance)
 		}
-
-		oldBalance := account.Balance
 		account.Balance -= amount
 		if err := tx.Save(&account).Error; err != nil {
 			return err
