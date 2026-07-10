@@ -6,9 +6,9 @@ import (
 	"html/template"
 	"net/smtp"
 	"os"
-	
+
 	// 1. Import your models package (adjust path to match your go.mod module name)
-	"fintech-labs/internal/models" 
+	"fintech-labs/internal/models"
 )
 
 // 2. Update the function signature to use models.TransactionEmailData
@@ -29,8 +29,9 @@ func SendTransactionEmail(toEmail string, data models.TransactionEmailData) erro
 	}
 
 	var body bytes.Buffer
-	body.Write([]byte(fmt.Sprintf("To: %s\r\nSubject: Transaction Alert\r\nMIME-Version: 1.0\r\nContent-Type: text/html; charset=utf-8\r\n\r\n", toEmail)))
-	
+	subject := fmt.Sprintf("African Vault — %s Alert", data.Type)
+	body.Write([]byte(fmt.Sprintf("To: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/html; charset=utf-8\r\n\r\n", toEmail, subject)))
+
 	if err := tmpl.Execute(&body, data); err != nil {
 		return fmt.Errorf("failed to execute template: %w", err)
 	}
