@@ -9,8 +9,8 @@ import (
 
 	"fintech-labs/internal/db"
 	"fintech-labs/internal/models"
-	"fintech-labs/internal/utils"
 	"fintech-labs/internal/notifications"
+	"fintech-labs/internal/utils"
 
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -224,6 +224,24 @@ func Deposit(accountNumber string, amount int64) (string, error) {
 		refNum = transaction.ReferenceNumber
 		log.Printf("💰 Deposit: %s deposited KES %d to account %s (Balance: KES %d → KES %d)",
 			user.Username, amount, account.Number, oldBalance, account.Balance)
+
+		// Send email notification in background
+		go func() {
+			emailData := models.TransactionEmailData{
+				FullName:        user.FullName,
+				Email:           user.Email,
+				Type:            "Deposit",
+				Amount:          amount,
+				Balance:         account.Balance,
+				AccountNumber:   account.Number,
+				ReferenceNumber: transaction.ReferenceNumber,
+				Timestamp:       utils.FormatDate(transaction.CreatedAt),
+			}
+			if err := notifications.SendTransactionEmail(user.Email, emailData); err != nil {
+				log.Printf("⚠️ Failed to send deposit email to %s: %v", user.Email, err)
+			}
+		}()
+
 		return nil
 	})
 	return refNum, err
@@ -267,8 +285,24 @@ func AdminDeposit(accountNumber string, amount int64) error {
 			return err
 		}
 
-		log.Printf("💰 ADMIN DEPOSIT: Added KES %d to account %s (User: %s) | Balance: KES %d → KES %d",
-			amount, account.Number, user.Username, oldBalance, account.Balance)
+		log.Printf("Admin deposit: KES %d to account %s by admin", amount, account.Number)
+
+		go func() {
+			emailData := models.TransactionEmailData{
+				FullName:        user.FullName,
+				Email:           user.Email,
+				Type:            "Deposit",
+				Amount:          amount,
+				Balance:         account.Balance,
+				AccountNumber:   account.Number,
+				ReferenceNumber: transaction.ReferenceNumber,
+				Timestamp:       utils.FormatDate(transaction.CreatedAt),
+			}
+			if err := notifications.SendTransactionEmail(user.Email, emailData); err != nil {
+				log.Printf("⚠️ Failed to send admin deposit email to %s: %v", user.Email, err)
+			}
+		}()
+
 		return nil
 	})
 }
@@ -323,6 +357,23 @@ func Withdraw(accountNumber string, amount int64) (string, error) {
 		refNum = transaction.ReferenceNumber
 		log.Printf("💸 Withdrawal: %s withdrew KES %d from account %s (Balance: KES %d → KES %d)",
 			user.Username, amount, account.Number, oldBalance, account.Balance)
+
+		go func() {
+			emailData := models.TransactionEmailData{
+				FullName:        user.FullName,
+				Email:           user.Email,
+				Type:            "Withdrawal",
+				Amount:          amount,
+				Balance:         account.Balance,
+				AccountNumber:   account.Number,
+				ReferenceNumber: transaction.ReferenceNumber,
+				Timestamp:       utils.FormatDate(transaction.CreatedAt),
+			}
+			if err := notifications.SendTransactionEmail(user.Email, emailData); err != nil {
+				log.Printf("⚠️ Failed to send withdrawal email to %s: %v", user.Email, err)
+			}
+		}()
+
 		return nil
 	})
 	return refNum, err
@@ -370,8 +421,24 @@ func AdminWithdraw(accountNumber string, amount int64) error {
 			return err
 		}
 
-		log.Printf("💸 ADMIN WITHDRAWAL: Removed KES %d from account %s (User: %s) | Balance: KES %d → KES %d",
-			amount, account.Number, user.Username, oldBalance, account.Balance)
+		log.Printf("Admin withdrawal: KES %d from account %s by admin", amount, account.Number)
+
+		go func() {
+			emailData := models.TransactionEmailData{
+				FullName:        user.FullName,
+				Email:           user.Email,
+				Type:            "Withdrawal",
+				Amount:          amount,
+				Balance:         account.Balance,
+				AccountNumber:   account.Number,
+				ReferenceNumber: transaction.ReferenceNumber,
+				Timestamp:       utils.FormatDate(transaction.CreatedAt),
+			}
+			if err := notifications.SendTransactionEmail(user.Email, emailData); err != nil {
+				log.Printf("⚠️ Failed to send admin withdrawal email to %s: %v", user.Email, err)
+			}
+		}()
+
 		return nil
 	})
 }
@@ -488,9 +555,42 @@ func SendMoney(fromAccountNumber, toIdentifier string, amount int64) (string, er
 			Balance:         toAccount.Balance,
 		})
 		refNum = outRef
+		log.Printf("💸 Transfer: %s sent KES %d to %s | Sender: %d -> %d | Recipient: %d -> %d",
+			fromUser.Username, amount, toUser.Username, fromOldBalance, fromAccount.Balance, toOldBalance, toAccount.Balance)
 
-		log.Printf("💸 Transfer: %s sent KES %d to %s (Acc: %s) | Sender: %d -> %d | Recipient: %d -> %d",
-			fromUser.Username, amount, toUser.Username, toAccount.Number, fromOldBalance, fromAccount.Balance, toOldBalance, toAccount.Balance)
+		// Notify sender
+		go func() {
+			emailData := models.TransactionEmailData{
+				FullName:        fromUser.FullName,
+				Email:           fromUser.Email,
+				Type:            "Transfer Out",
+				Amount:          amount,
+				Balance:         fromAccount.Balance,
+				AccountNumber:   fromAccount.Number,
+				ReferenceNumber: outRef,
+				Timestamp:       utils.FormatDate(time.Now()),
+			}
+			if err := notifications.SendTransactionEmail(fromUser.Email, emailData); err != nil {
+				log.Printf("⚠️ Failed to send transfer email to sender %s: %v", fromUser.Email, err)
+			}
+		}()
+
+		// Notify recipient
+		go func() {
+			emailData := models.TransactionEmailData{
+				FullName:        toUser.FullName,
+				Email:           toUser.Email,
+				Type:            "Transfer In",
+				Amount:          amount,
+				Balance:         toAccount.Balance,
+				AccountNumber:   toAccount.Number,
+				ReferenceNumber: inRef,
+				Timestamp:       utils.FormatDate(time.Now()),
+			}
+			if err := notifications.SendTransactionEmail(toUser.Email, emailData); err != nil {
+				log.Printf("⚠️ Failed to send transfer email to recipient %s: %v", toUser.Email, err)
+			}
+		}()
 
 		return nil
 	})
@@ -966,7 +1066,6 @@ func GetTransactionByReference(reference string) (*models.Transaction, error) {
 	return &transaction, nil
 }
 
-
 // FilterTransactions — fetches paginated and filtered transactions for a user
 func FilterTransactions(username string, f models.TransactionFilter) (*models.FilterResult, error) {
 	username = strings.ToLower(strings.TrimSpace(username))
@@ -1056,19 +1155,18 @@ func FilterTransactions(username string, f models.TransactionFilter) (*models.Fi
 	}, nil
 }
 
-
-func  CreateTransaction(userEmail string,amount int64, tx models.Transaction, newBalance float64) error {
+func CreateTransaction(userEmail string, amount int64, tx models.Transaction, newBalance float64) error {
 	// 1. Process your DB logic here (saving the transaction, updating balance)...
-	// err := s.db.SaveTransaction(...) 
+	// err := s.db.SaveTransaction(...)
 
 	// 2. Once DB transaction succeeds, fire off the email in a goroutine
 	// Inside your service function...
-emailData := models.TransactionEmailData{
-    Type:      tx.Type, 
-    Amount:  amount,
-    Balance:   int64(newBalance),
-    Timestamp: time.Now().Format("2006-01-02 15:04:05 MST"),
-}
+	emailData := models.TransactionEmailData{
+		Type:      tx.Type,
+		Amount:    amount,
+		Balance:   int64(newBalance),
+		Timestamp: time.Now().Format("2006-01-02 15:04:05 MST"),
+	}
 
 	// Spin up a concurrent routine so the user doesn't wait on SMTP network delays
 	go func(email string, data models.TransactionEmailData) {
