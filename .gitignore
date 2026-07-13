@@ -1,2 +1,38 @@
+
+# Database files
 *.db
-*.env
+*.db-shm
+*.db-wal
+
+# Environment variables
+.env
+.env.local
+.env.production
+
+# Binary files
+african-vault
+fintech-labs
+main
+
+# Node/JS (from the prettier incident)
+node_modules/
+package.json
+package-lock.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Test files
+*.test
+coverage.out
+
+# Temporary files
+tmp/
+temp/
