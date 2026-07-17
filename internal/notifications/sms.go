@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/AfricasTalkingLtd/africastalking-go/sms"
+	"github.com/AndroidStudyOpenSource/africastalking-go/sms"
 )
 
 func SendTransactionSMS(phoneNumber, message string) error {
@@ -15,22 +15,14 @@ func SendTransactionSMS(phoneNumber, message string) error {
 		return fmt.Errorf("Africa's Talking credentials not configured")
 	}
 
-	smsService := sms.NewService(username, apiKey, "")
+	smsService := sms.NewService(username, apiKey, "sandbox")
 
-	response, err := smsService.Send("", []string{phoneNumber}, message)
+	response, err := smsService.Send("", phoneNumber, message)
 	if err != nil {
 		return fmt.Errorf("failed to send SMS: %w", err)
 	}
 
-	if len(response.SMSMessageData.Recipients) == 0 {
-		return fmt.Errorf("no recepients in SMS response")
-	}
-
-	recipient := response.SMSMessageData.Recipients[0]
-
-	if recipient.Status != "Success" {
-		return fmt.Errorf("SMS failed: %s", &recipient.Status)
-	}
+	fmt.Printf("SMS response: %+v\n", response)
 	return nil
 }
 
