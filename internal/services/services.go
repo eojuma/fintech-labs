@@ -241,7 +241,14 @@ func Deposit(accountNumber string, amount int64) (string, error) {
 				log.Printf("⚠️ Failed to send deposit email to %s: %v", user.Email, err)
 			}
 		}()
-
+		// Send SMS notification in background
+		go func() {
+			phone := utils.FormatPhoneForSMS(user.PhoneNumber)
+			message := notifications.FormatSMSMessage("deposited", account.Number, transaction.ReferenceNumber, amount, account.Balance)
+			if err := notifications.SendTransactionSMS(phone, message); err != nil {
+				log.Printf("⚠️ Failed to send deposit SMS to %s: %v", phone, err)
+			}
+		}()
 		return nil
 	})
 	return refNum, err
@@ -301,7 +308,14 @@ func AdminDeposit(accountNumber string, amount int64) error {
 				log.Printf("⚠️ Failed to send admin deposit email to %s: %v", user.Email, err)
 			}
 		}()
-
+		// Send SMS notification in background
+		go func() {
+			phone := utils.FormatPhoneForSMS(user.PhoneNumber)
+			message := notifications.FormatSMSMessage("deposited", account.Number, transaction.ReferenceNumber, amount, account.Balance)
+			if err := notifications.SendTransactionSMS(phone, message); err != nil {
+				log.Printf("⚠️ Failed to send deposit SMS to %s: %v", phone, err)
+			}
+		}()
 		return nil
 	})
 }
@@ -372,7 +386,13 @@ func Withdraw(accountNumber string, amount int64) (string, error) {
 				log.Printf("⚠️ Failed to send withdrawal email to %s: %v", user.Email, err)
 			}
 		}()
-
+		go func() {
+			phone := utils.FormatPhoneForSMS(user.PhoneNumber)
+			message := notifications.FormatSMSMessage("withdrawn", account.Number, transaction.ReferenceNumber, amount, account.Balance)
+			if err := notifications.SendTransactionSMS(phone, message); err != nil {
+				log.Printf("⚠️ Failed to send withdrawal SMS to %s: %v", phone, err)
+			}
+		}()
 		return nil
 	})
 	return refNum, err
@@ -435,7 +455,13 @@ func AdminWithdraw(accountNumber string, amount int64) error {
 				log.Printf("⚠️ Failed to send admin withdrawal email to %s: %v", user.Email, err)
 			}
 		}()
-
+		go func() {
+			phone := utils.FormatPhoneForSMS(user.PhoneNumber)
+			message := notifications.FormatSMSMessage("withdrawn", account.Number, transaction.ReferenceNumber, amount, account.Balance)
+			if err := notifications.SendTransactionSMS(phone, message); err != nil {
+				log.Printf("⚠️ Failed to send withdrawal SMS to %s: %v", phone, err)
+			}
+		}()
 		return nil
 	})
 }
@@ -589,6 +615,27 @@ func SendMoney(fromAccountNumber, toIdentifier string, amount int64) (string, er
 			}
 		}()
 
+		// SMS — sender
+		fromUserCopy2 := fromUser
+		fromAccountCopy2 := fromAccount
+		go func() {
+			phone := utils.FormatPhoneForSMS(fromUserCopy2.PhoneNumber)
+			message := notifications.FormatSMSMessage("transferred out", fromAccountCopy2.Number, outRef, amount, fromAccountCopy2.Balance)
+			if err := notifications.SendTransactionSMS(phone, message); err != nil {
+				log.Printf("⚠️ Failed to send transfer SMS to sender %s: %v", phone, err)
+			}
+		}()
+
+		// SMS — recipient
+		toUserCopy2 := toUser
+		toAccountCopy2 := toAccount
+		go func() {
+			phone := utils.FormatPhoneForSMS(toUserCopy2.PhoneNumber)
+			message := notifications.FormatSMSMessage("received", toAccountCopy2.Number, inRef, amount, toAccountCopy2.Balance)
+			if err := notifications.SendTransactionSMS(phone, message); err != nil {
+				log.Printf("⚠️ Failed to send transfer SMS to recipient %s: %v", phone, err)
+			}
+		}()
 		return nil
 	})
 	return refNum, err
