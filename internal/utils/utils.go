@@ -121,3 +121,20 @@ func GetSessionUser(w http.ResponseWriter, r *http.Request) string {
 	})
 	return session.User.Username
 }
+
+
+func FormatPhoneForSMS(phone string)string{
+	phone = strings.TrimSpace(phone)
+
+	if strings.HasPrefix(phone,"+"){
+		return phone
+	}
+
+	if strings.HasPrefix(phone,"0"){
+		return "+254"+phone[1:]
+	}
+	if strings.HasPrefix(phone,"254"){
+		return "+"+phone
+	}
+	return phone
+}
