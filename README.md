@@ -239,7 +239,7 @@ Visit `http://localhost:8080` to access the app.
 
 ---
 
-## 👥 Authors
+## 👥 Author
 
 **Evans Juma** — [@eojuma](https://github.com/eojuma)
 
