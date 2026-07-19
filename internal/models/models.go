@@ -136,3 +136,16 @@ type TransactionEmailData struct {
 	ReferenceNumber string
 	Timestamp     string
 }
+
+type AuditLog struct {
+	ID            uint           `gorm:"primaryKey" json:"id"`
+	CreatedAt     time.Time      `json:"created_at"`
+	UpdatedAt     time.Time      `json:"updated_at"`
+	DeletedAt     gorm.DeletedAt `gorm:"index" json:"-"`
+	AdminUsername string         `gorm:"index;not null" json:"admin_username"`
+	Action        string         `gorm:"not null" json:"action"`
+	TargetAccount string         `gorm:"index" json:"target_account"`
+	Amount        int64          `gorm:"default:0" json:"amount"`
+	Result        string         `gorm:"default:'success'" json:"result"` // "success" or "failed"
+	Details       string         `json:"details"`
+}
