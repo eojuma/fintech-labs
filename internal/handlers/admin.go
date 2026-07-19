@@ -92,7 +92,11 @@ func AdminToggleAccount(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-
+	adminUsername := utils.GetSessionUser(w, r)
+	if adminUsername == "" {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
 	accountNumber := r.FormValue("account_number")
 	if accountNumber == "" {
 		http.Redirect(w, r, "/admin?error=Account+number+required", http.StatusSeeOther)
@@ -114,7 +118,7 @@ func AdminToggleAccount(w http.ResponseWriter, r *http.Request) {
 
 	account := *acc
 	newActive := !account.Active
-	if err := services.ToggleAccountStatus(account.ID, newActive); err != nil {
+	if err := services.ToggleAccountStatus(adminUsername, account.ID, newActive); err != nil {
 		http.Redirect(w, r, "/admin?error=Failed+to+toggle+status", http.StatusSeeOther)
 		return
 	}
@@ -132,7 +136,11 @@ func AdminDepositHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-
+	adminUsername := utils.GetSessionUser(w, r)
+	if adminUsername == "" {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
 	accountNumber := r.FormValue("account_number")
 	amountStr := r.FormValue("amount")
 
@@ -147,7 +155,7 @@ func AdminDepositHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = services.AdminDeposit(accountNumber, amount)
+	err = services.AdminDeposit(adminUsername, accountNumber, amount)
 	if err != nil {
 		errorMsg := strings.ReplaceAll(err.Error(), " ", "+")
 		http.Redirect(w, r, "/admin?error="+errorMsg, http.StatusSeeOther)
@@ -163,7 +171,11 @@ func AdminWithdrawHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-
+	adminUsername := utils.GetSessionUser(w, r)
+	if adminUsername == "" {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
 	accountNumber := r.FormValue("account_number")
 	amountStr := r.FormValue("amount")
 
@@ -178,7 +190,7 @@ func AdminWithdrawHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = services.AdminWithdraw(accountNumber, amount)
+	err = services.AdminWithdraw(adminUsername, accountNumber, amount)
 	if err != nil {
 		errorMsg := strings.ReplaceAll(err.Error(), " ", "+")
 		http.Redirect(w, r, "/admin?error="+errorMsg, http.StatusSeeOther)
