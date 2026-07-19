@@ -12,7 +12,7 @@
         <h1>🏦 Admin Control Panel</h1>
         <div class="admin-nav">
           <span class="admin-session"
-            >Admin: <strong>{{.Username}}</strong></span
+            >Admin: <strong>{{.AdminUsername}}</strong></span
           >
           <a href="/dashboard" class="btn-secondary">Back to Dashboard</a>
           <form action="/logout" method="POST" style="display: inline">
@@ -135,7 +135,56 @@
         </form>
       </div>
     </div>
-
+<!-- Audit Log Section -->
+<div class="card" style="margin-top: 2rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h3>🔍 Admin Audit Log</h3>
+        <a href="/admin/audit-log" style="
+            background: var(--primary);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 600;">View Full Log</a>
+    </div>
+    {{if .AuditLogs}}
+    <table>
+        <thead>
+            <tr>
+                <th>Admin</th>
+                <th>Action</th>
+                <th>Account</th>
+                <th>Amount</th>
+                <th>Result</th>
+                <th>Details</th>
+                <th>Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{range .AuditLogs}}
+            <tr>
+                <td style="font-weight: 600;">{{.AdminUsername}}</td>
+                <td style="text-transform: capitalize;">{{.Action}}</td>
+                <td style="font-family: monospace; font-size: 0.85rem;">{{.TargetAccount}}</td>
+                <td>{{if gt .Amount 0}}KES {{.Amount}}{{else}}—{{end}}</td>
+                <td>
+                    {{if eq .Result "success"}}
+                    <span style="color: var(--success); font-weight: 600;">✅ Success</span>
+                    {{else}}
+                    <span style="color: var(--danger); font-weight: 600;">❌ Failed</span>
+                    {{end}}
+                </td>
+                <td style="font-size: 0.85rem; color: var(--text-muted);">{{.Details}}</td>
+                <td style="font-size: 0.85rem;">{{.CreatedAt.Format "02 Jan 2006 15:04"}}</td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+    {{else}}
+    <p style="color: var(--text-muted); text-align: center; padding: 20px;">No audit logs yet.</p>
+    {{end}}
+</div>
     <script src="/static/app.js"></script>
   </body>
 </html>
