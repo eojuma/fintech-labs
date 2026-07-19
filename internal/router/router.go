@@ -46,4 +46,7 @@ func Setup() {
 	http.HandleFunc("/statement/download", handlers.AuthMiddleware(handlers.DownloadStatementHandler))
 	http.HandleFunc("/receipt/", handlers.AuthMiddleware(handlers.ReceiptHandler))
 	http.HandleFunc("/transactions/filter", handlers.AuthMiddleware(handlers.FilterTransactionsHandler))
+
+	// admin auditLogs
+	http.HandleFunc("/admin/audit-log", handlers.AdminAuthMiddleware(handlers.AuditLogHandler))
 }
