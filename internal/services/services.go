@@ -255,18 +255,22 @@ func Deposit(accountNumber string, amount int64) (string, error) {
 }
 
 // AdminDeposit - Admin deposit to any user account
-func AdminDeposit(accountNumber string, amount int64) error {
-	if amount < MinDeposit {
-		return fmt.Errorf("minimum deposit is KES %d", MinDeposit)
-	}
-	if amount > MaxDeposit {
-		return fmt.Errorf("maximum deposit is KES %d", MaxDeposit)
+func AdminDeposit(adminUsername, accountNumber string, amount int64) error {
+	accountNumber = strings.TrimSpace(accountNumber)
+
+	if amount <= 0 {
+		CreateAuditLog(adminUsername, "deposit", accountNumber, "Invalid amount", amount, "failed")
+		return errors.New("amount must be greater than zero")
 	}
 
-	return db.DB.Transaction(func(tx *gorm.DB) error {
+	err := db.DB.Transaction(func(tx *gorm.DB) error {
 		var account models.Account
 		if err := tx.Where("number = ?", accountNumber).First(&account).Error; err != nil {
 			return errors.New("account not found")
+		}
+
+		if !account.Active {
+			return errors.New("account is inactive")
 		}
 
 		var user models.User
@@ -286,13 +290,16 @@ func AdminDeposit(accountNumber string, amount int64) error {
 			Type:            "deposit",
 			Amount:          amount,
 			Balance:         account.Balance,
+			Status:          "completed",
 		}
+
 		if err := tx.Create(&transaction).Error; err != nil {
 			return err
 		}
 
-		log.Printf("Admin deposit: KES %d to account %s by admin", amount, account.Number)
+		log.Printf("Admin deposit: KES %d to account %s by admin %s", amount, account.Number, adminUsername)
 
+		// Email notification
 		go func() {
 			emailData := models.TransactionEmailData{
 				FullName:        user.FullName,
@@ -308,16 +315,26 @@ func AdminDeposit(accountNumber string, amount int64) error {
 				log.Printf("⚠️ Failed to send admin deposit email to %s: %v", user.Email, err)
 			}
 		}()
-		// Send SMS notification in background
+
+		// SMS notification
 		go func() {
 			phone := utils.FormatPhoneForSMS(user.PhoneNumber)
 			message := notifications.FormatSMSMessage("deposited", account.Number, transaction.ReferenceNumber, amount, account.Balance)
 			if err := notifications.SendTransactionSMS(phone, message); err != nil {
-				log.Printf("⚠️ Failed to send deposit SMS to %s: %v", phone, err)
+				log.Printf("⚠️ Failed to send admin deposit SMS to %s: %v", phone, err)
 			}
 		}()
+
 		return nil
 	})
+
+	if err != nil {
+		CreateAuditLog(adminUsername, "deposit", accountNumber, err.Error(), amount, "failed")
+		return err
+	}
+
+	CreateAuditLog(adminUsername, "deposit", accountNumber, fmt.Sprintf("Admin deposited KES %d successfully", amount), amount, "success")
+	return nil
 }
 
 func Withdraw(accountNumber string, amount int64) (string, error) {
@@ -399,18 +416,22 @@ func Withdraw(accountNumber string, amount int64) (string, error) {
 }
 
 // AdminWithdraw - Admin withdrawal from any user account
-func AdminWithdraw(accountNumber string, amount int64) error {
-	if amount < MinWithdrawal {
-		return fmt.Errorf("minimum withdrawal is KES %d", MinWithdrawal)
-	}
-	if amount > MaxWithdrawal {
-		return fmt.Errorf("maximum withdrawal is KES %d", MaxWithdrawal)
+func AdminWithdraw(adminUsername, accountNumber string, amount int64) error {
+	accountNumber = strings.TrimSpace(accountNumber)
+
+	if amount <= 0 {
+		CreateAuditLog(adminUsername, "withdrawal", accountNumber, "Invalid amount", amount, "failed")
+		return errors.New("amount must be greater than zero")
 	}
 
-	return db.DB.Transaction(func(tx *gorm.DB) error {
+	err := db.DB.Transaction(func(tx *gorm.DB) error {
 		var account models.Account
 		if err := tx.Where("number = ?", accountNumber).First(&account).Error; err != nil {
 			return errors.New("account not found")
+		}
+
+		if !account.Active {
+			return errors.New("account is inactive")
 		}
 
 		var user models.User
@@ -419,8 +440,9 @@ func AdminWithdraw(accountNumber string, amount int64) error {
 		}
 
 		if account.Balance < amount {
-			return fmt.Errorf("insufficient funds. Account balance is KES %d", account.Balance)
+			return fmt.Errorf("insufficient funds. Balance is KES %d", account.Balance)
 		}
+
 		account.Balance -= amount
 		if err := tx.Save(&account).Error; err != nil {
 			return err
@@ -433,13 +455,16 @@ func AdminWithdraw(accountNumber string, amount int64) error {
 			Type:            "withdrawal",
 			Amount:          amount,
 			Balance:         account.Balance,
+			Status:          "completed",
 		}
+
 		if err := tx.Create(&transaction).Error; err != nil {
 			return err
 		}
 
-		log.Printf("Admin withdrawal: KES %d from account %s by admin", amount, account.Number)
+		log.Printf("Admin withdrawal: KES %d from account %s by admin %s", amount, account.Number, adminUsername)
 
+		// Email notification
 		go func() {
 			emailData := models.TransactionEmailData{
 				FullName:        user.FullName,
@@ -455,15 +480,26 @@ func AdminWithdraw(accountNumber string, amount int64) error {
 				log.Printf("⚠️ Failed to send admin withdrawal email to %s: %v", user.Email, err)
 			}
 		}()
+
+		// SMS notification
 		go func() {
 			phone := utils.FormatPhoneForSMS(user.PhoneNumber)
 			message := notifications.FormatSMSMessage("withdrawn", account.Number, transaction.ReferenceNumber, amount, account.Balance)
 			if err := notifications.SendTransactionSMS(phone, message); err != nil {
-				log.Printf("⚠️ Failed to send withdrawal SMS to %s: %v", phone, err)
+				log.Printf("⚠️ Failed to send admin withdrawal SMS to %s: %v", phone, err)
 			}
 		}()
+
 		return nil
 	})
+
+	if err != nil {
+		CreateAuditLog(adminUsername, "withdrawal", accountNumber, err.Error(), amount, "failed")
+		return err
+	}
+
+	CreateAuditLog(adminUsername, "withdrawal", accountNumber, fmt.Sprintf("Admin withdrew KES %d successfully", amount), amount, "success")
+	return nil
 }
 
 // ResolveRecipientAccount finds a recipient's account using either an account
@@ -728,8 +764,8 @@ func GetAllAccounts() ([]models.Account, error) {
 }
 
 // ToggleAccountStatus - Activate/Deactivate an account
-func ToggleAccountStatus(accountID uint, active bool) error {
-	return db.DB.Transaction(func(tx *gorm.DB) error {
+func ToggleAccountStatus(adminUsername string, accountID uint, active bool) error {
+	err := db.DB.Transaction(func(tx *gorm.DB) error {
 		var account models.Account
 		if err := tx.First(&account, accountID).Error; err != nil {
 			return errors.New("account not found")
@@ -739,11 +775,12 @@ func ToggleAccountStatus(accountID uint, active bool) error {
 		if err := tx.Save(&account).Error; err != nil {
 			return err
 		}
-		// Invalidate all active sessions when blocking
+
 		if !active {
 			db.DB.Where("user_id = ?", account.UserID).Delete(&models.Session{})
 			log.Printf("Admin: All sessions invalidated for user ID %d", account.UserID)
 		}
+
 		status := "deactivated"
 		if active {
 			status = "activated"
@@ -751,6 +788,22 @@ func ToggleAccountStatus(accountID uint, active bool) error {
 		log.Printf("Admin: Account %s (User ID: %d) has been %s", account.Number, account.UserID, status)
 		return nil
 	})
+
+	if err != nil {
+		action := "block"
+		if active {
+			action = "unblock"
+		}
+		CreateAuditLog(adminUsername, action, fmt.Sprintf("ID:%d", accountID), err.Error(), 0, "failed")
+		return err
+	}
+
+	action := "block"
+	if active {
+		action = "unblock"
+	}
+	CreateAuditLog(adminUsername, action, fmt.Sprintf("ID:%d", accountID), fmt.Sprintf("Account %s successfully", action+"ed"), 0, "success")
+	return nil
 }
 
 func MultiTransfer(senderIdentifier string, recipients []models.TransferRecipient) error {
@@ -1221,4 +1274,19 @@ func CreateTransaction(userEmail string, amount int64, tx models.Transaction, ne
 	}(userEmail, emailData)
 
 	return nil
+}
+
+func CreateAuditLog(adminUsername, action, targetAccount, details string, amount int64, result string) {
+	entry := models.AuditLog{
+		AdminUsername: adminUsername,
+		Action:        action,
+		TargetAccount: targetAccount,
+		Amount:        amount,
+		Result:        result,
+		Details:       details,
+	}
+
+	if err := db.DB.Create(&entry).Error; err != nil {
+		fmt.Printf("⚠️Failed to create audit log: %v\n", err)
+	}
 }
