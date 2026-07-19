@@ -48,6 +48,12 @@ func AdminDashboardHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	adminUsername := utils.GetSessionUser(w, r)
+	if adminUsername == "" {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
 	user, err := services.GetUserByUsername(username)
 	if err != nil || user == nil || user.Role != "admin" {
 		http.Redirect(w, r, "/dashboard?error=Admin+privileges+required", http.StatusSeeOther)
@@ -73,12 +79,17 @@ func AdminDashboardHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Fetch recent audit logs
+	auditLogs, _ := services.GetAuditLogs()
+
 	data := struct {
-		Username string
-		Users    []models.User
+		AdminUsername string
+		Users         []models.User
+		AuditLogs     []models.AuditLog
 	}{
-		Username: username,
-		Users:    users,
+		AdminUsername: username,
+		Users:         users,
+		AuditLogs:     auditLogs,
 	}
 
 	if err := tmpl.Execute(w, data); err != nil {
@@ -198,4 +209,38 @@ func AdminWithdrawHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/admin?success=Withdrawal+successful!+KES+"+amountStr+"+from+account+"+accountNumber, http.StatusSeeOther)
+}
+
+func AuditLogHandler(w http.ResponseWriter, r *http.Request) {
+	logs, err := services.GetAuditLogs()
+	if err != nil {
+		http.Redirect(w, r, "/admin?error=Failed+to+fetch+audit+logs", http.StatusSeeOther)
+		return
+	}
+
+	tmpl, err := template.ParseFiles("web/templates/admin.html")
+	if err != nil {
+		log.Printf("Template error: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	adminUsername := utils.GetSessionUser(w, r)
+
+	users, _ := services.GetAllUsers()
+	adminUsername = utils.GetSessionUser(w, r)
+
+	data := struct {
+		AdminUsername string
+		Users         []models.User
+		AuditLogs     []models.AuditLog
+	}{
+		AdminUsername: adminUsername,
+		Users:         users,
+		AuditLogs:     logs,
+	}
+
+	if err := tmpl.Execute(w, data); err != nil {
+		log.Printf("Template execution error: %v", err)
+	}
 }
