@@ -1290,3 +1290,12 @@ func CreateAuditLog(adminUsername, action, targetAccount, details string, amount
 		fmt.Printf("⚠️Failed to create audit log: %v\n", err)
 	}
 }
+
+// GetAuditLogs — fetches all audit logs ordered by most recent first
+func GetAuditLogs() ([]models.AuditLog, error) {
+	var logs []models.AuditLog
+	if err := db.DB.Order("created_at desc").Find(&logs).Error; err != nil {
+		return nil, err
+	}
+	return logs, nil
+}
