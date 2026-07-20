@@ -467,3 +467,87 @@ td {
   color: white;
   border-color: var(--primary);
 }
+
+/* ==============================
+   MOBILE RESPONSIVE (<768px)
+================================*/
+@media (max-width: 768px) {
+
+  .container {
+    padding: 15px;
+  }
+
+  /* Dashboard/Admin header */
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .header-actions,
+  .admin-nav {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: 10px;
+  }
+
+  .header-actions a,
+  .header-actions button,
+  .header-actions form,
+  .admin-nav a,
+  .admin-nav button,
+  .admin-nav form {
+    width: 100%;
+  }
+
+  /* Cards stack vertically */
+  .grid-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Balance card remains prominent */
+  .balance-card {
+    padding: 2.5rem;
+  }
+
+  .balance-amount {
+    font-size: 3rem;
+  }
+
+  /* Better touch targets */
+  input,
+  select,
+  button,
+  .btn-auth,
+  .btn-secondary,
+  .btn-transfer,
+  .btn-action {
+    width: 100%;
+    min-height: 48px;
+    font-size: 1rem;
+  }
+
+  /* Admin action buttons */
+  .action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* Modal buttons */
+  .modal-actions {
+    flex-direction: column;
+  }
+
+  /* Tables scroll instead of breaking layout */
+  .table-responsive {
+    overflow-x: auto;
+    width: 100%;
+  }
+
+}
