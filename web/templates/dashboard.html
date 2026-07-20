@@ -47,6 +47,7 @@
         {{if .Accounts}}
         <div class="card">
             <h3>My Accounts</h3>
+            <div class="table-responsive">
             <table>
                 <thead>
                     <tr>
@@ -73,6 +74,8 @@
                     {{end}}
                 </tbody>
             </table>
+        </div>
+
             {{if lt (len .Accounts) 2}}
             <form action="/accounts/open" method="POST" style="margin-top: 15px;">
                 <button type="submit" class="btn-secondary" style="cursor: pointer;">+ Open Savings Account</button>
@@ -255,6 +258,7 @@
     </div>
 
     <!-- Transaction Table -->
+     <div class="table-responsive">
     <table>
         <thead>
             <tr>
@@ -289,6 +293,7 @@
             {{end}}
         </tbody>
     </table>
+</div>
 
     <!-- Pagination -->
     <div id="pagination-controls" style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; display: none;">
