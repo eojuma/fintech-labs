@@ -1,192 +1,242 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Panel - African Vault</title>
-    <link rel="stylesheet" href="/static/styles.css" />
-  </head>
-  <body class="admin-body">
-    <div class="admin-header-bg">
-      <div class="container header">
-        <h1>🏦 Admin Control Panel</h1>
-        <div class="admin-nav">
-          <span class="admin-session"
-            >Admin: <strong>{{.AdminUsername}}</strong></span
-          >
-          <a href="/dashboard" class="btn-secondary">Back to Dashboard</a>
-          <form action="/logout" method="POST" style="display: inline">
-            <button type="submit" class="btn-logout">Logout</button>
-          </form>
-        </div>
-      </div>
-    </div>
-
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
     <div class="container">
-      <div class="stats-grid">
-        <div class="stat-card">
-          <h3>Total Registered Users</h3>
-          <p class="stat-number">{{len .Users}}</p>
+
+        <!-- Header -->
+        <div class="header">
+            <h1>🏦 Admin Control Panel</h1>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <span style="color: var(--text-muted);">Admin: <strong>{{.AdminUsername}}</strong></span>
+                <a href="/dashboard" style="
+                    background: var(--primary);
+                    color: white;
+                    padding: 8px 16px;
+                    border-radius: 8px;
+                    text-decoration: none;
+                    font-size: 0.9rem;
+                    font-weight: 600;">Back to Dashboard</a>
+                <form action="/logout" method="POST" style="display: inline;">
+                    <button type="submit" class="btn-logout">Logout</button>
+                </form>
+            </div>
         </div>
-        <div class="stat-card">
-          <h3>System Status</h3>
-          <p class="stat-number text-success">Operational</p>
+
+        <!-- Stats Cards -->
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
+            <div class="card" style="text-align: center; padding: 1.5rem;">
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 8px;">Deposits Today</p>
+                <h2 style="color: var(--success); margin: 0;">KES {{.Stats.TotalDepositsToday}}</h2>
+            </div>
+            <div class="card" style="text-align: center; padding: 1.5rem;">
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 8px;">Withdrawals Today</p>
+                <h2 style="color: var(--danger); margin: 0;">KES {{.Stats.TotalWithdrawalsToday}}</h2>
+            </div>
+            <div class="card" style="text-align: center; padding: 1.5rem;">
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 8px;">Active Customers</p>
+                <h2 style="color: var(--primary); margin: 0;">{{.Stats.ActiveUsers}}</h2>
+            </div>
+            <div class="card" style="text-align: center; padding: 1.5rem;">
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 8px;">Total Funds</p>
+                <h2 style="color: var(--primary); margin: 0;">KES {{.Stats.TotalFunds}}</h2>
+            </div>
         </div>
-      </div>
 
-      <div class="card">
-        <h3>User Management</h3>
-        <table id="admin-user-table">
-          <thead>
-            <tr>
-              <th>Account #</th>
-              <th>Username</th>
-              <th>Balance</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {{range .Users}}
-            <tr>
-              <td><code>{{(index .Accounts 0).Number}}</code></td>
-              <td>{{.Username}}</td>
-              <td>KES {{(index .Accounts 0).Balance}}</td>
-              <td>
-                <span
-                  class="badge {{if (index .Accounts 0).Active}}badge-success{{else}}badge-danger{{end}}"
-                >
-                  {{if (index .Accounts 0).Active}}Active{{else}}Blocked{{end}}
-                </span>
-              </td>
-              <td>
-                <div class="action-buttons">
-                  <button
-                    class="btn-action btn-deposit-trigger"
-                    data-account="{{(index .Accounts 0).Number}}"
-                  >
-                    Deposit
-                  </button>
-                  <button
-                    class="btn-action btn-withdraw-trigger"
-                    data-account="{{(index .Accounts 0).Number}}"
-                  >
-                    Withdraw
-                  </button>
+        <!-- 7-Day Transaction Volume Chart -->
+        <div class="card" style="margin-bottom: 1.5rem;">
+            <h3 style="margin-bottom: 1rem;">📈 7-Day Transaction Volume</h3>
+            <canvas id="weeklyChart" height="100"></canvas>
+        </div>
 
-                  <form
-                    action="/admin/toggle"
-                    method="POST"
-                    style="display: inline"
-                  >
-                    <input
-                      type="hidden"
-                      name="account_number"
-                      value="{{(index .Accounts 0).Number}}"
-                    />
-                    <button type="submit" class="btn-action btn-toggle">
-                      {{if (index .Accounts
-                      0).Active}}Block{{else}}Unblock{{end}}
-                    </button>
-                  </form>
-                </div>
-              </td>
-            </tr>
-            {{else}}
-            <tr>
-              <td colspan="5" class="empty-state">
-                No users found in the system.
-              </td>
-            </tr>
-            {{end}}
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <div id="adminModal" class="modal" style="display: none">
-      <div class="modal-content card">
-        <h3 id="modalTitle">Account Action</h3>
-        <p id="modalSubtitle" style="color: #666; margin-bottom: 15px"></p>
-
-        <form id="adminActionForm" method="POST">
-          <input type="hidden" id="modalAccountNumber" name="account_number" />
-
-          <div class="form-group">
-            <label for="modalAmount">Amount (KES)</label>
-            <input
-              type="number"
-              id="modalAmount"
-              name="amount"
-              required
-              min="1"
-              placeholder="Enter amount"
-            />
-          </div>
-
-          <div class="modal-actions">
-            <button type="button" id="closeModalBtn" class="btn-secondary">
-              Cancel
-            </button>
-            <button type="submit" id="modalSubmitBtn" class="btn-deposit">
-              Confirm
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-<!-- Audit Log Section -->
-<div class="card" style="margin-top: 2rem;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-        <h3>🔍 Admin Audit Log</h3>
-        <a href="/admin/audit-log" style="
-            background: var(--primary);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 8px;
-            text-decoration: none;
-            font-size: 0.9rem;
-            font-weight: 600;">View Full Log</a>
-    </div>
-    {{if .AuditLogs}}
-   <div class="table-responsive"> 
-    <table>
-        <thead>
-            <tr>
-                <th>Admin</th>
-                <th>Action</th>
-                <th>Account</th>
-                <th>Amount</th>
-                <th>Result</th>
-                <th>Details</th>
-                <th>Date</th>
-            </tr>
-        </thead>
-        <tbody>
-            {{range .AuditLogs}}
-            <tr>
-                <td style="font-weight: 600;">{{.AdminUsername}}</td>
-                <td style="text-transform: capitalize;">{{.Action}}</td>
-                <td style="font-family: monospace; font-size: 0.85rem;">{{.TargetAccount}}</td>
-                <td>{{if gt .Amount 0}}KES {{.Amount}}{{else}}—{{end}}</td>
-                <td>
-                    {{if eq .Result "success"}}
-                    <span style="color: var(--success); font-weight: 600;">✅ Success</span>
-                    {{else}}
-                    <span style="color: var(--danger); font-weight: 600;">❌ Failed</span>
+        <!-- User Management -->
+        <div class="card" style="margin-bottom: 1.5rem;">
+            <h3>User Management</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Account #</th>
+                        <th>Username</th>
+                        <th>Balance</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range .Users}}
+                    {{range .Accounts}}
+                    <tr>
+                        <td style="font-family: monospace; font-size: 0.85rem;">{{.Number}}</td>
+                        <td>{{.User.Username}}</td>
+                        <td>KES {{.Balance}}</td>
+                        <td>
+                            {{if .Active}}
+                            <span class="badge badge-success">Active</span>
+                            {{else}}
+                            <span class="badge badge-danger">Blocked</span>
+                            {{end}}
+                        </td>
+                        <td>
+                            <button class="btn-action btn-deposit-trigger" data-account="{{.Number}}">Deposit</button>
+                            <button class="btn-action btn-withdraw-trigger" data-account="{{.Number}}">Withdraw</button>
+                            <form action="/admin/toggle" method="POST" style="display: inline;">
+                                <input type="hidden" name="account_number" value="{{.Number}}">
+                                <button type="submit" class="btn-action btn-block">
+                                    {{if .Active}}Block{{else}}Unblock{{end}}
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
                     {{end}}
-                </td>
-                <td style="font-size: 0.85rem; color: var(--text-muted);">{{.Details}}</td>
-                <td style="font-size: 0.85rem;">{{.CreatedAt.Format "02 Jan 2006 15:04"}}</td>
-            </tr>
+                    {{else}}
+                    <tr>
+                        <td colspan="5" style="text-align: center; color: #666; padding: 20px;">No users found.</td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Audit Log -->
+        <div class="card" style="margin-bottom: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3>🔍 Admin Audit Log</h3>
+                <a href="/admin/audit-log" style="
+                    background: var(--primary);
+                    color: white;
+                    padding: 8px 16px;
+                    border-radius: 8px;
+                    text-decoration: none;
+                    font-size: 0.9rem;
+                    font-weight: 600;">View Full Log</a>
+            </div>
+            {{if .AuditLogs}}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Admin</th>
+                        <th>Action</th>
+                        <th>Account</th>
+                        <th>Amount</th>
+                        <th>Result</th>
+                        <th>Details</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range .AuditLogs}}
+                    <tr>
+                        <td style="font-weight: 600;">{{.AdminUsername}}</td>
+                        <td style="text-transform: capitalize;">{{.Action}}</td>
+                        <td style="font-family: monospace; font-size: 0.85rem;">{{.TargetAccount}}</td>
+                        <td>{{if gt .Amount 0}}KES {{.Amount}}{{else}}—{{end}}</td>
+                        <td>
+                            {{if eq .Result "success"}}
+                            <span style="color: var(--success); font-weight: 600;">✅ Success</span>
+                            {{else}}
+                            <span style="color: var(--danger); font-weight: 600;">❌ Failed</span>
+                            {{end}}
+                        </td>
+                        <td style="font-size: 0.85rem; color: var(--text-muted);">{{.Details}}</td>
+                        <td style="font-size: 0.85rem;">{{.CreatedAt.Format "02 Jan 2006 15:04"}}</td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+            {{else}}
+            <p style="color: var(--text-muted); text-align: center; padding: 20px;">No audit logs yet.</p>
             {{end}}
-        </tbody>
-    </table>
+        </div>
+
     </div>
-    {{else}}
-    <p style="color: var(--text-muted); text-align: center; padding: 20px;">No audit logs yet.</p>
-    {{end}}
-</div>
+
+    <!-- Modal -->
+    <div id="adminModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Action</h3>
+                <p id="modalSubtitle" style="color: var(--text-muted); font-size: 0.9rem;"></p>
+                <button id="closeModalBtn" style="
+                    position: absolute;
+                    top: 15px;
+                    right: 15px;
+                    background: none;
+                    border: none;
+                    font-size: 1.5rem;
+                    cursor: pointer;
+                    color: var(--text-muted);">✕</button>
+            </div>
+            <form id="adminActionForm" method="POST">
+                <input type="hidden" id="modalAccountNumber" name="account_number">
+                <div class="form-group">
+                    <label>Amount (KES)</label>
+                    <input type="number" name="amount" required min="1" placeholder="Enter amount">
+                </div>
+                <button type="submit" id="modalSubmitBtn" class="btn-auth">Submit</button>
+            </form>
+        </div>
+    </div>
+
     <script src="/static/app.js"></script>
-  </body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <script>
+        const labels = [{{range .Stats.WeeklyVolume}}"{{.Day}}",{{end}}]
+        const counts = [{{range .Stats.WeeklyVolume}}{{.Count}},{{end}}]
+        const totals = [{{range .Stats.WeeklyVolume}}{{.Total}},{{end}}]
+
+        const ctx = document.getElementById("weeklyChart").getContext("2d")
+        new Chart(ctx, {
+            type: "bar",
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: "Transaction Count",
+                        data: counts,
+                        backgroundColor: "rgba(0, 74, 153, 0.7)",
+                        borderColor: "rgba(0, 74, 153, 1)",
+                        borderWidth: 1,
+                        yAxisID: "y"
+                    },
+                    {
+                        label: "Volume (KES)",
+                        data: totals,
+                        backgroundColor: "rgba(16, 185, 129, 0.7)",
+                        borderColor: "rgba(16, 185, 129, 1)",
+                        borderWidth: 1,
+                        type: "line",
+                        yAxisID: "y1"
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                interaction: {
+                    mode: "index",
+                    intersect: false
+                },
+                scales: {
+                    y: {
+                        type: "linear",
+                        display: true,
+                        position: "left",
+                        title: { display: true, text: "Transaction Count" }
+                    },
+                    y1: {
+                        type: "linear",
+                        display: true,
+                        position: "right",
+                        title: { display: true, text: "Volume (KES)" },
+                        grid: { drawOnChartArea: false }
+                    }
+                }
+            }
+        })
+    </script>
+</body>
 </html>
