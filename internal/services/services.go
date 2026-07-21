@@ -1299,3 +1299,67 @@ func GetAuditLogs() ([]models.AuditLog, error) {
 	}
 	return logs, nil
 }
+
+
+// GetDashboardStats — returns aggregated stats for the admin dashboard
+func GetDashboardStats() (*models.DashboardStats, error) {
+	stats := &models.DashboardStats{}
+
+	// Today's date range
+	now := time.Now()
+	startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	endOfDay := startOfDay.Add(24 * time.Hour)
+
+	// Total deposits today
+	var depositResult struct{ Total int64 }
+	db.DB.Model(&models.Transaction{}).
+		Where("type = ? AND created_at >= ? AND created_at < ? AND status = ?", "deposit", startOfDay, endOfDay, "completed").
+		Select("COALESCE(SUM(amount), 0) as total").
+		Scan(&depositResult)
+	stats.TotalDepositsToday = depositResult.Total
+
+	// Total withdrawals today
+	var withdrawResult struct{ Total int64 }
+	db.DB.Model(&models.Transaction{}).
+		Where("type = ? AND created_at >= ? AND created_at < ? AND status = ?", "withdrawal", startOfDay, endOfDay, "completed").
+		Select("COALESCE(SUM(amount), 0) as total").
+		Scan(&withdrawResult)
+	stats.TotalWithdrawalsToday = withdrawResult.Total
+
+	// Total active users
+	db.DB.Model(&models.User{}).Where("role = ?", "customer").Count(&stats.ActiveUsers)
+
+	// Total funds in system
+	var fundsResult struct{ Total int64 }
+	db.DB.Model(&models.Account{}).
+		Where("active = ?", true).
+		Select("COALESCE(SUM(balance), 0) as total").
+		Scan(&fundsResult)
+	stats.TotalFunds = fundsResult.Total
+
+	// Weekly volume — last 7 days
+	weeklyVolume := []models.DailyVolume{}
+	for i := 6; i >= 0; i-- {
+		day := now.AddDate(0, 0, -i)
+		dayStart := time.Date(day.Year(), day.Month(), day.Day(), 0, 0, 0, 0, day.Location())
+		dayEnd := dayStart.Add(24 * time.Hour)
+
+		var result struct {
+			Count int64
+			Total int64
+		}
+		db.DB.Model(&models.Transaction{}).
+			Where("created_at >= ? AND created_at < ? AND status = ?", dayStart, dayEnd, "completed").
+			Select("COUNT(*) as count, COALESCE(SUM(amount), 0) as total").
+			Scan(&result)
+
+		weeklyVolume = append(weeklyVolume, models.DailyVolume{
+			Day:   day.Format("Mon 02"),
+			Count: result.Count,
+			Total: result.Total,
+		})
+	}
+	stats.WeeklyVolume = weeklyVolume
+
+	return stats, nil
+}
