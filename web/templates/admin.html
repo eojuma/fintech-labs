@@ -39,7 +39,7 @@
                 <h2 style="color: var(--danger); margin: 0;">KES {{.Stats.TotalWithdrawalsToday}}</h2>
             </div>
             <div class="card" style="text-align: center; padding: 1.5rem;">
-                <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 8px;">Active Customers</p>
+              <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 8px;">Total Users</p>
                 <h2 style="color: var(--primary); margin: 0;">{{.Stats.ActiveUsers}}</h2>
             </div>
             <div class="card" style="text-align: center; padding: 1.5rem;">
@@ -69,10 +69,11 @@
                 </thead>
                 <tbody>
                     {{range .Users}}
+                    {{$User := .}}
                     {{range .Accounts}}
                     <tr>
                         <td style="font-family: monospace; font-size: 0.85rem;">{{.Number}}</td>
-                        <td>{{.User.Username}}</td>
+                        <td>{{$User.Username}}</td>
                         <td>KES {{.Balance}}</td>
                         <td>
                             {{if .Active}}
