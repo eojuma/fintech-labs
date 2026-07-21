@@ -327,7 +327,6 @@ func AdminDeposit(adminUsername, accountNumber string, amount int64) error {
 
 		return nil
 	})
-
 	if err != nil {
 		CreateAuditLog(adminUsername, "deposit", accountNumber, err.Error(), amount, "failed")
 		return err
@@ -492,7 +491,6 @@ func AdminWithdraw(adminUsername, accountNumber string, amount int64) error {
 
 		return nil
 	})
-
 	if err != nil {
 		CreateAuditLog(adminUsername, "withdrawal", accountNumber, err.Error(), amount, "failed")
 		return err
@@ -788,7 +786,6 @@ func ToggleAccountStatus(adminUsername string, accountID uint, active bool) erro
 		log.Printf("Admin: Account %s (User ID: %d) has been %s", account.Number, account.UserID, status)
 		return nil
 	})
-
 	if err != nil {
 		action := "block"
 		if active {
@@ -1300,7 +1297,6 @@ func GetAuditLogs() ([]models.AuditLog, error) {
 	return logs, nil
 }
 
-
 // GetDashboardStats — returns aggregated stats for the admin dashboard
 func GetDashboardStats() (*models.DashboardStats, error) {
 	stats := &models.DashboardStats{}
@@ -1327,8 +1323,7 @@ func GetDashboardStats() (*models.DashboardStats, error) {
 	stats.TotalWithdrawalsToday = withdrawResult.Total
 
 	// Total active users
-	db.DB.Model(&models.User{}).Where("role = ?", "customer").Count(&stats.ActiveUsers)
-
+	db.DB.Model(&models.User{}).Count(&stats.ActiveUsers)
 	// Total funds in system
 	var fundsResult struct{ Total int64 }
 	db.DB.Model(&models.Account{}).
