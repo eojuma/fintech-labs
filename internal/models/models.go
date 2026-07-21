@@ -148,3 +148,17 @@ type AuditLog struct {
 	Result        string         `gorm:"default:'success'" json:"result"` // "success" or "failed"
 	Details       string         `json:"details"`
 }
+
+type DashboardStats struct {
+	TotalDepositsToday    int64
+	TotalWithdrawalsToday int64
+	ActiveUsers           int64
+	TotalFunds            int64
+	WeeklyVolume          []DailyVolume
+}
+
+type DailyVolume struct {
+	Day   string
+	Count int64
+	Total int64
+}
