@@ -239,15 +239,19 @@ func AuditLogHandler(w http.ResponseWriter, r *http.Request) {
 	users, _ := services.GetAllUsers()
 	adminUsername = utils.GetSessionUser(w, r)
 
-	data := struct {
-		AdminUsername string
-		Users         []models.User
-		AuditLogs     []models.AuditLog
-	}{
-		AdminUsername: adminUsername,
-		Users:         users,
-		AuditLogs:     logs,
-	}
+	stats, _ := services.GetDashboardStats()
+
+data := struct {
+    AdminUsername string
+    Users         []models.User
+    AuditLogs     []models.AuditLog
+    Stats         *models.DashboardStats
+}{
+    AdminUsername: adminUsername,
+    Users:         users,
+    AuditLogs:     logs,
+    Stats:         stats,
+}
 
 	if err := tmpl.Execute(w, data); err != nil {
 		log.Printf("Template execution error: %v", err)
