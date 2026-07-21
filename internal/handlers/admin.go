@@ -79,6 +79,13 @@ func AdminDashboardHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Fetch dashboard stats
+	stats, err := services.GetDashboardStats()
+	if err != nil {
+		log.Printf("Error fetching dashboard stats: %v", err)
+		stats = &models.DashboardStats{}
+	}
+
 	// Fetch recent audit logs
 	auditLogs, _ := services.GetAuditLogs()
 
@@ -86,10 +93,12 @@ func AdminDashboardHandler(w http.ResponseWriter, r *http.Request) {
 		AdminUsername string
 		Users         []models.User
 		AuditLogs     []models.AuditLog
+		Stats         *models.DashboardStats
 	}{
 		AdminUsername: username,
 		Users:         users,
 		AuditLogs:     auditLogs,
+		Stats:         stats,
 	}
 
 	if err := tmpl.Execute(w, data); err != nil {
