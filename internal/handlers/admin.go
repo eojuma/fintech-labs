@@ -88,17 +88,20 @@ func AdminDashboardHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Fetch recent audit logs
 	auditLogs, _ := services.GetAuditLogs()
+	flagged, _ := services.GetFlaggedTransactions()
 
 	data := struct {
-		AdminUsername string
-		Users         []models.User
-		AuditLogs     []models.AuditLog
-		Stats         *models.DashboardStats
+		AdminUsername       string
+		Users               []models.User
+		AuditLogs           []models.AuditLog
+		Stats               *models.DashboardStats
+		FlaggedTransactions []models.Transaction
 	}{
-		AdminUsername: username,
-		Users:         users,
-		AuditLogs:     auditLogs,
-		Stats:         stats,
+		AdminUsername:       username,
+		Users:               users,
+		AuditLogs:           auditLogs,
+		Stats:               stats,
+		FlaggedTransactions: flagged,
 	}
 
 	if err := tmpl.Execute(w, data); err != nil {
@@ -241,17 +244,63 @@ func AuditLogHandler(w http.ResponseWriter, r *http.Request) {
 
 	stats, _ := services.GetDashboardStats()
 
-data := struct {
-    AdminUsername string
-    Users         []models.User
-    AuditLogs     []models.AuditLog
-    Stats         *models.DashboardStats
-}{
-    AdminUsername: adminUsername,
-    Users:         users,
-    AuditLogs:     logs,
-    Stats:         stats,
+	data := struct {
+		AdminUsername string
+		Users         []models.User
+		AuditLogs     []models.AuditLog
+		Stats         *models.DashboardStats
+	}{
+		AdminUsername: adminUsername,
+		Users:         users,
+		AuditLogs:     logs,
+		Stats:         stats,
+	}
+
+	if err := tmpl.Execute(w, data); err != nil {
+		log.Printf("Template execution error: %v", err)
+	}
 }
+
+func FlaggedTransactionsHandler(w http.ResponseWriter, r *http.Request) {
+	adminUsername := utils.GetSessionUser(w, r)
+	if adminUsername == "" {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	flagged, err := services.GetFlaggedTransactions()
+	if err != nil {
+		http.Redirect(w, r, "/admin?error=Failed+to+fetch+flagged+transactions", http.StatusSeeOther)
+		return
+	}
+
+	users, _ := services.GetAllUsers()
+	stats, _ := services.GetDashboardStats()
+	auditLogs, _ := services.GetAuditLogs()
+
+	tmpl, err := template.New("admin.html").Funcs(template.FuncMap{
+		"formatKES":  utils.FormatKES,
+		"formatDate": utils.FormatDate,
+	}).ParseFiles("web/templates/admin.html")
+	if err != nil {
+		log.Printf("Template error: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	data := struct {
+		AdminUsername       string
+		Users               []models.User
+		AuditLogs           []models.AuditLog
+		Stats               *models.DashboardStats
+		FlaggedTransactions []models.Transaction
+	}{
+		AdminUsername:       adminUsername,
+		Users:               users,
+		AuditLogs:           auditLogs,
+		Stats:               stats,
+		FlaggedTransactions: flagged,
+	}
 
 	if err := tmpl.Execute(w, data); err != nil {
 		log.Printf("Template execution error: %v", err)
