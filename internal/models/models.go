@@ -54,6 +54,8 @@ type Transaction struct {
 	MerchantRequestID string `gorm:"index;default:null" json:"merchant_request_id,omitempty"`       // For tracking STK Push
 	CheckoutRequestID string `gorm:"uniqueIndex;default:null" json:"checkout_request_id,omitempty"` // For tracking STK Push
 	Status            string `gorm:"default:'pending'" json:"status"`                               // "pending", "completed", "failed"
+	Flagged 		  bool   `gorm:"default:false" json:"flagged"`                                  // For suspicious transactions
+	FlaggedReason      string `gorm:"default:''" json:"flagged_reason,omitempty"`                    // Reason for flagging
 }
 
 type DepositRequest struct {
