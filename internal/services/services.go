@@ -180,6 +180,7 @@ func Deposit(accountNumber string, amount int64) (string, error) {
 	accountNumber = strings.TrimSpace(accountNumber)
 
 	var refNum string
+	var transactionID uint
 
 	if amount < MinDeposit {
 		return "", fmt.Errorf("minimum deposit is KES %d", MinDeposit)
@@ -225,6 +226,9 @@ func Deposit(accountNumber string, amount int64) (string, error) {
 		log.Printf("💰 Deposit: %s deposited KES %d to account %s (Balance: KES %d → KES %d)",
 			user.Username, amount, account.Number, oldBalance, account.Balance)
 
+		refNum = transaction.ReferenceNumber
+		go CheckSuspiciousActivity(transaction.ID, account.Number, amount, "deposit")
+
 		// Send email notification in background
 		go func() {
 			emailData := models.TransactionEmailData{
@@ -251,6 +255,11 @@ func Deposit(accountNumber string, amount int64) (string, error) {
 		}()
 		return nil
 	})
+	if err != nil {
+		return "", err
+	}
+	go CheckSuspiciousActivity(transactionID, accountNumber, amount, "deposit")
+
 	return refNum, err
 }
 
@@ -338,7 +347,10 @@ func AdminDeposit(adminUsername, accountNumber string, amount int64) error {
 
 func Withdraw(accountNumber string, amount int64) (string, error) {
 	accountNumber = strings.TrimSpace(accountNumber)
+
 	var refNum string
+	var transactionID uint
+
 	if amount < MinWithdrawal {
 		return "", fmt.Errorf("minimum withdrawal is KES %d", MinWithdrawal)
 	}
@@ -387,6 +399,9 @@ func Withdraw(accountNumber string, amount int64) (string, error) {
 		log.Printf("💸 Withdrawal: %s withdrew KES %d from account %s (Balance: KES %d → KES %d)",
 			user.Username, amount, account.Number, oldBalance, account.Balance)
 
+		refNum = transaction.ReferenceNumber
+		go CheckSuspiciousActivity(transaction.ID, account.Number, amount, "withdrawal")
+
 		go func() {
 			emailData := models.TransactionEmailData{
 				FullName:        user.FullName,
@@ -411,6 +426,11 @@ func Withdraw(accountNumber string, amount int64) (string, error) {
 		}()
 		return nil
 	})
+	if err != nil {
+		return "", err
+	}
+	go CheckSuspiciousActivity(transactionID, accountNumber, amount, "withdrawal")
+
 	return refNum, err
 }
 
@@ -543,7 +563,6 @@ func SendMoney(fromAccountNumber, toIdentifier string, amount int64) (string, er
 	fromAccountNumber = strings.TrimSpace(fromAccountNumber)
 	toIdentifier = strings.TrimSpace(toIdentifier)
 	var refNum string
-
 	if amount < MinTransfer || amount > MaxTransfer {
 		return "", fmt.Errorf("transfer must be between KES %d and KES %d", MinTransfer, MaxTransfer)
 	}
@@ -672,6 +691,11 @@ func SendMoney(fromAccountNumber, toIdentifier string, amount int64) (string, er
 		}()
 		return nil
 	})
+	if err != nil {
+		return "", err
+	}
+	go CheckSuspiciousActivity(0, fromAccountNumber, amount, "transfer_out")
+
 	return refNum, err
 }
 
@@ -1357,4 +1381,60 @@ func GetDashboardStats() (*models.DashboardStats, error) {
 	stats.WeeklyVolume = weeklyVolume
 
 	return stats, nil
+}
+
+// CheckSuspiciousActivity — checks a transaction for suspicious patterns and flags it if needed
+func CheckSuspiciousActivity(transactionID uint, accountNumber string, amount int64, transactionType string) {
+	var reasons []string
+
+	// Rule 1 — Large single transaction above KES 100,000
+	if amount >= 100000 {
+		reasons = append(reasons, fmt.Sprintf("Large %s of KES %d exceeds threshold", transactionType, amount))
+	}
+
+	// Rule 2 — Rapid successive transactions — 3 or more in 5 minutes
+	fiveMinutesAgo := time.Now().Add(-5 * time.Minute)
+	var recentCount int64
+	db.DB.Model(&models.Transaction{}).
+		Where("account_number = ? AND created_at >= ?", accountNumber, fiveMinutesAgo).
+		Count(&recentCount)
+	if recentCount >= 3 {
+		reasons = append(reasons, fmt.Sprintf("Rapid transactions: %d transactions in the last 5 minutes", recentCount))
+	}
+
+	// Rule 3 — Large withdrawal relative to balance (more than 80% of balance)
+	if transactionType == "withdrawal" {
+		var account models.Account
+		if err := db.DB.Where("number = ?", accountNumber).First(&account).Error; err == nil {
+			if account.Balance > 0 {
+				percentage := (amount * 100) / (account.Balance + amount)
+				if percentage >= 80 {
+					reasons = append(reasons, fmt.Sprintf("Withdrawal of KES %d is %d%% of account balance", amount, percentage))
+				}
+			}
+		}
+	}
+
+	// If any rules triggered — flag the transaction
+	if len(reasons) > 0 {
+		flagReason := strings.Join(reasons, " | ")
+		db.DB.Model(&models.Transaction{}).
+			Where("id = ?", transactionID).
+			Updates(map[string]interface{}{
+				"flagged":     true,
+				"flag_reason": flagReason,
+			})
+		log.Printf("🚨 Suspicious transaction flagged — ID: %d | Reason: %s", transactionID, flagReason)
+	}
+}
+
+// GetFlaggedTransactions — fetches all flagged transactions ordered by most recent first
+func GetFlaggedTransactions() ([]models.Transaction, error) {
+	var transactions []models.Transaction
+	if err := db.DB.Where("flagged = ?", true).
+		Order("created_at desc").
+		Find(&transactions).Error; err != nil {
+		return nil, err
+	}
+	return transactions, nil
 }
