@@ -243,17 +243,20 @@ func AuditLogHandler(w http.ResponseWriter, r *http.Request) {
 	adminUsername = utils.GetSessionUser(w, r)
 
 	stats, _ := services.GetDashboardStats()
+	flagged, _ := services.GetFlaggedTransactions()
 
 	data := struct {
-		AdminUsername string
-		Users         []models.User
-		AuditLogs     []models.AuditLog
-		Stats         *models.DashboardStats
+		AdminUsername       string
+		Users               []models.User
+		AuditLogs           []models.AuditLog
+		Stats               *models.DashboardStats
+		FlaggedTransactions []models.Transaction
 	}{
-		AdminUsername: adminUsername,
-		Users:         users,
-		AuditLogs:     logs,
-		Stats:         stats,
+		AdminUsername:       adminUsername,
+		Users:               users,
+		AuditLogs:           logs,
+		Stats:               stats,
+		FlaggedTransactions: flagged,
 	}
 
 	if err := tmpl.Execute(w, data); err != nil {
