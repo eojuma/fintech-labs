@@ -49,4 +49,6 @@ func Setup() {
 
 	// admin auditLogs
 	http.HandleFunc("/admin/audit-log", handlers.AdminAuthMiddleware(handlers.AuditLogHandler))
+	// flagged transactions
+	http.HandleFunc("/admin/flagged", handlers.AdminAuthMiddleware(handlers.FlaggedTransactionsHandler))
 }
