@@ -5,6 +5,51 @@ import (
 
 	"gorm.io/gorm"
 )
+const(
+	RoleCustomer = "customer"
+	RoleTeller   = "teller"
+	RoleAdmin    = "admin"
+)
+
+const (
+	PermissionViewDashboard      = "view_dashboard"
+	PermissionViewProfile        = "view_profile"
+	PermissionTransfer           = "transfer"
+	PermissionDeposit            = "deposit"
+	PermissionWithdraw           = "withdraw"
+	PermissionViewCustomers      = "view_customers"
+	PermissionManageUsers        = "manage_users"
+	PermissionViewAuditLog       = "view_audit_log"
+	PermissionViewReports        = "view_reports"
+	PermissionApproveDevices     = "approve_devices"
+)
+
+var RolePermissions = map[string][]string{
+	RoleCustomer: {
+		PermissionViewDashboard,
+		PermissionViewProfile,
+		PermissionTransfer,
+	},
+
+	RoleTeller: {
+		PermissionDeposit,
+		PermissionWithdraw,
+		PermissionViewCustomers,
+	},
+
+	RoleAdmin: {
+		PermissionViewDashboard,
+		PermissionViewProfile,
+		PermissionTransfer,
+		PermissionDeposit,
+		PermissionWithdraw,
+		PermissionViewCustomers,
+		PermissionManageUsers,
+		PermissionViewAuditLog,
+		PermissionViewReports,
+		PermissionApproveDevices,
+	},
+}
 
 type User struct {
 	ID                  uint           `gorm:"primaryKey" json:"id"`
@@ -13,7 +58,7 @@ type User struct {
 	DeletedAt           gorm.DeletedAt `gorm:"index" json:"-"`
 	Username            string         `gorm:"uniqueIndex;not null" json:"username"`
 	Password            string         `gorm:"not null" json:"-"`
-	Role                string         `gorm:"default:'customer'" json:"role"` // "customer" or "admin"
+	Role                string         `gorm:"default:'customer'" json:"role"` // "customer" ,teller or "admin"
 	Accounts            []Account      `json:"accounts,omitempty"`
 	Email               string         `gorm:"uniqueIndex;not null" json:"email"`
 	FullName            string         `gorm:"not null" json:"fullname"`
@@ -163,4 +208,8 @@ type DailyVolume struct {
 	Day   string
 	Count int64
 	Total int64
+}
+
+type Permission struct {
+	Name string
 }
