@@ -37,9 +37,12 @@ A production-grade mobile banking backend built from scratch in Go. African Vaul
 - User profile management — update contact details, change password, change PIN
 - Balance visibility toggle
 - Transaction receipts with unique reference numbers
-- Transaction search, filtering, and pagination
+- Transaction search, filtering and pagination
 - Email notifications on every transaction
-- Admin panel — deposit, withdraw, block/unblock accounts
+- SMS notifications via Africa's Talking
+- Admin audit log tracking every admin action
+- Transaction reports and analytics with 7-day chart
+- Automated suspicious transaction flagging
 
 ---
 
@@ -59,19 +62,24 @@ A production-grade mobile banking backend built from scratch in Go. African Vaul
 | 10 | Transaction search, filtering and pagination |
 | 12 | Account statement download (PDF + CSV) |
 | 13 | Email notifications after every transaction |
+| 14 | SMS notifications via Africa's Talking |
+| 18 | Admin audit log |
+| 19 | Transaction reports and analytics |
+| 20 | Automated suspicious transaction flagging |
 | 26 | Balance visibility toggle |
+| 27 | Login with username or email |
 | 31 | Account number on every transaction record |
 
 ---
 
 ## 🚧 Upcoming Features
 
-- SMS notifications via Africa's Talking
-- M-Pesa STK Push deposit and B2C withdrawal
-- M-Pesa webhook callback handler
-- Admin audit log and transaction analytics
-- Suspicious transaction flagging
+- Responsive mobile layout
 - Transaction limits management
+- SMS opt-in/opt-out preference
+- M-Pesa STK Push deposit
+- M-Pesa B2C withdrawal
+- M-Pesa webhook callback handler
 - Scheduled recurring transfers
 - Device verification and admin approval
 - Role-based access control (teller, admin, super admin)
@@ -79,7 +87,7 @@ A production-grade mobile banking backend built from scratch in Go. African Vaul
 - Currency precision migration to minor units
 - Production email setup with custom domain
 - Account closure flow
-- Multiple account types
+- JWT for mobile API layer
 
 ---
 
@@ -89,7 +97,7 @@ A production-grade mobile banking backend built from scratch in Go. African Vaul
 fintech-labs/
 ├── cmd/
 │   └── server/
-│       └── main.go          
+│       └── main.go
 ├── internal/
 │   ├── db/
 │   │   └── db.go
@@ -105,7 +113,8 @@ fintech-labs/
 │   ├── models/
 │   │   └── models.go
 │   ├── notifications/
-│   │   └── email.go
+│   │   ├── email.go
+│   │   └── sms.go
 │   ├── router/
 │   │   └── router.go
 │   ├── services/
@@ -141,6 +150,8 @@ fintech-labs/
 - **Auth:** Custom session management with bcrypt
 - **PDF Generation:** gofpdf
 - **Email:** Gmail SMTP via net/smtp
+- **SMS:** Africa's Talking SMS API
+- **Charts:** Chart.js
 - **Deployment:** Render (https://fintech-labs-uaph.onrender.com)
 
 ---
@@ -157,7 +168,7 @@ go mod tidy
 
 # Set up environment variables
 cp .env.example .env
-# Edit .env with your SMTP credentials
+# Edit .env with your credentials
 
 # Run the app
 go run cmd/server/main.go
@@ -177,8 +188,10 @@ Visit `http://localhost:8080` to access the app.
 | `SMTP_HOST` | SMTP server host (e.g. smtp.gmail.com) |
 | `SMTP_PORT` | SMTP server port (e.g. 587) |
 | `SMTP_USER` | SMTP username / email address |
-| `SMTP_PASS` | SMTP password or App Password |
+| `SMTP_PASS` | SMTP App Password |
 | `SMTP_FROM` | Sender email address |
+| `AT_USERNAME` | Africa's Talking username (use `sandbox` for testing) |
+| `AT_API_KEY` | Africa's Talking API key |
 
 ---
 
@@ -207,6 +220,8 @@ Visit `http://localhost:8080` to access the app.
 | `/admin/deposit` | POST | Admin | Deposit to user account |
 | `/admin/withdraw` | POST | Admin | Withdraw from user account |
 | `/admin/toggle` | POST | Admin | Block or unblock account |
+| `/admin/audit-log` | GET | Admin | View full audit log |
+| `/admin/flagged` | GET | Admin | View flagged transactions |
 
 ---
 
@@ -220,12 +235,27 @@ Visit `http://localhost:8080` to access the app.
 - Session expires after 10 minutes of inactivity
 - Warning popup at 9 minutes with keepalive option
 - Login locked after 5 failed attempts for 15 minutes
-- Timing attack prevention — bcrypt runs even for non-existent users
+- Timing attack prevention on authentication
 - Transaction PIN separate from login password
 - Suspended accounts blocked at login with all sessions invalidated
 - Admin cannot block their own account
 - HTTPS enforced in production via redirect middleware
 - Users can only view their own receipts
+- Automated suspicious transaction flagging
+
+---
+
+## 🚨 Fraud Detection Rules
+
+Transactions are automatically flagged when:
+
+| Rule | Threshold |
+|------|-----------|
+| Large single transaction | Amount ≥ KES 100,000 |
+| Rapid successive transactions | 3 or more transactions within 5 minutes |
+| Large withdrawal relative to balance | Withdrawal ≥ 80% of account balance |
+
+Flagged transactions appear on the admin dashboard for review.
 
 ---
 
@@ -236,6 +266,7 @@ Visit `http://localhost:8080` to access the app.
 - Atomic DB transactions on every financial operation
 - All session records cleaned up on logout and account suspension
 - Every transaction has a unique reference number for tracing
+- Admin audit log is permanent and never deletable
 
 ---
 
