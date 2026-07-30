@@ -5,51 +5,6 @@ import (
 
 	"gorm.io/gorm"
 )
-const(
-	RoleCustomer = "customer"
-	RoleTeller   = "teller"
-	RoleAdmin    = "admin"
-)
-
-const (
-	PermissionViewDashboard      = "view_dashboard"
-	PermissionViewProfile        = "view_profile"
-	PermissionTransfer           = "transfer"
-	PermissionDeposit            = "deposit"
-	PermissionWithdraw           = "withdraw"
-	PermissionViewCustomers      = "view_customers"
-	PermissionManageUsers        = "manage_users"
-	PermissionViewAuditLog       = "view_audit_log"
-	PermissionViewReports        = "view_reports"
-	PermissionApproveDevices     = "approve_devices"
-)
-
-var RolePermissions = map[string][]string{
-	RoleCustomer: {
-		PermissionViewDashboard,
-		PermissionViewProfile,
-		PermissionTransfer,
-	},
-
-	RoleTeller: {
-		PermissionDeposit,
-		PermissionWithdraw,
-		PermissionViewCustomers,
-	},
-
-	RoleAdmin: {
-		PermissionViewDashboard,
-		PermissionViewProfile,
-		PermissionTransfer,
-		PermissionDeposit,
-		PermissionWithdraw,
-		PermissionViewCustomers,
-		PermissionManageUsers,
-		PermissionViewAuditLog,
-		PermissionViewReports,
-		PermissionApproveDevices,
-	},
-}
 
 type User struct {
 	ID                  uint           `gorm:"primaryKey" json:"id"`
@@ -99,8 +54,8 @@ type Transaction struct {
 	MerchantRequestID string `gorm:"index;default:null" json:"merchant_request_id,omitempty"`       // For tracking STK Push
 	CheckoutRequestID string `gorm:"uniqueIndex;default:null" json:"checkout_request_id,omitempty"` // For tracking STK Push
 	Status            string `gorm:"default:'pending'" json:"status"`                               // "pending", "completed", "failed"
-	Flagged 		  bool   `gorm:"default:false" json:"flagged"`                                  // For suspicious transactions
-	FlaggedReason      string `gorm:"default:''" json:"flagged_reason,omitempty"`                    // Reason for flagging
+	Flagged           bool   `gorm:"default:false" json:"flagged"`                                  // For suspicious transactions
+	FlaggedReason     string `gorm:"default:''" json:"flagged_reason,omitempty"`                    // Reason for flagging
 }
 
 type DepositRequest struct {
