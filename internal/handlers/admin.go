@@ -66,6 +66,17 @@ func TellerAuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
+func GetUserRole(w http.ResponseWriter, r *http.Request) string {
+	username := utils.GetSessionUser(w, r)
+	if username == "" {
+		return ""
+	}
+	user, err := services.GetUserByUsername(username)
+	if err != nil || user == nil {
+		return ""
+	}
+	return user.Role
+}
 
 // AdminDashboardHandler - Shows admin panel
 func AdminDashboardHandler(w http.ResponseWriter, r *http.Request) {
