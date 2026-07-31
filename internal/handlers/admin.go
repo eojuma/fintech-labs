@@ -40,6 +40,33 @@ func AdminAuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
+
+func TellerAuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		username := utils.GetSessionUser(w, r)
+		if username == "" {
+			http.Redirect(w, r, "/login?error=Please+login+first", http.StatusSeeOther)
+			return
+		}
+
+		user, err := services.GetUserByUsername(username)
+		if err != nil || user == nil {
+			http.Redirect(w, r, "/login?error=Please+login+first", http.StatusSeeOther)
+			return
+		}
+
+		// Tellers and admins can access teller routes
+		if user.Role != "teller" && user.Role != "admin" {
+			http.Redirect(w, r, "/dashboard?error=Teller+privileges+required", http.StatusSeeOther)
+			return
+		}
+
+		log.Printf("Teller access granted for: %s (role: %s)", username, user.Role)
+		next(w, r)
+	}
+}
+
+
 // AdminDashboardHandler - Shows admin panel
 func AdminDashboardHandler(w http.ResponseWriter, r *http.Request) {
 	username := utils.GetSessionUser(w, r)
