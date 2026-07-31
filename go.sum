@@ -1,5 +1,3 @@
-github.com/AfricasTalkingLtd/africastalking-go v0.0.0-20190314130600-8bb53dce16a2 h1:wp04feJXkPgcTQCnjdm5/9Ru8YF4A8YwuULHZB9RJQ8=
-github.com/AfricasTalkingLtd/africastalking-go v0.0.0-20190314130600-8bb53dce16a2/go.mod h1:ygJljoO3Y36QIzOIgYWsKxGhvSuT+6VFhxX8rpbGwVg=
 github.com/AndroidStudyOpenSource/africastalking-go v0.0.0-20200515172509-94a151ad63fe h1:uXPOrFHjkAP3NgAfOXgDwuRa3nkX3w71jT7zYGJFvFk=
 github.com/AndroidStudyOpenSource/africastalking-go v0.0.0-20200515172509-94a151ad63fe/go.mod h1:1oj0QW+1duBl8Ono/Gg2NhXpu8fAqFrquBejPq2qy14=
 github.com/boombuler/barcode v1.0.0/go.mod h1:paBWMcWSl3LHKBqUq+rly7CNSldXjb2rDl3JlRe0mD8=
