@@ -347,3 +347,58 @@ func FlaggedTransactionsHandler(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Template execution error: %v", err)
 	}
 }
+
+
+func AssignTellerHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	adminUsername := utils.GetSessionUser(w, r)
+	if adminUsername == "" {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	targetUsername := r.FormValue("username")
+	if targetUsername == "" {
+		http.Redirect(w, r, "/admin?error=Username+required", http.StatusSeeOther)
+		return
+	}
+
+	if err := services.AssignTellerRole(adminUsername, targetUsername); err != nil {
+		errorMsg := strings.ReplaceAll(err.Error(), " ", "+")
+		http.Redirect(w, r, "/admin?error="+errorMsg, http.StatusSeeOther)
+		return
+	}
+
+	http.Redirect(w, r, "/admin?success=Teller+role+assigned+to+"+targetUsername, http.StatusSeeOther)
+}
+
+func RevokeTellerHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	adminUsername := utils.GetSessionUser(w, r)
+	if adminUsername == "" {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	targetUsername := r.FormValue("username")
+	if targetUsername == "" {
+		http.Redirect(w, r, "/admin?error=Username+required", http.StatusSeeOther)
+		return
+	}
+
+	if err := services.RevokeTellerRole(adminUsername, targetUsername); err != nil {
+		errorMsg := strings.ReplaceAll(err.Error(), " ", "+")
+		http.Redirect(w, r, "/admin?error="+errorMsg, http.StatusSeeOther)
+		return
+	}
+
+	http.Redirect(w, r, "/admin?success=Teller+role+revoked+from+"+targetUsername, http.StatusSeeOther)
+}
