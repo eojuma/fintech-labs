@@ -51,4 +51,13 @@ func Setup() {
 	http.HandleFunc("/admin/audit-log", handlers.AdminAuthMiddleware(handlers.AuditLogHandler))
 	// flagged transactions
 	http.HandleFunc("/admin/flagged", handlers.AdminAuthMiddleware(handlers.FlaggedTransactionsHandler))
+
+	// 6. TELLER ROUTES
+	http.HandleFunc("/teller", handlers.TellerAuthMiddleware(handlers.TellerDashboardHandler))
+	http.HandleFunc("/teller/deposit", handlers.TellerAuthMiddleware(handlers.TellerDepositHandler))
+	http.HandleFunc("/teller/withdraw", handlers.TellerAuthMiddleware(handlers.TellerWithdrawHandler))
+
+	// 7. ADMIN — TELLER MANAGEMENT
+	http.HandleFunc("/admin/assign-teller", handlers.AdminAuthMiddleware(handlers.AssignTellerHandler))
+	http.HandleFunc("/admin/revoke-teller", handlers.AdminAuthMiddleware(handlers.RevokeTellerHandler))
 }
