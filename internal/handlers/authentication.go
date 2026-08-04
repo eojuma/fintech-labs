@@ -59,9 +59,12 @@ func Login(gormDB *gorm.DB) http.HandlerFunc {
 			http.Redirect(w, r, "/login?error=Failed+to+create+session", http.StatusSeeOther)
 			return
 		}
-		if user.Role == "admin" {
+		switch user.Role {
+		case "admin":
 			http.Redirect(w, r, "/admin", http.StatusSeeOther)
-		} else {
+		case "teller":
+			http.Redirect(w, r, "/teller", http.StatusSeeOther)
+		default:
 			http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
 		}
 	}
