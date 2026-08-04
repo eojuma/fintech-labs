@@ -80,7 +80,7 @@ func TellerDepositHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = services.AdminDeposit(tellerUsername, accountNumber, amount)
+	err = services.AdminDeposit(tellerUsername, accountNumber, amount)
 	if err != nil {
 		errorMsg := strings.ReplaceAll(err.Error(), " ", "+")
 		http.Redirect(w, r, "/teller?error="+errorMsg, http.StatusSeeOther)
@@ -121,7 +121,7 @@ func TellerWithdrawHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = services.AdminWithdraw(tellerUsername, accountNumber, amount)
+	err = services.AdminWithdraw(tellerUsername, accountNumber, amount)
 	if err != nil {
 		errorMsg := strings.ReplaceAll(err.Error(), " ", "+")
 		http.Redirect(w, r, "/teller?error="+errorMsg, http.StatusSeeOther)
