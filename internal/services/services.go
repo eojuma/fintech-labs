@@ -1438,3 +1438,53 @@ func GetFlaggedTransactions() ([]models.Transaction, error) {
 	}
 	return transactions, nil
 }
+
+// AssignTellerRole — promotes a customer to teller role
+func AssignTellerRole(adminUsername, targetUsername string) error {
+	targetUsername = strings.ToLower(strings.TrimSpace(targetUsername))
+
+	var user models.User
+	if err := db.DB.Where("username = ?", targetUsername).First(&user).Error; err != nil {
+		return errors.New("user not found")
+	}
+
+	if user.Role == "admin" {
+		return errors.New("cannot assign teller role to an admin")
+	}
+
+	if user.Role == "teller" {
+		return errors.New("user is already a teller")
+	}
+
+	if err := db.DB.Model(&user).Update("role", "teller").Error; err != nil {
+		return err
+	}
+
+	// Audit log
+	CreateAuditLog(adminUsername, "assign_teller", user.Username, fmt.Sprintf("Admin assigned teller role to %s", targetUsername), 0, "success")
+	log.Printf("✅ Admin %s assigned teller role to %s", adminUsername, targetUsername)
+	return nil
+}
+
+// RevokeTellerRole — demotes a teller back to customer
+func RevokeTellerRole(adminUsername, targetUsername string) error {
+	targetUsername = strings.ToLower(strings.TrimSpace(targetUsername))
+
+	var user models.User
+	if err := db.DB.Where("username = ?", targetUsername).First(&user).Error; err != nil {
+		return errors.New("user not found")
+	}
+
+	if user.Role != "teller" {
+		return errors.New("user is not a teller")
+	}
+
+	if err := db.DB.Model(&user).Update("role", "customer").Error; err != nil {
+		return err
+	}
+
+	// Audit log
+	CreateAuditLog(adminUsername, "revoke_teller", user.Username, fmt.Sprintf("Admin revoked teller role from %s", targetUsername), 0, "success")
+	log.Printf("✅ Admin %s revoked teller role from %s", adminUsername, targetUsername)
+	return nil
+}
