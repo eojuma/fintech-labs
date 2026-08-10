@@ -551,3 +551,169 @@ td {
   }
 
 }
+
+
+
+/* ============================================
+   RESPONSIVE MOBILE LAYOUT
+   Breakpoint: 768px and below
+   ============================================ */
+
+@media (max-width: 768px) {
+
+    /* Container */
+    .container {
+        padding: 1rem;
+    }
+
+    /* Header */
+    .header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .header h1 {
+        font-size: 1.3rem;
+    }
+
+    .header-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        width: 100%;
+    }
+
+    .header-actions a,
+    .header-actions button {
+        font-size: 0.85rem;
+        padding: 8px 12px;
+    }
+
+    /* Grid layouts — stack vertically on mobile */
+    .grid-3 {
+        grid-template-columns: 1fr;
+    }
+
+    /* Admin stats — 2 columns on mobile instead of 4 */
+    div[style*="grid-template-columns: repeat(4, 1fr)"] {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+
+    /* Teller and admin action grids — stack on mobile */
+    div[style*="grid-template-columns: 1fr 1fr"] {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Balance card */
+    .balance-card {
+        padding: 1.5rem;
+    }
+
+    .balance-amount {
+        font-size: 2rem;
+    }
+
+    /* Cards */
+    .card {
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    /* Forms */
+    .form-group input,
+    .form-group select {
+        font-size: 16px; /* Prevents iOS zoom on focus */
+    }
+
+    /* Buttons */
+    .btn-auth {
+        width: 100%;
+    }
+
+    /* Tables — horizontal scroll on mobile */
+    table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Auth pages */
+    .auth-container {
+        padding: 1rem;
+    }
+
+    .auth-card {
+        padding: 1.5rem;
+    }
+
+    /* Modal */
+    .modal-content {
+        width: 95%;
+        margin: 1rem;
+        padding: 1.5rem;
+    }
+
+    /* Profile page */
+    .profile-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* Receipt page */
+    .receipt-card {
+        padding: 1.5rem;
+        margin: 1rem;
+    }
+
+    /* Statement download form — stack on mobile */
+    div[style*="display: flex; gap: 10px; flex-wrap: wrap"] {
+        flex-direction: column;
+    }
+
+    /* Hide less important table columns on very small screens */
+    @media (max-width: 480px) {
+        .hide-mobile {
+            display: none;
+        }
+
+        /* Admin stats — single column on very small screens */
+        div[style*="grid-template-columns: repeat(4, 1fr)"] {
+            grid-template-columns: 1fr !important;
+        }
+    }
+}
+
+/* ============================================
+   MOBILE TOUCH IMPROVEMENTS
+   ============================================ */
+
+/* Larger touch targets for buttons */
+@media (max-width: 768px) {
+    .btn-action {
+        padding: 10px 14px;
+        font-size: 0.85rem;
+    }
+
+    .btn-quick-filter {
+        padding: 8px 16px;
+        font-size: 0.9rem;
+    }
+
+    /* Balance toggle button */
+    #balance-toggle {
+        font-size: 1.6rem;
+    }
+
+    /* Transaction filter controls — stack on mobile */
+    #filter-summary {
+        font-size: 0.8rem;
+    }
+
+    /* Pagination controls */
+    #pagination-controls {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+}
