@@ -60,4 +60,8 @@ func Setup() {
 	// 7. ADMIN — TELLER MANAGEMENT
 	http.HandleFunc("/admin/assign-teller", handlers.AdminAuthMiddleware(handlers.AssignTellerHandler))
 	http.HandleFunc("/admin/revoke-teller", handlers.AdminAuthMiddleware(handlers.RevokeTellerHandler))
+
+	// 8. MPESA ROUTES
+	http.HandleFunc("/mpesa/deposit", handlers.AuthMiddleware(handlers.MpesaDepositHandler))
+	http.HandleFunc("/mpesa/callback", handlers.MpesaCallbackHandler) // No auth — Safaricom calls this
 }
