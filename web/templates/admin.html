@@ -39,7 +39,7 @@
                 <h2 style="color: var(--danger); margin: 0;">KES {{.Stats.TotalWithdrawalsToday}}</h2>
             </div>
             <div class="card" style="text-align: center; padding: 1.5rem;">
-              <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 8px;">Total Users</p>
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 8px;">Total Users</p>
                 <h2 style="color: var(--primary); margin: 0;">{{.Stats.ActiveUsers}}</h2>
             </div>
             <div class="card" style="text-align: center; padding: 1.5rem;">
@@ -69,11 +69,11 @@
                 </thead>
                 <tbody>
                     {{range .Users}}
-                    {{$User := .}}
+                    {{$user := .}}
                     {{range .Accounts}}
                     <tr>
                         <td style="font-family: monospace; font-size: 0.85rem;">{{.Number}}</td>
-                        <td>{{$User.Username}}</td>
+                        <td>{{$user.Username}}</td>
                         <td>KES {{.Balance}}</td>
                         <td>
                             {{if .Active}}
@@ -103,10 +103,79 @@
             </table>
         </div>
 
+        <!-- Teller Management -->
+        <div class="card" style="margin-bottom: 1.5rem;">
+            <h3>👤 Teller Management</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">
+                Assign or revoke the teller role. Tellers can deposit and withdraw on behalf of customers.
+            </p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                <form action="/admin/assign-teller" method="POST">
+                    <div class="form-group">
+                        <label>Assign Teller Role</label>
+                        <input type="text" name="username" required placeholder="Enter username">
+                    </div>
+                    <button type="submit" style="
+                        background: var(--primary); color: white; padding: 10px 20px;
+                        border-radius: 8px; border: none; font-weight: 600;
+                        cursor: pointer; width: 100%;">Assign Teller</button>
+                </form>
+                <form action="/admin/revoke-teller" method="POST">
+                    <div class="form-group">
+                        <label>Revoke Teller Role</label>
+                        <input type="text" name="username" required placeholder="Enter username">
+                    </div>
+                    <button type="submit" style="
+                        background: var(--danger); color: white; padding: 10px 20px;
+                        border-radius: 8px; border: none; font-weight: 600;
+                        cursor: pointer; width: 100%;">Revoke Teller</button>
+                </form>
+            </div>
+
+            <!-- Current Tellers -->
+            <div style="margin-top: 1.5rem;">
+                <h4 style="margin-bottom: 0.5rem;">Current Tellers</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{range .Users}}
+                        {{if eq .Role "teller"}}
+                        <tr>
+                            <td>{{.Username}}</td>
+                            <td>{{.Email}}</td>
+                            <td>{{.PhoneNumber}}</td>
+                            <td>
+                                <form action="/admin/revoke-teller" method="POST" style="display: inline;">
+                                    <input type="hidden" name="username" value="{{.Username}}">
+                                    <button type="submit" style="
+                                        background: var(--danger); color: white; padding: 6px 12px;
+                                        border-radius: 6px; border: none; cursor: pointer;
+                                        font-size: 0.85rem; font-weight: 600;">Revoke</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {{end}}
+                        {{else}}
+                        <tr>
+                            <td colspan="4" style="text-align: center; color: #666; padding: 15px;">No tellers assigned yet.</td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <!-- Audit Log -->
         <div class="card" style="margin-bottom: 1.5rem;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                <h3> Admin Audit Log</h3>
+                <h3>🔍 Admin Audit Log</h3>
                 <a href="/admin/audit-log" style="
                     background: var(--primary);
                     color: white;
@@ -155,49 +224,50 @@
         </div>
 
         <!-- Flagged Transactions -->
-<div class="card" style="margin-bottom: 1.5rem;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-        <h3>🚨 Flagged Transactions</h3>
-        <a href="/admin/flagged" style="
-            background: var(--danger);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 8px;
-            text-decoration: none;
-            font-size: 0.9rem;
-            font-weight: 600;">View All Flagged</a>
-    </div>
-    {{if .FlaggedTransactions}}
-    <table>
-        <thead>
-            <tr>
-                <th>Reference</th>
-                <th>Username</th>
-                <th>Account</th>
-                <th>Type</th>
-                <th>Amount</th>
-                <th>Flag Reason</th>
-                <th>Date</th>
-            </tr>
-        </thead>
-        <tbody>
-            {{range .FlaggedTransactions}}
-            <tr>
-                <td style="font-family: monospace; font-size: 0.85rem;">{{.ReferenceNumber}}</td>
-                <td>{{.Username}}</td>
-                <td style="font-family: monospace; font-size: 0.85rem;">{{.AccountNumber}}</td>
-                <td style="text-transform: capitalize;">{{.Type}}</td>
-                <td style="color: var(--danger); font-weight: 600;">KES {{.Amount}}</td>
-                <td style="font-size: 0.85rem; color: var(--text-muted);">{{.FlaggedReason}}</td>
-                <td style="font-size: 0.85rem;">{{.CreatedAt.Format "02 Jan 2006 15:04"}}</td>
-            </tr>
+        <div class="card" style="margin-bottom: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3>🚨 Flagged Transactions</h3>
+                <a href="/admin/flagged" style="
+                    background: var(--danger);
+                    color: white;
+                    padding: 8px 16px;
+                    border-radius: 8px;
+                    text-decoration: none;
+                    font-size: 0.9rem;
+                    font-weight: 600;">View All Flagged</a>
+            </div>
+            {{if .FlaggedTransactions}}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Reference</th>
+                        <th>Username</th>
+                        <th>Account</th>
+                        <th>Type</th>
+                        <th>Amount</th>
+                        <th>Flag Reason</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range .FlaggedTransactions}}
+                    <tr>
+                        <td style="font-family: monospace; font-size: 0.85rem;">{{.ReferenceNumber}}</td>
+                        <td>{{.Username}}</td>
+                        <td style="font-family: monospace; font-size: 0.85rem;">{{.AccountNumber}}</td>
+                        <td style="text-transform: capitalize;">{{.Type}}</td>
+                        <td style="color: var(--danger); font-weight: 600;">KES {{.Amount}}</td>
+                        <td style="font-size: 0.85rem; color: var(--text-muted);">{{.FlagReason}}</td>
+                        <td style="font-size: 0.85rem;">{{.CreatedAt.Format "02 Jan 2006 15:04"}}</td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+            {{else}}
+            <p style="color: var(--text-muted); text-align: center; padding: 20px;">✅ No suspicious transactions detected.</p>
             {{end}}
-        </tbody>
-    </table>
-    {{else}}
-    <p style="color: var(--text-muted); text-align: center; padding: 20px;">✅ No suspicious transactions detected.</p>
-    {{end}}
-</div>
+        </div>
+
     </div>
 
     <!-- Modal -->
@@ -225,74 +295,6 @@
                 <button type="submit" id="modalSubmitBtn" class="btn-auth">Submit</button>
             </form>
         </div>
-        <!-- Teller Management -->
-<div class="card" style="margin-bottom: 1.5rem;">
-    <h3>👤 Teller Management</h3>
-    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">
-        Assign or revoke the teller role. Tellers can deposit and withdraw on behalf of customers.
-    </p>
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
-        <form action="/admin/assign-teller" method="POST">
-            <div class="form-group">
-                <label>Assign Teller Role</label>
-                <input type="text" name="username" required placeholder="Enter username">
-            </div>
-            <button type="submit" style="
-                background: var(--primary); color: white; padding: 10px 20px;
-                border-radius: 8px; border: none; font-weight: 600;
-                cursor: pointer; width: 100%;">Assign Teller</button>
-        </form>
-        <form action="/admin/revoke-teller" method="POST">
-            <div class="form-group">
-                <label>Revoke Teller Role</label>
-                <input type="text" name="username" required placeholder="Enter username">
-            </div>
-            <button type="submit" style="
-                background: var(--danger); color: white; padding: 10px 20px;
-                border-radius: 8px; border: none; font-weight: 600;
-                cursor: pointer; width: 100%;">Revoke Teller</button>
-        </form>
-    </div>
-
-    <!-- Current Tellers -->
-    <div style="margin-top: 1.5rem;">
-        <h4 style="margin-bottom: 0.5rem;">Current Tellers</h4>
-        <table>
-            <thead>
-                <tr>
-                    <th>Username</th>
-                    <th>Email</th>
-                    <th>Phone</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {{range .Users}}
-                {{if eq .Role "teller"}}
-                <tr>
-                    <td>{{.Username}}</td>
-                    <td>{{.Email}}</td>
-                    <td>{{.PhoneNumber}}</td>
-                    <td>
-                        <form action="/admin/revoke-teller" method="POST" style="display: inline;">
-                            <input type="hidden" name="username" value="{{.Username}}">
-                            <button type="submit" style="
-                                background: var(--danger); color: white; padding: 6px 12px;
-                                border-radius: 6px; border: none; cursor: pointer;
-                                font-size: 0.85rem; font-weight: 600;">Revoke</button>
-                        </form>
-                    </td>
-                </tr>
-                {{end}}
-                {{else}}
-                <tr>
-                    <td colspan="4" style="text-align: center; color: #666; padding: 15px;">No tellers assigned yet.</td>
-                </tr>
-                {{end}}
-            </tbody>
-        </table>
-    </div>
-</div>
     </div>
 
     <script src="/static/app.js"></script>
