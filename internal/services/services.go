@@ -1488,3 +1488,67 @@ func RevokeTellerRole(adminUsername, targetUsername string) error {
 	log.Printf("✅ Admin %s revoked teller role from %s", adminUsername, targetUsername)
 	return nil
 }
+
+// CreatePendingMpesaTransaction — saves a pending M-Pesa transaction while waiting for callback
+func CreatePendingMpesaTransaction(username, accountNumber, phoneNumber string, amount int64, checkoutRequestID, merchantRequestID string) error {
+	var account models.Account
+	if err := db.DB.Where("number = ?", accountNumber).First(&account).Error; err != nil {
+		return errors.New("account not found")
+	}
+
+	transaction := models.Transaction{
+		Username:          username,
+		AccountNumber:     accountNumber,
+		ReferenceNumber:   GenerateReferenceNumber(),
+		Type:              "mpesa_deposit",
+		Amount:            amount,
+		Balance:           account.Balance,
+		Status:            "pending",
+		MpesaPhoneNumber:  phoneNumber,
+		CheckoutRequestID: checkoutRequestID,
+		MerchantRequestID: merchantRequestID,
+	}
+
+	return db.DB.Create(&transaction).Error
+}
+
+// ProcessMpesaDeposit — credits account after successful M-Pesa callback
+func ProcessMpesaDeposit(checkoutRequestID, receiptCode, amountStr string) error {
+	var transaction models.Transaction
+	if err := db.DB.Where("checkout_request_id = ?", checkoutRequestID).First(&transaction).Error; err != nil {
+		return fmt.Errorf("pending transaction not found for CheckoutRequestID: %s", checkoutRequestID)
+	}
+
+	return db.DB.Transaction(func(tx *gorm.DB) error {
+		var account models.Account
+		if err := tx.Where("number = ?", transaction.AccountNumber).First(&account).Error; err != nil {
+			return errors.New("account not found")
+		}
+
+		account.Balance += transaction.Amount
+		if err := tx.Save(&account).Error; err != nil {
+			return err
+		}
+
+		transaction.Status = "completed"
+		transaction.MpesaReceiptCode = receiptCode
+		transaction.Balance = account.Balance
+		if err := tx.Save(&transaction).Error; err != nil {
+			return err
+		}
+
+		log.Printf("✅ M-Pesa deposit processed — Account: %s | Amount: KES %d | Receipt: %s",
+			account.Number, transaction.Amount, receiptCode)
+		return nil
+	})
+}
+
+// FailMpesaTransaction — marks a pending M-Pesa transaction as failed
+func FailMpesaTransaction(checkoutRequestID, reason string) {
+	db.DB.Model(&models.Transaction{}).
+		Where("checkout_request_id = ?", checkoutRequestID).
+		Updates(map[string]interface{}{
+			"status": "failed",
+		})
+	log.Printf("❌ M-Pesa transaction failed — CheckoutRequestID: %s | Reason: %s", checkoutRequestID, reason)
+}
