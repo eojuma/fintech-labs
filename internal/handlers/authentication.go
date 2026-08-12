@@ -22,13 +22,22 @@ func isProduction() bool {
 }
 
 func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if utils.GetSessionUser(w, r) == "" {
-			http.Redirect(w, r, "/login?error=Please+login+first", http.StatusSeeOther)
-			return
-		}
-		next(w, r)
-	}
+    return func(w http.ResponseWriter, r *http.Request) {
+        username := utils.GetSessionUser(w, r)
+        if username == "" {
+            http.Redirect(w, r, "/login?error=Please+login+first", http.StatusSeeOther)
+            return
+        }
+
+        // Tellers should not access customer dashboard
+        user, err := services.GetUserByUsername(username)
+        if err == nil && user != nil && user.Role == "teller" {
+            http.Redirect(w, r, "/teller", http.StatusSeeOther)
+            return
+        }
+
+        next(w, r)
+    }
 }
 
 func Login(gormDB *gorm.DB) http.HandlerFunc {
