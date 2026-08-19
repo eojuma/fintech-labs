@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"net/smtp"
 	"os"
+	"strings"
 
 	// 1. Import your models package (adjust path to match your go.mod module name)
 	"fintech-labs/internal/models"
@@ -19,8 +20,11 @@ func SendTransactionEmail(toEmail string, data models.TransactionEmailData) erro
 	smtpPass := os.Getenv("SMTP_PASS")
 	fromEmail := os.Getenv("SMTP_FROM")
 
-	if smtpHost == "" || smtpPort == "" {
+	if smtpHost == "" || smtpPort == "" || smtpUser == "" || smtpPass == "" || fromEmail == "" {
 		return fmt.Errorf("SMTP configuration is incomplete")
+	}
+	if os.Getenv("RENDER") == "true" && strings.Contains(strings.ToLower(fromEmail), "@gmail.") {
+		return fmt.Errorf("production SMTP_FROM must use the institution's verified domain")
 	}
 
 	tmpl, err := template.ParseFiles("web/templates/email.html")
