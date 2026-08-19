@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 
@@ -24,12 +25,31 @@ const (
 
 	MinTransfer = 10
 	MaxTransfer = 100000
+
+	DailyDepositLimit    = 500000
+	DailyWithdrawalLimit = 100000
+	DailyTransferLimit   = 250000
 )
 
 var dummyHash []byte
 
 func init() {
 	dummyHash, _ = bcrypt.GenerateFromPassword([]byte("dummy"), bcrypt.DefaultCost)
+}
+
+func enforceDailyLimit(tx *gorm.DB, accountNumber, transactionType string, amount, limit int64) error {
+	now := time.Now()
+	start := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	var total int64
+	if err := tx.Model(&models.Transaction{}).
+		Where("account_number = ? AND type = ? AND created_at >= ? AND status != ?", accountNumber, transactionType, start, "failed").
+		Select("COALESCE(SUM(amount), 0)").Scan(&total).Error; err != nil {
+		return err
+	}
+	if total+amount > limit {
+		return fmt.Errorf("daily %s limit of KES %d would be exceeded", strings.ReplaceAll(transactionType, "_", " "), limit)
+	}
+	return nil
 }
 
 func CreateUser(fullname, username, email, phone, Id, password, role string) (*models.User, error) {
@@ -176,6 +196,26 @@ func AuthenticateUser(identifier, password string) (*models.User, error) {
 	return &user, nil
 }
 
+func VerifyDevice(userID uint, fingerprint, userAgent string) error {
+	if fingerprint == "" {
+		return errors.New("device fingerprint is required")
+	}
+	var device models.Device
+	result := db.DB.Where("user_id = ? AND fingerprint = ?", userID, fingerprint).First(&device)
+	if result.Error == nil {
+		if !device.Approved {
+			return errors.New("this device is pending administrator approval")
+		}
+		db.DB.Model(&device).Updates(map[string]interface{}{"last_seen_at": time.Now(), "user_agent": userAgent})
+		return nil
+	}
+	device = models.Device{UserID: userID, Fingerprint: fingerprint, UserAgent: userAgent, LastSeenAt: time.Now(), Approved: false}
+	if err := db.DB.Create(&device).Error; err != nil {
+		return err
+	}
+	return errors.New("new device recorded and is pending administrator approval")
+}
+
 func Deposit(accountNumber string, amount int64) (string, error) {
 	accountNumber = strings.TrimSpace(accountNumber)
 
@@ -197,6 +237,9 @@ func Deposit(accountNumber string, amount int64) (string, error) {
 
 		if !account.Active {
 			return errors.New("account is inactive")
+		}
+		if err := enforceDailyLimit(tx, account.Number, "deposit", amount, DailyDepositLimit); err != nil {
+			return err
 		}
 
 		var user models.User
@@ -223,11 +266,9 @@ func Deposit(accountNumber string, amount int64) (string, error) {
 			return err
 		}
 		refNum = transaction.ReferenceNumber
+		transactionID = transaction.ID
 		log.Printf("💰 Deposit: %s deposited KES %d to account %s (Balance: KES %d → KES %d)",
 			user.Username, amount, account.Number, oldBalance, account.Balance)
-
-		refNum = transaction.ReferenceNumber
-		go CheckSuspiciousActivity(transaction.ID, account.Number, amount, "deposit")
 
 		// Send email notification in background
 		go func() {
@@ -247,6 +288,9 @@ func Deposit(accountNumber string, amount int64) (string, error) {
 		}()
 		// Send SMS notification in background
 		go func() {
+			if user.SMSOptOut {
+				return
+			}
 			phone := utils.FormatPhoneForSMS(user.PhoneNumber)
 			message := notifications.FormatSMSMessage("deposited", account.Number, transaction.ReferenceNumber, amount, account.Balance)
 			if err := notifications.SendTransactionSMS(phone, message); err != nil {
@@ -259,7 +303,6 @@ func Deposit(accountNumber string, amount int64) (string, error) {
 		return "", err
 	}
 	go CheckSuspiciousActivity(transactionID, accountNumber, amount, "deposit")
-
 	return refNum, err
 }
 
@@ -280,6 +323,9 @@ func AdminDeposit(adminUsername, accountNumber string, amount int64) error {
 
 		if !account.Active {
 			return errors.New("account is inactive")
+		}
+		if err := enforceDailyLimit(tx, account.Number, "deposit", amount, DailyDepositLimit); err != nil {
+			return err
 		}
 
 		var user models.User
@@ -327,6 +373,9 @@ func AdminDeposit(adminUsername, accountNumber string, amount int64) error {
 
 		// SMS notification
 		go func() {
+			if user.SMSOptOut {
+				return
+			}
 			phone := utils.FormatPhoneForSMS(user.PhoneNumber)
 			message := notifications.FormatSMSMessage("deposited", account.Number, transaction.ReferenceNumber, amount, account.Balance)
 			if err := notifications.SendTransactionSMS(phone, message); err != nil {
@@ -367,6 +416,9 @@ func Withdraw(accountNumber string, amount int64) (string, error) {
 		if !account.Active {
 			return errors.New("account is inactive")
 		}
+		if err := enforceDailyLimit(tx, account.Number, "withdrawal", amount, DailyWithdrawalLimit); err != nil {
+			return err
+		}
 
 		var user models.User
 		if err := tx.First(&user, account.UserID).Error; err != nil {
@@ -396,11 +448,9 @@ func Withdraw(accountNumber string, amount int64) (string, error) {
 			return err
 		}
 		refNum = transaction.ReferenceNumber
+		transactionID = transaction.ID
 		log.Printf("💸 Withdrawal: %s withdrew KES %d from account %s (Balance: KES %d → KES %d)",
 			user.Username, amount, account.Number, oldBalance, account.Balance)
-
-		refNum = transaction.ReferenceNumber
-		go CheckSuspiciousActivity(transaction.ID, account.Number, amount, "withdrawal")
 
 		go func() {
 			emailData := models.TransactionEmailData{
@@ -418,6 +468,9 @@ func Withdraw(accountNumber string, amount int64) (string, error) {
 			}
 		}()
 		go func() {
+			if user.SMSOptOut {
+				return
+			}
 			phone := utils.FormatPhoneForSMS(user.PhoneNumber)
 			message := notifications.FormatSMSMessage("withdrawn", account.Number, transaction.ReferenceNumber, amount, account.Balance)
 			if err := notifications.SendTransactionSMS(phone, message); err != nil {
@@ -430,7 +483,6 @@ func Withdraw(accountNumber string, amount int64) (string, error) {
 		return "", err
 	}
 	go CheckSuspiciousActivity(transactionID, accountNumber, amount, "withdrawal")
-
 	return refNum, err
 }
 
@@ -451,6 +503,9 @@ func AdminWithdraw(adminUsername, accountNumber string, amount int64) error {
 
 		if !account.Active {
 			return errors.New("account is inactive")
+		}
+		if err := enforceDailyLimit(tx, account.Number, "withdrawal", amount, DailyWithdrawalLimit); err != nil {
+			return err
 		}
 
 		var user models.User
@@ -502,6 +557,9 @@ func AdminWithdraw(adminUsername, accountNumber string, amount int64) error {
 
 		// SMS notification
 		go func() {
+			if user.SMSOptOut {
+				return
+			}
 			phone := utils.FormatPhoneForSMS(user.PhoneNumber)
 			message := notifications.FormatSMSMessage("withdrawn", account.Number, transaction.ReferenceNumber, amount, account.Balance)
 			if err := notifications.SendTransactionSMS(phone, message); err != nil {
@@ -563,6 +621,7 @@ func SendMoney(fromAccountNumber, toIdentifier string, amount int64) (string, er
 	fromAccountNumber = strings.TrimSpace(fromAccountNumber)
 	toIdentifier = strings.TrimSpace(toIdentifier)
 	var refNum string
+	var transactionID uint
 	if amount < MinTransfer || amount > MaxTransfer {
 		return "", fmt.Errorf("transfer must be between KES %d and KES %d", MinTransfer, MaxTransfer)
 	}
@@ -575,6 +634,9 @@ func SendMoney(fromAccountNumber, toIdentifier string, amount int64) (string, er
 
 		if !fromAccount.Active {
 			return errors.New("transaction denied: account inactive")
+		}
+		if err := enforceDailyLimit(tx, fromAccount.Number, "transfer_out", amount, DailyTransferLimit); err != nil {
+			return err
 		}
 
 		var fromUser models.User
@@ -614,23 +676,29 @@ func SendMoney(fromAccountNumber, toIdentifier string, amount int64) (string, er
 		}
 		outRef := GenerateReferenceNumber()
 		inRef := GenerateReferenceNumber()
-		tx.Create(&models.Transaction{
+		outTransaction := models.Transaction{
 			Username:        fromUser.Username,
 			AccountNumber:   fromAccount.Number,
 			ReferenceNumber: outRef,
 			Type:            "transfer_out",
 			Amount:          amount,
 			Balance:         fromAccount.Balance,
-		})
-		tx.Create(&models.Transaction{
+		}
+		if err := tx.Create(&outTransaction).Error; err != nil {
+			return err
+		}
+		if err := tx.Create(&models.Transaction{
 			Username:        toUser.Username,
 			AccountNumber:   toAccount.Number,
 			ReferenceNumber: inRef,
 			Type:            "transfer_in",
 			Amount:          amount,
 			Balance:         toAccount.Balance,
-		})
+		}).Error; err != nil {
+			return err
+		}
 		refNum = outRef
+		transactionID = outTransaction.ID
 		log.Printf("💸 Transfer: %s sent KES %d to %s | Sender: %d -> %d | Recipient: %d -> %d",
 			fromUser.Username, amount, toUser.Username, fromOldBalance, fromAccount.Balance, toOldBalance, toAccount.Balance)
 
@@ -672,6 +740,9 @@ func SendMoney(fromAccountNumber, toIdentifier string, amount int64) (string, er
 		fromUserCopy2 := fromUser
 		fromAccountCopy2 := fromAccount
 		go func() {
+			if fromUserCopy2.SMSOptOut {
+				return
+			}
 			phone := utils.FormatPhoneForSMS(fromUserCopy2.PhoneNumber)
 			message := notifications.FormatSMSMessage("transferred out", fromAccountCopy2.Number, outRef, amount, fromAccountCopy2.Balance)
 			if err := notifications.SendTransactionSMS(phone, message); err != nil {
@@ -683,6 +754,9 @@ func SendMoney(fromAccountNumber, toIdentifier string, amount int64) (string, er
 		toUserCopy2 := toUser
 		toAccountCopy2 := toAccount
 		go func() {
+			if toUserCopy2.SMSOptOut {
+				return
+			}
 			phone := utils.FormatPhoneForSMS(toUserCopy2.PhoneNumber)
 			message := notifications.FormatSMSMessage("received", toAccountCopy2.Number, inRef, amount, toAccountCopy2.Balance)
 			if err := notifications.SendTransactionSMS(phone, message); err != nil {
@@ -694,9 +768,66 @@ func SendMoney(fromAccountNumber, toIdentifier string, amount int64) (string, er
 	if err != nil {
 		return "", err
 	}
-	go CheckSuspiciousActivity(0, fromAccountNumber, amount, "transfer_out")
-
+	go CheckSuspiciousActivity(transactionID, fromAccountNumber, amount, "transfer_out")
 	return refNum, err
+}
+
+func CreateRecurringTransfer(username, senderAccount, recipient string, amount int64, frequency string, nextRunAt time.Time) (*models.RecurringTransfer, error) {
+	username = strings.ToLower(strings.TrimSpace(username))
+	frequency = strings.ToLower(strings.TrimSpace(frequency))
+	if amount < MinTransfer || amount > MaxTransfer {
+		return nil, fmt.Errorf("amount must be between KES %d and KES %d", MinTransfer, MaxTransfer)
+	}
+	if frequency != "daily" && frequency != "weekly" && frequency != "monthly" {
+		return nil, errors.New("frequency must be daily, weekly, or monthly")
+	}
+	if nextRunAt.Before(time.Now()) {
+		return nil, errors.New("next run must be in the future")
+	}
+	account, err := GetAccountByNumber(senderAccount)
+	if err != nil || account.User.Username != username {
+		return nil, errors.New("sender account not found")
+	}
+	recurring := &models.RecurringTransfer{Username: username, SenderAccount: senderAccount, Recipient: strings.TrimSpace(recipient), Amount: amount, Frequency: frequency, NextRunAt: nextRunAt, Active: true}
+	if recurring.Recipient == "" {
+		return nil, errors.New("recipient is required")
+	}
+	if err := db.DB.Create(recurring).Error; err != nil {
+		return nil, err
+	}
+	return recurring, nil
+}
+
+func ProcessDueRecurringTransfers(now time.Time) (int, error) {
+	var jobs []models.RecurringTransfer
+	if err := db.DB.Where("active = ? AND next_run_at <= ?", true, now).Find(&jobs).Error; err != nil {
+		return 0, err
+	}
+	processed := 0
+	for _, job := range jobs {
+		_, err := SendMoney(job.SenderAccount, job.Recipient, job.Amount)
+		updates := map[string]interface{}{}
+		if err != nil {
+			updates["last_error"] = err.Error()
+		} else {
+			processed++
+			updates["last_error"] = ""
+		}
+		next := job.NextRunAt
+		switch job.Frequency {
+		case "daily":
+			next = next.AddDate(0, 0, 1)
+		case "weekly":
+			next = next.AddDate(0, 0, 7)
+		case "monthly":
+			next = next.AddDate(0, 1, 0)
+		}
+		updates["next_run_at"] = next
+		if err := db.DB.Model(&job).Updates(updates).Error; err != nil {
+			return processed, err
+		}
+	}
+	return processed, nil
 }
 
 func GetTransactions(Identifier string) ([]models.Transaction, error) {
@@ -881,25 +1012,29 @@ func MultiTransfer(senderIdentifier string, recipients []models.TransferRecipien
 			// Record Log for Recipient
 			var recUser models.User
 			tx.Where("id = ?", recAcc.UserID).First(&recUser)
-			tx.Create(&models.Transaction{
+			if err := tx.Create(&models.Transaction{
 				Username:        recUser.Username,
 				AccountNumber:   recAcc.Number,
 				ReferenceNumber: GenerateReferenceNumber(),
 				Type:            "transfer_in",
 				Amount:          r.Amount,
 				Balance:         recAcc.Balance,
-			})
+			}).Error; err != nil {
+				return err
+			}
 		}
 
 		// 4. Record one final log for Sender's total exit
-		tx.Create(&models.Transaction{
+		if err := tx.Create(&models.Transaction{
 			Username:        sender.Username,
 			AccountNumber:   senderAcc.Number,
 			ReferenceNumber: GenerateReferenceNumber(),
 			Type:            "batch_transfer_out",
 			Amount:          totalAmount,
 			Balance:         senderAcc.Balance,
-		})
+		}).Error; err != nil {
+			return err
+		}
 
 		return nil
 	})
@@ -913,10 +1048,10 @@ func GetAllUsers() ([]models.User, error) {
 	return users, err
 }
 
-// HasAdmin checks if there is any user with role 'admin' in the system
+// HasAdmin checks if there is any administrator in the system.
 func HasAdmin() (bool, error) {
 	var count int64
-	err := db.DB.Model(&models.User{}).Where("role = ?", "admin").Count(&count).Error
+	err := db.DB.Model(&models.User{}).Where("role IN ?", []string{"admin", "super_admin"}).Count(&count).Error
 	if err != nil {
 		return false, err
 	}
@@ -968,7 +1103,7 @@ func VerifyTransactionPin(username, pin string) error {
 }
 
 // UpdateUserProfile — updates a user's email and phone number
-func UpdateUserProfile(username, email, phone, currentPassword string) error {
+func UpdateUserProfile(username, email, phone, currentPassword string, smsOptOut bool) error {
 	username = strings.ToLower(strings.TrimSpace(username))
 
 	var user models.User
@@ -1006,6 +1141,7 @@ func UpdateUserProfile(username, email, phone, currentPassword string) error {
 	if cleanPhone != "" {
 		updates["phone_number"] = cleanPhone
 	}
+	updates["sms_opt_out"] = smsOptOut
 
 	if len(updates) == 0 {
 		return errors.New("no changes provided")
@@ -1065,6 +1201,37 @@ func ChangePassword(username, currentPassword, newPassword string) error {
 	}
 
 	return db.DB.Model(&user).Update("password", string(hashedPassword)).Error
+}
+
+// CloseUserAccount permanently disables a member's access while retaining
+// financial records through GORM soft deletes.
+func CloseUserAccount(username, currentPassword string) error {
+	username = strings.ToLower(strings.TrimSpace(username))
+	return db.DB.Transaction(func(tx *gorm.DB) error {
+		var user models.User
+		if err := tx.Where("username = ?", username).First(&user).Error; err != nil {
+			return errors.New("user not found")
+		}
+		if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(currentPassword)); err != nil {
+			return errors.New("current password is incorrect")
+		}
+		var accounts []models.Account
+		if err := tx.Where("user_id = ?", user.ID).Find(&accounts).Error; err != nil {
+			return err
+		}
+		for _, account := range accounts {
+			if account.Balance != 0 {
+				return errors.New("all account balances must be zero before closure")
+			}
+		}
+		if err := tx.Model(&models.Account{}).Where("user_id = ?", user.ID).Update("active", false).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("user_id = ?", user.ID).Delete(&models.Session{}).Error; err != nil {
+			return err
+		}
+		return tx.Delete(&user).Error
+	})
 }
 
 // GetUserAccounts — fetches all accounts belonging to a user
@@ -1514,12 +1681,37 @@ func CreatePendingMpesaTransaction(username, accountNumber, phoneNumber string, 
 
 // ProcessMpesaDeposit — credits account after successful M-Pesa callback
 func ProcessMpesaDeposit(checkoutRequestID, receiptCode, amountStr string) error {
+	callbackAmount, err := strconv.ParseInt(strings.TrimSpace(amountStr), 10, 64)
+	if err != nil || callbackAmount <= 0 {
+		return errors.New("invalid M-Pesa callback amount")
+	}
 	var transaction models.Transaction
 	if err := db.DB.Where("checkout_request_id = ?", checkoutRequestID).First(&transaction).Error; err != nil {
 		return fmt.Errorf("pending transaction not found for CheckoutRequestID: %s", checkoutRequestID)
 	}
+	if transaction.Amount != callbackAmount {
+		return fmt.Errorf("M-Pesa amount mismatch: expected KES %d, received KES %d", transaction.Amount, callbackAmount)
+	}
+	if transaction.Status == "completed" {
+		if transaction.MpesaReceiptCode == receiptCode {
+			return nil
+		}
+		return errors.New("M-Pesa transaction has already been completed")
+	}
+	if transaction.Status != "pending" {
+		return fmt.Errorf("M-Pesa transaction is not pending (status: %s)", transaction.Status)
+	}
 
 	return db.DB.Transaction(func(tx *gorm.DB) error {
+		updated := tx.Model(&models.Transaction{}).Where("id = ? AND status = ?", transaction.ID, "pending").Updates(map[string]interface{}{
+			"status": "completed", "mpesa_receipt_code": receiptCode,
+		})
+		if updated.Error != nil {
+			return updated.Error
+		}
+		if updated.RowsAffected != 1 {
+			return errors.New("M-Pesa transaction was already processed")
+		}
 		var account models.Account
 		if err := tx.Where("number = ?", transaction.AccountNumber).First(&account).Error; err != nil {
 			return errors.New("account not found")
@@ -1530,8 +1722,6 @@ func ProcessMpesaDeposit(checkoutRequestID, receiptCode, amountStr string) error
 			return err
 		}
 
-		transaction.Status = "completed"
-		transaction.MpesaReceiptCode = receiptCode
 		transaction.Balance = account.Balance
 		if err := tx.Save(&transaction).Error; err != nil {
 			return err

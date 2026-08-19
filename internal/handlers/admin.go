@@ -28,7 +28,7 @@ func AdminAuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		if user != nil {
 			roleStr = user.Role
 		}
-		if err != nil || roleStr != "admin" {
+		if err != nil || (roleStr != "admin" && roleStr != "super_admin") {
 			log.Printf("Access denied for %s (Role: %s) - Admin only", username, roleStr)
 			// Redirect non-admins back to dashboard with an error message instead of returning 403
 			http.Redirect(w, r, "/dashboard?error=Admin+privileges+required", http.StatusSeeOther)
@@ -40,6 +40,18 @@ func AdminAuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
+// SuperAdminAuthMiddleware protects role and administrator management actions.
+func SuperAdminAuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		username := utils.GetSessionUser(w, r)
+		user, err := services.GetUserByUsername(username)
+		if err != nil || user == nil || user.Role != "super_admin" {
+			http.Redirect(w, r, "/admin?error=Super+admin+privileges+required", http.StatusSeeOther)
+			return
+		}
+		next(w, r)
+	}
+}
 
 func TellerAuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -56,7 +68,7 @@ func TellerAuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		}
 
 		// Tellers and admins can access teller routes
-		if user.Role != "teller" && user.Role != "admin" {
+		if user.Role != "teller" && user.Role != "admin" && user.Role != "super_admin" {
 			http.Redirect(w, r, "/dashboard?error=Teller+privileges+required", http.StatusSeeOther)
 			return
 		}
@@ -93,7 +105,7 @@ func AdminDashboardHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user, err := services.GetUserByUsername(username)
-	if err != nil || user == nil || user.Role != "admin" {
+	if err != nil || user == nil || (user.Role != "admin" && user.Role != "super_admin") {
 		http.Redirect(w, r, "/dashboard?error=Admin+privileges+required", http.StatusSeeOther)
 		return
 	}
@@ -347,7 +359,6 @@ func FlaggedTransactionsHandler(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Template execution error: %v", err)
 	}
 }
-
 
 func AssignTellerHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
