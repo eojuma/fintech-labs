@@ -5,12 +5,26 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
 	"fintech-labs/internal/db"
 	"fintech-labs/internal/models"
 )
+
+// ParseKESMinorUnits parses a decimal KES amount into cents (minor units).
+func ParseKESMinorUnits(value string) (int64, error) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return 0, fmt.Errorf("amount is required")
+	}
+	amount, err := strconv.ParseFloat(value, 64)
+	if err != nil || amount <= 0 {
+		return 0, fmt.Errorf("invalid amount")
+	}
+	return int64(amount*100 + 0.5), nil
+}
 
 func ValidUsername(username string) bool {
 	username = strings.ToLower(strings.TrimSpace(username))
@@ -122,19 +136,18 @@ func GetSessionUser(w http.ResponseWriter, r *http.Request) string {
 	return session.User.Username
 }
 
-
-func FormatPhoneForSMS(phone string)string{
+func FormatPhoneForSMS(phone string) string {
 	phone = strings.TrimSpace(phone)
 
-	if strings.HasPrefix(phone,"+"){
+	if strings.HasPrefix(phone, "+") {
 		return phone
 	}
 
-	if strings.HasPrefix(phone,"0"){
-		return "+254"+phone[1:]
+	if strings.HasPrefix(phone, "0") {
+		return "+254" + phone[1:]
 	}
-	if strings.HasPrefix(phone,"254"){
-		return "+"+phone
+	if strings.HasPrefix(phone, "254") {
+		return "+" + phone
 	}
 	return phone
 }
