@@ -22,6 +22,7 @@ type User struct {
 	FailedLoginAttempts int            `gorm:"default:0" json:"failed_login_attempts"`
 	LockedUntil         *time.Time     `gorm:"default:null" json:"locked_until"`
 	TransactionPin      string         `gorm:"default:''" json:"-"`
+	SMSOptOut           bool           `gorm:"default:false" json:"sms_opt_out"`
 }
 
 type Account struct {
@@ -167,4 +168,31 @@ type DailyVolume struct {
 
 type Permission struct {
 	Name string
+}
+
+type RecurringTransfer struct {
+	ID            uint           `gorm:"primaryKey" json:"id"`
+	CreatedAt     time.Time      `json:"created_at"`
+	UpdatedAt     time.Time      `json:"updated_at"`
+	DeletedAt     gorm.DeletedAt `gorm:"index" json:"-"`
+	Username      string         `gorm:"index;not null" json:"username"`
+	SenderAccount string         `gorm:"index;not null" json:"sender_account"`
+	Recipient     string         `gorm:"not null" json:"recipient"`
+	Amount        int64          `gorm:"not null" json:"amount"`
+	Frequency     string         `gorm:"not null" json:"frequency"` // daily, weekly, monthly
+	NextRunAt     time.Time      `gorm:"index;not null" json:"next_run_at"`
+	Active        bool           `gorm:"default:true" json:"active"`
+	LastError     string         `json:"last_error,omitempty"`
+}
+
+type Device struct {
+	ID          uint           `gorm:"primaryKey" json:"id"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
+	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
+	UserID      uint           `gorm:"index;not null" json:"user_id"`
+	Fingerprint string         `gorm:"index;not null" json:"fingerprint"`
+	UserAgent   string         `json:"user_agent"`
+	Approved    bool           `gorm:"default:false" json:"approved"`
+	LastSeenAt  time.Time      `json:"last_seen_at"`
 }

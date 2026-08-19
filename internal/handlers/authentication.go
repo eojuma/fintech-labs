@@ -22,22 +22,22 @@ func isProduction() bool {
 }
 
 func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
-    return func(w http.ResponseWriter, r *http.Request) {
-        username := utils.GetSessionUser(w, r)
-        if username == "" {
-            http.Redirect(w, r, "/login?error=Please+login+first", http.StatusSeeOther)
-            return
-        }
+	return func(w http.ResponseWriter, r *http.Request) {
+		username := utils.GetSessionUser(w, r)
+		if username == "" {
+			http.Redirect(w, r, "/login?error=Please+login+first", http.StatusSeeOther)
+			return
+		}
 
-        // Tellers should not access customer dashboard
-        user, err := services.GetUserByUsername(username)
-        if err == nil && user != nil && user.Role == "teller" {
-            http.Redirect(w, r, "/teller", http.StatusSeeOther)
-            return
-        }
+		// Tellers should not access customer dashboard
+		user, err := services.GetUserByUsername(username)
+		if err == nil && user != nil && user.Role == "teller" {
+			http.Redirect(w, r, "/teller", http.StatusSeeOther)
+			return
+		}
 
-        next(w, r)
-    }
+		next(w, r)
+	}
 }
 
 func Login(gormDB *gorm.DB) http.HandlerFunc {
@@ -60,6 +60,13 @@ func Login(gormDB *gorm.DB) http.HandlerFunc {
 			http.Redirect(w, r, "/login?error="+errorMsg, http.StatusSeeOther)
 			return
 		}
+		fingerprint := r.Header.Get("X-Device-Fingerprint")
+		if fingerprint != "" {
+			if err := services.VerifyDevice(user.ID, fingerprint, r.UserAgent()); err != nil {
+				http.Redirect(w, r, "/login?error="+strings.ReplaceAll(err.Error(), " ", "+"), http.StatusSeeOther)
+				return
+			}
+		}
 
 		// 5. Success! Set the session and redirect based on role
 		log.Printf("✅ Login Success: %s logged in as %s", user.Username, user.Role)
@@ -70,6 +77,8 @@ func Login(gormDB *gorm.DB) http.HandlerFunc {
 		}
 		switch user.Role {
 		case "admin":
+			http.Redirect(w, r, "/admin", http.StatusSeeOther)
+		case "super_admin":
 			http.Redirect(w, r, "/admin", http.StatusSeeOther)
 		case "teller":
 			http.Redirect(w, r, "/teller", http.StatusSeeOther)
@@ -213,13 +222,17 @@ func AdminRegister(gormDB *gorm.DB) http.HandlerFunc {
 				return
 			}
 			u, err := services.GetUserByUsername(sessionUser)
-			if err != nil || u == nil || u.Role != "admin" {
+			if err != nil || u == nil || u.Role != "super_admin" {
 				http.Redirect(w, r, "/dashboard?error=Admin+privileges+required", http.StatusSeeOther)
 				return
 			}
 		}
 
-		user, err := services.CreateUser(fullname, username, email, phone, idNumber, password, "admin")
+		role := "admin"
+		if !hasAdmin {
+			role = "super_admin"
+		}
+		user, err := services.CreateUser(fullname, username, email, phone, idNumber, password, role)
 		if err != nil {
 			errorMsg := strings.ReplaceAll(err.Error(), " ", "+")
 			redirectURL := "/register-admin?error=" + errorMsg
