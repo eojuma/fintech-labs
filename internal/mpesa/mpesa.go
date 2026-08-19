@@ -40,6 +40,26 @@ type STKPushResponse struct {
 	CustomerMessage     string `json:"CustomerMessage"`
 }
 
+type B2CRequest struct {
+	InitiatorName      string `json:"InitiatorName"`
+	SecurityCredential string `json:"SecurityCredential"`
+	CommandID          string `json:"CommandID"`
+	Amount             int64  `json:"Amount"`
+	PartyA             string `json:"PartyA"`
+	PartyB             string `json:"PartyB"`
+	Remarks            string `json:"Remarks"`
+	QueueTimeOutURL    string `json:"QueueTimeOutURL"`
+	ResultURL          string `json:"ResultURL"`
+	Occasion           string `json:"Occasion"`
+}
+
+type B2CResponse struct {
+	ConversationID string `json:"ConversationID"`
+	OriginatorID   string `json:"OriginatorConversationID"`
+	ResponseCode   string `json:"ResponseCode"`
+	ResponseDesc   string `json:"ResponseDescription"`
+}
+
 type CallbackMetadataItem struct {
 	Name  string      `json:"Name"`
 	Value interface{} `json:"Value"`
@@ -193,6 +213,57 @@ func InitiateSTKPush(phoneNumber, accountNumber string, amount int64) (*STKPushR
 	}
 
 	return &stkResp, nil
+}
+
+// InitiateB2CWithdrawal submits a Safaricom B2C request. It does not mutate
+// local account balances; balances must be settled only after the result URL.
+func InitiateB2CWithdrawal(phoneNumber string, amount int64) (*B2CResponse, error) {
+	if amount <= 0 || phoneNumber == "" {
+		return nil, fmt.Errorf("B2C phone number and positive amount are required")
+	}
+	token, err := GetAccessToken()
+	if err != nil {
+		return nil, err
+	}
+	payload := B2CRequest{
+		InitiatorName:      os.Getenv("MPESA_B2C_INITIATOR_NAME"),
+		SecurityCredential: os.Getenv("MPESA_B2C_SECURITY_CREDENTIAL"),
+		CommandID:          "BusinessPayment", Amount: amount,
+		PartyA: os.Getenv("MPESA_SHORTCODE"), PartyB: phoneNumber,
+		Remarks:         "African Vault withdrawal",
+		QueueTimeOutURL: os.Getenv("MPESA_B2C_TIMEOUT_URL"),
+		ResultURL:       os.Getenv("MPESA_B2C_RESULT_URL"), Occasion: "member withdrawal",
+	}
+	if payload.InitiatorName == "" || payload.SecurityCredential == "" || payload.QueueTimeOutURL == "" || payload.ResultURL == "" {
+		return nil, fmt.Errorf("M-Pesa B2C configuration is incomplete")
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequest("POST", getBaseURL()+"/mpesa/b2c/v1/paymentrequest", bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := (&http.Client{Timeout: 30 * time.Second}).Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initiate B2C withdrawal: %w", err)
+	}
+	defer resp.Body.Close()
+	responseBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	var result B2CResponse
+	if err := json.Unmarshal(responseBody, &result); err != nil {
+		return nil, fmt.Errorf("failed to parse B2C response: %w", err)
+	}
+	if result.ResponseCode != "0" {
+		return nil, fmt.Errorf("B2C withdrawal failed: %s", result.ResponseDesc)
+	}
+	return &result, nil
 }
 
 // ParseCallback — extracts payment details from Safaricom callback
