@@ -69,25 +69,35 @@ A production-grade mobile banking backend built from scratch in Go. African Vaul
 | 26 | Balance visibility toggle |
 | 27 | Login with username or email |
 | 31 | Account number on every transaction record |
+| 32 | Responsive mobile layouts |
+| 33 | Teller role assignment and teller operations |
+| 34 | M-Pesa STK Push deposits |
+| 35 | M-Pesa payment callback processing |
+| 36 | SMS notification opt-out preference |
 
 ---
 
-## 🚧 Upcoming Features
+## 🚧 Remaining Product Work
 
-- Responsive mobile layout
-- Transaction limits management
-- SMS opt-in/opt-out preference
-- M-Pesa STK Push deposit
+The following items are not implemented yet and should be treated as product backlog work:
+
+- Transaction limits management (per member, account, and channel)
 - M-Pesa B2C withdrawal
-- M-Pesa webhook callback handler
 - Scheduled recurring transfers
 - Device verification and admin approval
-- Role-based access control (teller, admin, super admin)
+- Super-admin permissions and finer-grained RBAC policies
 - Biometric authentication (WebAuthn)
 - Currency precision migration to minor units
-- Production email setup with custom domain
-- Account closure flow
-- JWT for mobile API layer
+- Production email setup with a custom domain
+- Account closure flow with retention controls
+- JWT-based mobile API layer
+
+The following features were previously listed as upcoming but are already present in the codebase:
+
+- Responsive mobile layout
+- M-Pesa STK Push deposit
+- M-Pesa webhook callback handler
+- Teller role assignment and revocation
 
 ---
 
@@ -101,7 +111,7 @@ fintech-labs/
 ├── internal/
 │   ├── db/
 │   │   └── db.go
-│   ├── handlers/
+│   ├── handlers/       # HTTP handlers and auth/role middleware
 │   │   ├── accounts.go
 │   │   ├── admin.go
 │   │   ├── authentication.go
@@ -117,7 +127,7 @@ fintech-labs/
 │   │   └── sms.go
 │   ├── router/
 │   │   └── router.go
-│   ├── services/
+│   ├── services/       # business rules and transactional operations
 │   │   └── services.go
 │   └── utils/
 │       └── utils.go
