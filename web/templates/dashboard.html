@@ -7,9 +7,10 @@
     <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>Welcome, {{.FullName}}!</h1>
+    <div class="container dashboard-shell">
+        <div class="header dashboard-header">
+            <div class="brand-lockup"><span class="brand-mark">AV</span><div><strong>African Vault</strong><span class="brand-subtitle">Personal banking</span></div></div>
+            <div class="header-greeting"><span class="eyebrow">PERSONAL DASHBOARD</span><h1>Good to see you, {{.FullName}}</h1></div>
             <div class="header-actions">
                 {{if eq .Role "admin"}}
                 <a href="/admin" class="btn-secondary" style="text-decoration: none; padding: 10px 20px; border-radius: 8px; margin-right: 10px;">Admin Panel</a>
@@ -21,7 +22,9 @@
             </div>
         </div>
 
-        <!-- Balance Card -->
+        <div class="dashboard-tools"><span class="eyebrow">QUICK ACTIONS</span><div class="quick-actions"><a href="#money-actions" class="quick-action"><span>↗</span> Send money</a><a href="#money-actions" class="quick-action"><span>＋</span> Add funds</a><a href="#transactions" class="quick-action"><span>↓</span> Statement</a></div></div>
+
+        <div class="overview-grid">
         <div class="card balance-card">
             <h3>Current Balance</h3>
             <div class="balance-amount">
@@ -42,6 +45,8 @@
                 </button>
             </div>
             <p>Account Number: <span class="account-number-display">{{.AccountNumber}}</span></p>
+        </div>
+        <div class="card security-card"><span class="eyebrow">ACCOUNT STATUS</span><h3>You're in control</h3><p>Your account is protected with transaction PIN verification and secure sessions.</p><div class="status-line"><span class="status-dot"></span> Account active <span class="status-check">✓</span></div></div>
         </div>
 
         <!-- My Accounts -->
@@ -85,7 +90,7 @@
         {{end}}
 
         <!-- Transaction Cards -->
-        <div class="grid-3">
+        <div class="grid-3" id="money-actions">
             <div class="card">
                 <h3>💰 Deposit</h3>
                 <form action="/deposit" method="POST">
@@ -193,7 +198,7 @@ Pay with M-PESA
         </div>
 
         <!-- Download Statement -->
-        <div class="card">
+        <div class="card" id="transactions">
             <h3>📄 Download Statement</h3>
             <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">
                 Download your transaction history as a PDF or CSV file.
