@@ -45,6 +45,7 @@ func ProfileHandler(w http.ResponseWriter, r *http.Request) {
 		AccountNumber string
 		Role          string
 		Active        bool
+		SMSOptOut     bool
 		CreatedAt     string
 	}{
 		Username:      user.Username,
@@ -54,6 +55,7 @@ func ProfileHandler(w http.ResponseWriter, r *http.Request) {
 		AccountNumber: account.Number,
 		Role:          user.Role,
 		Active:        account.Active,
+		SMSOptOut:     user.SMSOptOut,
 		CreatedAt:     utils.FormatDate(user.CreatedAt),
 	}
 
@@ -77,13 +79,14 @@ func UpdateProfileHandler(w http.ResponseWriter, r *http.Request) {
 	email := r.FormValue("email")
 	phone := r.FormValue("phone")
 	currentPassword := r.FormValue("current_password")
+	smsOptOut := r.FormValue("sms_opt_out") == "on"
 
 	if currentPassword == "" {
 		http.Redirect(w, r, "/profile?error=Current+password+is+required", http.StatusSeeOther)
 		return
 	}
 
-	err := services.UpdateUserProfile(username, email, phone, currentPassword)
+	err := services.UpdateUserProfile(username, email, phone, currentPassword, smsOptOut)
 	if err != nil {
 		errorMsg := strings.ReplaceAll(err.Error(), " ", "+")
 		http.Redirect(w, r, "/profile?error="+errorMsg, http.StatusSeeOther)
@@ -165,4 +168,22 @@ func ChangePasswordHandler(w http.ResponseWriter, r *http.Request) {
 	})
 
 	http.Redirect(w, r, "/login?success=Password+changed!+Please+login+again", http.StatusSeeOther)
+}
+
+func CloseAccountHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	username := utils.GetSessionUser(w, r)
+	if username == "" {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+	if err := services.CloseUserAccount(username, r.FormValue("current_password")); err != nil {
+		http.Redirect(w, r, "/profile?error="+strings.ReplaceAll(err.Error(), " ", "+"), http.StatusSeeOther)
+		return
+	}
+	http.SetCookie(w, &http.Cookie{Name: "session_user", Value: "", Path: "/", MaxAge: -1, HttpOnly: true, Secure: isProduction(), SameSite: http.SameSiteStrictMode})
+	http.Redirect(w, r, "/login?success=Account+closed+successfully", http.StatusSeeOther)
 }
