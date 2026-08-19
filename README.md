@@ -74,30 +74,31 @@ A production-grade mobile banking backend built from scratch in Go. African Vaul
 | 34 | M-Pesa STK Push deposits |
 | 35 | M-Pesa payment callback processing |
 | 36 | SMS notification opt-out preference |
+| 37 | Daily deposit, withdrawal, and transfer limits |
+| 38 | Member account closure with balance and audit safeguards |
+| 39 | Super-admin role for privileged administration |
+| 40 | M-Pesa B2C withdrawal request client |
+| 41 | Scheduled recurring transfer instructions and processing |
+| 42 | Device registration and administrator approval gate |
+| 43 | JWT token service for mobile API authentication |
+| 44 | Production SMTP configuration validation |
+| 45 | WebAuthn credential boundary and explicit provider gate |
+| 46 | Minor-unit KES amount parsing utility |
 
 ---
 
 ## 🚧 Remaining Product Work
 
-The following items are not implemented yet and should be treated as product backlog work:
+The remaining items require dedicated production integrations or migration planning:
 
-- Transaction limits management (per member, account, and channel)
-- M-Pesa B2C withdrawal
-- Scheduled recurring transfers
-- Device verification and admin approval
-- Super-admin permissions and finer-grained RBAC policies
-- Biometric authentication (WebAuthn)
-- Currency precision migration to minor units
-- Production email setup with a custom domain
-- Account closure flow with retention controls
-- JWT-based mobile API layer
+- Complete WebAuthn ceremony integration with a supported authenticator service.
+- Migrate persisted monetary columns from whole KES to cents after a controlled data migration.
 
-The following features were previously listed as upcoming but are already present in the codebase:
+The following features are implemented but require production credentials and operational setup:
 
-- Responsive mobile layout
-- M-Pesa STK Push deposit
-- M-Pesa webhook callback handler
-- Teller role assignment and revocation
+- M-Pesa B2C payout callbacks and settlement reconciliation.
+- Verified custom-domain SMTP sender configuration.
+- JWT mobile API endpoints built on the token service.
 
 ---
 
@@ -127,6 +128,11 @@ fintech-labs/
 │   │   └── sms.go
 │   ├── router/
 │   │   └── router.go
+│   ├── auth/
+│   │   ├── jwt.go
+│   │   └── webauthn.go
+│   ├── mpesa/
+│   │   └── mpesa.go
 │   ├── services/       # business rules and transactional operations
 │   │   └── services.go
 │   └── utils/
@@ -159,7 +165,7 @@ fintech-labs/
 - **Frontend:** HTML, CSS, Vanilla JavaScript
 - **Auth:** Custom session management with bcrypt
 - **PDF Generation:** gofpdf
-- **Email:** Gmail SMTP via net/smtp
+- **Email:** SMTP via net/smtp with production sender validation
 - **SMS:** Africa's Talking SMS API
 - **Charts:** Chart.js
 - **Deployment:** Render (https://fintech-labs-uaph.onrender.com)
@@ -202,6 +208,11 @@ Visit `http://localhost:8080` to access the app.
 | `SMTP_FROM` | Sender email address |
 | `AT_USERNAME` | Africa's Talking username (use `sandbox` for testing) |
 | `AT_API_KEY` | Africa's Talking API key |
+| `MPESA_B2C_INITIATOR_NAME` | Safaricom B2C initiator name |
+| `MPESA_B2C_SECURITY_CREDENTIAL` | Encrypted B2C security credential |
+| `MPESA_B2C_TIMEOUT_URL` | Public B2C timeout callback URL |
+| `MPESA_B2C_RESULT_URL` | Public B2C result callback URL |
+| `JWT_SECRET` | At least 32 random characters for mobile API tokens |
 
 ---
 
@@ -225,6 +236,7 @@ Visit `http://localhost:8080` to access the app.
 | `/profile/update` | POST | Session | Update contact details |
 | `/profile/change-pin` | POST | Session | Change transaction PIN |
 | `/profile/change-password` | POST | Session | Change password |
+| `/profile/close` | POST | Session | Close account after zero-balance and password checks |
 | `/session/refresh` | POST | Session | Keepalive |
 | `/admin` | GET | Admin | Admin dashboard |
 | `/admin/deposit` | POST | Admin | Deposit to user account |
@@ -232,6 +244,10 @@ Visit `http://localhost:8080` to access the app.
 | `/admin/toggle` | POST | Admin | Block or unblock account |
 | `/admin/audit-log` | GET | Admin | View full audit log |
 | `/admin/flagged` | GET | Admin | View flagged transactions |
+| `/admin/assign-teller` | POST | Super admin | Assign teller role |
+| `/admin/revoke-teller` | POST | Super admin | Revoke teller role |
+| `/mpesa/deposit` | POST | Session | Initiate STK Push deposit |
+| `/mpesa/callback` | POST | Safaricom | Process STK Push callback |
 
 ---
 
@@ -252,6 +268,12 @@ Visit `http://localhost:8080` to access the app.
 - HTTPS enforced in production via redirect middleware
 - Users can only view their own receipts
 - Automated suspicious transaction flagging
+- Daily transaction limits for deposits, withdrawals, and transfers
+- SMS opt-out preference
+- Device approval gate for recognized browsers
+- Super-admin authorization for role management
+- Idempotent and amount-validated M-Pesa callbacks
+- Signed JWT token service with expiry and role claims
 
 ---
 
