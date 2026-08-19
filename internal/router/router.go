@@ -38,6 +38,7 @@ func Setup() {
 	http.HandleFunc("/profile/update", handlers.AuthMiddleware(handlers.UpdateProfileHandler))
 	http.HandleFunc("/profile/change-pin", handlers.AuthMiddleware(handlers.ChangePinHandler))
 	http.HandleFunc("/profile/change-password", handlers.AuthMiddleware(handlers.ChangePasswordHandler))
+	http.HandleFunc("/profile/close", handlers.AuthMiddleware(handlers.CloseAccountHandler))
 
 	// other accounts
 	http.HandleFunc("/accounts/open", handlers.AuthMiddleware(handlers.OpenSavingsAccountHandler))
@@ -58,8 +59,8 @@ func Setup() {
 	http.HandleFunc("/teller/withdraw", handlers.TellerAuthMiddleware(handlers.TellerWithdrawHandler))
 
 	// 7. ADMIN — TELLER MANAGEMENT
-	http.HandleFunc("/admin/assign-teller", handlers.AdminAuthMiddleware(handlers.AssignTellerHandler))
-	http.HandleFunc("/admin/revoke-teller", handlers.AdminAuthMiddleware(handlers.RevokeTellerHandler))
+	http.HandleFunc("/admin/assign-teller", handlers.SuperAdminAuthMiddleware(handlers.AssignTellerHandler))
+	http.HandleFunc("/admin/revoke-teller", handlers.SuperAdminAuthMiddleware(handlers.RevokeTellerHandler))
 
 	// 8. MPESA ROUTES
 	http.HandleFunc("/mpesa/deposit", handlers.AuthMiddleware(handlers.MpesaDepositHandler))
