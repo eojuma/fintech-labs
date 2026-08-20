@@ -30,6 +30,7 @@ func Setup() {
 	http.HandleFunc("/admin", handlers.AdminAuthMiddleware(handlers.AdminDashboardHandler))
 	http.HandleFunc("/admin/deposit", handlers.AdminAuthMiddleware(handlers.AdminDepositHandler))
 	http.HandleFunc("/admin/withdraw", handlers.AdminAuthMiddleware(handlers.AdminWithdrawHandler))
+	http.HandleFunc("/admin/share-contribution", handlers.AdminAuthMiddleware(handlers.AdminShareContributionHandler))
 	http.HandleFunc("/session/refresh", handlers.AuthMiddleware(handlers.RefreshSession))
 	http.HandleFunc("/admin/toggle", handlers.AdminAuthMiddleware(handlers.AdminToggleAccount))
 

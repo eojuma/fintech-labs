@@ -95,6 +95,7 @@ SACCO features are delivered as separate tickets and commits. Features are not d
 | 44 | Production SMTP configuration validation |
 | 45 | WebAuthn credential boundary and explicit provider gate |
 | 46 | Minor-unit KES amount parsing utility |
+| 47 | Member share-capital balance and contribution ledger |
 
 ---
 
@@ -292,6 +293,7 @@ Visit `http://localhost:8080` to access the app.
 | `/admin` | GET | Admin | Admin dashboard |
 | `/admin/deposit` | POST | Admin | Deposit to user account |
 | `/admin/withdraw` | POST | Admin | Withdraw from user account |
+| `/admin/share-contribution` | POST | Admin | Record a member share-capital contribution |
 | `/admin/toggle` | POST | Admin | Block or unblock account |
 | `/admin/audit-log` | GET | Admin | View full audit log |
 | `/admin/flagged` | GET | Admin | View flagged transactions |

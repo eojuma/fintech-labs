@@ -38,8 +38,12 @@ func DashboardHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		accounts = []models.Account{}
 	}
+	shareCapital, err := services.GetShareCapitalByUsername(username)
+	if err != nil {
+		shareCapital = &models.ShareCapital{}
+	}
 
-	// FIXED: Correct path to find the template 
+	// FIXED: Correct path to find the template
 	tmpl, err := template.New("dashboard.html").Funcs(template.FuncMap{
 		"formatKES":  utils.FormatKES,
 		"formatDate": utils.FormatDate,
@@ -59,6 +63,7 @@ func DashboardHandler(w http.ResponseWriter, r *http.Request) {
 		Balance       int64
 		Transactions  []models.Transaction
 		Accounts      []models.Account
+		ShareCapital  int64
 	}{
 		Username:      username,
 		FullName:      user.FullName,
@@ -67,6 +72,7 @@ func DashboardHandler(w http.ResponseWriter, r *http.Request) {
 		Balance:       account.Balance,
 		Transactions:  transactions,
 		Accounts:      accounts,
+		ShareCapital:  shareCapital.Balance,
 	}
 
 	if err := tmpl.Execute(w, data); err != nil {
