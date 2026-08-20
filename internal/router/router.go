@@ -39,6 +39,7 @@ func Setup() {
 	http.HandleFunc("/admin/distributions/policy", handlers.AdminAuthMiddleware(handlers.AdminDistributionPolicyHandler))
 	http.HandleFunc("/admin/distributions/preview", handlers.AdminAuthMiddleware(handlers.AdminDistributionPreviewHandler))
 	http.HandleFunc("/admin/distributions/post", handlers.AdminAuthMiddleware(handlers.AdminDistributionPostHandler))
+	http.HandleFunc("/admin/distributions/approve", handlers.SuperAdminAuthMiddleware(handlers.AdminDistributionApprovalHandler))
 	http.HandleFunc("/session/refresh", handlers.AuthMiddleware(handlers.RefreshSession))
 	http.HandleFunc("/admin/toggle", handlers.AdminAuthMiddleware(handlers.AdminToggleAccount))
 

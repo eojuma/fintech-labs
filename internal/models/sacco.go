@@ -96,28 +96,35 @@ type LoanEligibilityPolicy struct {
 }
 
 type DistributionPolicy struct {
-	ID                  uint      `gorm:"primaryKey" json:"id"`
-	CreatedAt           time.Time `json:"created_at"`
-	UpdatedAt           time.Time `json:"updated_at"`
-	SavingsInterestRate float64   `gorm:"not null;default:6" json:"savings_interest_rate"`
-	ShareDividendRate   float64   `gorm:"not null;default:10" json:"share_dividend_rate"`
-	Active              bool      `gorm:"not null;default:true" json:"active"`
-	UpdatedBy           string    `gorm:"not null" json:"updated_by"`
+	ID                      uint      `gorm:"primaryKey" json:"id"`
+	CreatedAt               time.Time `json:"created_at"`
+	UpdatedAt               time.Time `json:"updated_at"`
+	SavingsInterestRate     float64   `gorm:"not null;default:6" json:"savings_interest_rate"`
+	ShareDividendRate       float64   `gorm:"not null;default:10" json:"share_dividend_rate"`
+	SavingsWithholdingRate  float64   `gorm:"not null;default:15" json:"savings_withholding_rate"`
+	DividendWithholdingRate float64   `gorm:"not null;default:5" json:"dividend_withholding_rate"`
+	BalanceBasis            string    `gorm:"not null;default:'monthly_average'" json:"balance_basis"`
+	AutoPreviewEnabled      bool      `gorm:"not null;default:false" json:"auto_preview_enabled"`
+	Active                  bool      `gorm:"not null;default:true" json:"active"`
+	UpdatedBy               string    `gorm:"not null" json:"updated_by"`
 }
 
 type DistributionRun struct {
-	ID          uint                     `gorm:"primaryKey" json:"id"`
-	CreatedAt   time.Time                `json:"created_at"`
-	UpdatedAt   time.Time                `json:"updated_at"`
-	Type        string                   `gorm:"uniqueIndex:idx_distribution_period;not null" json:"type"`
-	Period      string                   `gorm:"uniqueIndex:idx_distribution_period;not null" json:"period"`
-	Rate        float64                  `gorm:"not null" json:"rate"`
-	Status      string                   `gorm:"index;not null;default:'preview'" json:"status"`
-	TotalAmount int64                    `gorm:"not null;default:0" json:"total_amount"`
-	CreatedBy   string                   `gorm:"not null" json:"created_by"`
-	PostedBy    string                   `json:"posted_by"`
-	PostedAt    *time.Time               `json:"posted_at"`
-	Allocations []DistributionAllocation `json:"allocations,omitempty"`
+	ID                uint                     `gorm:"primaryKey" json:"id"`
+	CreatedAt         time.Time                `json:"created_at"`
+	UpdatedAt         time.Time                `json:"updated_at"`
+	Type              string                   `gorm:"uniqueIndex:idx_distribution_period;not null" json:"type"`
+	Period            string                   `gorm:"uniqueIndex:idx_distribution_period;not null" json:"period"`
+	Rate              float64                  `gorm:"not null" json:"rate"`
+	Status            string                   `gorm:"index;not null;default:'preview'" json:"status"`
+	TotalAmount       int64                    `gorm:"not null;default:0" json:"total_amount"`
+	CreatedBy         string                   `gorm:"not null" json:"created_by"`
+	ApprovedBy        string                   `json:"approved_by"`
+	ApprovedAt        *time.Time               `json:"approved_at"`
+	ApprovalReference string                   `json:"approval_reference"`
+	PostedBy          string                   `json:"posted_by"`
+	PostedAt          *time.Time               `json:"posted_at"`
+	Allocations       []DistributionAllocation `json:"allocations,omitempty"`
 }
 
 type DistributionAllocation struct {
@@ -127,6 +134,8 @@ type DistributionAllocation struct {
 	DistributionRunID        uint      `gorm:"uniqueIndex:idx_distribution_member;not null" json:"distribution_run_id"`
 	UserID                   uint      `gorm:"uniqueIndex:idx_distribution_member;not null" json:"user_id"`
 	BasisAmount              int64     `gorm:"not null" json:"basis_amount"`
+	GrossAmount              int64     `gorm:"not null;default:0" json:"gross_amount"`
+	WithholdingAmount        int64     `gorm:"not null;default:0" json:"withholding_amount"`
 	Amount                   int64     `gorm:"not null" json:"amount"`
 	DestinationAccountNumber string    `json:"destination_account_number"`
 	ReferenceNumber          string    `gorm:"uniqueIndex;default:null" json:"reference_number"`

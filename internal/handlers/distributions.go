@@ -24,12 +24,29 @@ func AdminDistributionPolicyHandler(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/admin?error=Invalid+share+dividend+rate", http.StatusSeeOther)
 		return
 	}
-	err = services.SetDistributionPolicy(utils.GetSessionUser(w, r), savings, dividend)
+	savingsWithholding, _ := strconv.ParseFloat(r.FormValue("savings_withholding_rate"), 64)
+	dividendWithholding, _ := strconv.ParseFloat(r.FormValue("dividend_withholding_rate"), 64)
+	autoPreview := r.FormValue("auto_preview") == "on"
+	err = services.SetDistributionPolicy(utils.GetSessionUser(w, r), savings, dividend, savingsWithholding, dividendWithholding, autoPreview)
 	if err != nil {
 		http.Redirect(w, r, "/admin?error="+strings.ReplaceAll(err.Error(), " ", "+"), http.StatusSeeOther)
 		return
 	}
 	http.Redirect(w, r, "/admin?success=Distribution+policy+updated", http.StatusSeeOther)
+}
+
+func AdminDistributionApprovalHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	runID, _ := strconv.ParseUint(r.FormValue("run_id"), 10, 64)
+	err := services.ApproveDistribution(utils.GetSessionUser(w, r), uint(runID), r.FormValue("approval_reference"))
+	if err != nil {
+		http.Redirect(w, r, "/admin?error="+strings.ReplaceAll(err.Error(), " ", "+"), http.StatusSeeOther)
+		return
+	}
+	http.Redirect(w, r, "/admin?success=Distribution+approved", http.StatusSeeOther)
 }
 
 func AdminDistributionPreviewHandler(w http.ResponseWriter, r *http.Request) {

@@ -99,6 +99,7 @@ SACCO features are delivered as separate tickets and commits. Features are not d
 | 48 | Loan application, approval, disbursement, schedules, and repayment tracking |
 | 49 | Configurable savings and share-capital loan eligibility policy |
 | 50 | Configurable annual savings interest and share dividend distributions |
+| 51 | Monthly-average distributions, withholding, governance approval, and scheduled previews |
 
 ---
 
@@ -305,6 +306,7 @@ Visit `http://localhost:8080` to access the app.
 | `/admin/distributions/policy` | POST | Admin | Configure interest and dividend rates |
 | `/admin/distributions/preview` | POST | Admin | Preview a period distribution |
 | `/admin/distributions/post` | POST | Admin | Explicitly post a previewed distribution |
+| `/admin/distributions/approve` | POST | Super admin | Record board or AGM approval for a distribution |
 | `/admin/toggle` | POST | Admin | Block or unblock account |
 | `/admin/audit-log` | GET | Admin | View full audit log |
 | `/admin/flagged` | GET | Admin | View flagged transactions |
