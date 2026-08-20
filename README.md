@@ -98,6 +98,7 @@ SACCO features are delivered as separate tickets and commits. Features are not d
 | 47 | Member share-capital balance and contribution ledger |
 | 48 | Loan application, approval, disbursement, schedules, and repayment tracking |
 | 49 | Configurable savings and share-capital loan eligibility policy |
+| 50 | Configurable annual savings interest and share dividend distributions |
 
 ---
 
@@ -301,6 +302,9 @@ Visit `http://localhost:8080` to access the app.
 | `/admin/loans/disburse` | POST | Admin | Disburse an approved loan to the current account |
 | `/admin/loans/repayment` | POST | Admin | Record an explicit loan repayment |
 | `/admin/loans/eligibility-policy` | POST | Admin | Configure loan eligibility rules |
+| `/admin/distributions/policy` | POST | Admin | Configure interest and dividend rates |
+| `/admin/distributions/preview` | POST | Admin | Preview a period distribution |
+| `/admin/distributions/post` | POST | Admin | Explicitly post a previewed distribution |
 | `/admin/toggle` | POST | Admin | Block or unblock account |
 | `/admin/audit-log` | GET | Admin | View full audit log |
 | `/admin/flagged` | GET | Admin | View flagged transactions |

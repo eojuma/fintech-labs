@@ -42,6 +42,9 @@ func InitDB() {
 		&models.LoanInstallment{},
 		&models.LoanRepayment{},
 		&models.LoanEligibilityPolicy{},
+		&models.DistributionPolicy{},
+		&models.DistributionRun{},
+		&models.DistributionAllocation{},
 	)
 	if err != nil {
 		log.Fatal("Migration failed:", err)
