@@ -23,6 +23,13 @@ func ApplyForLoan(username, purpose string, principal int64, termMonths int) (*m
 	if err := db.DB.Where("username = ?", username).First(&member).Error; err != nil || member.Role != "customer" {
 		return nil, errors.New("member not found")
 	}
+	eligibility, err := EvaluateLoanEligibility(member.ID, principal)
+	if err != nil {
+		return nil, err
+	}
+	if !eligibility.Eligible {
+		return nil, errors.New(eligibility.Reason)
+	}
 	var open int64
 	db.DB.Model(&models.Loan{}).Where("user_id = ? AND status IN ?", member.ID, []string{"pending", "approved", "disbursed"}).Count(&open)
 	if open > 0 {
@@ -32,6 +39,74 @@ func ApplyForLoan(username, purpose string, principal int64, termMonths int) (*m
 	db.DB.Model(&models.Loan{}).Count(&count)
 	loan := &models.Loan{UserID: member.ID, ReferenceNumber: fmt.Sprintf("LN-%08d", count+1), Purpose: purpose, RequestedPrincipal: principal, TermMonths: termMonths, Status: "pending"}
 	return loan, db.DB.Create(loan).Error
+}
+
+type LoanEligibilityResult struct {
+	Eligible     bool
+	Limit        int64
+	Savings      int64
+	ShareCapital int64
+	Reason       string
+}
+
+func EvaluateLoanEligibility(userID uint, requestedPrincipal int64) (*LoanEligibilityResult, error) {
+	policy, err := GetLoanEligibilityPolicy()
+	if err != nil {
+		return nil, err
+	}
+	var savings int64
+	if err := db.DB.Model(&models.Account{}).Where("user_id = ? AND active = ? AND account_type = ?", userID, true, "savings").Select("COALESCE(SUM(balance), 0)").Scan(&savings).Error; err != nil {
+		return nil, err
+	}
+	var capital models.ShareCapital
+	err = db.DB.Where("user_id = ? AND active = ?", userID, true).First(&capital).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		capital.Balance = 0
+	} else if err != nil {
+		return nil, err
+	}
+	result := &LoanEligibilityResult{Savings: savings, ShareCapital: capital.Balance}
+	result.Limit = int64(float64(savings)*policy.SavingsMultiple + float64(capital.Balance)*policy.ShareCapitalMultiple)
+	if capital.Balance < policy.MinimumShareCapital {
+		result.Reason = fmt.Sprintf("minimum share capital of KES %d is required; current share capital is KES %d", policy.MinimumShareCapital, capital.Balance)
+		return result, nil
+	}
+	if requestedPrincipal > result.Limit {
+		result.Reason = fmt.Sprintf("requested principal exceeds your eligibility limit of KES %d", result.Limit)
+		return result, nil
+	}
+	result.Eligible = true
+	result.Reason = fmt.Sprintf("eligible up to KES %d", result.Limit)
+	return result, nil
+}
+
+func GetLoanEligibilityPolicy() (*models.LoanEligibilityPolicy, error) {
+	var policy models.LoanEligibilityPolicy
+	if err := db.DB.Where("active = ?", true).Order("id desc").First(&policy).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("loan eligibility policy has not been configured")
+		}
+		return nil, err
+	}
+	if policy.SavingsMultiple <= 0 && policy.ShareCapitalMultiple <= 0 {
+		return nil, errors.New("loan eligibility policy must include a savings or share capital multiple")
+	}
+	return &policy, nil
+}
+
+func SetLoanEligibilityPolicy(adminUsername string, savingsMultiple, shareMultiple float64, minimumShareCapital int64) error {
+	if savingsMultiple < 0 || shareMultiple < 0 || minimumShareCapital < 0 {
+		return errors.New("eligibility policy values cannot be negative")
+	}
+	if savingsMultiple == 0 && shareMultiple == 0 {
+		return errors.New("at least one eligibility multiple must be greater than zero")
+	}
+	return db.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(&models.LoanEligibilityPolicy{}).Where("active = ?", true).Update("active", false).Error; err != nil {
+			return err
+		}
+		return tx.Create(&models.LoanEligibilityPolicy{SavingsMultiple: savingsMultiple, ShareCapitalMultiple: shareMultiple, MinimumShareCapital: minimumShareCapital, Active: true, UpdatedBy: adminUsername}).Error
+	})
 }
 
 func GetMemberLoans(username string) ([]models.Loan, error) {

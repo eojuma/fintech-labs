@@ -140,6 +140,7 @@ func AdminDashboardHandler(w http.ResponseWriter, r *http.Request) {
 	auditLogs, _ := services.GetAuditLogs()
 	flagged, _ := services.GetFlaggedTransactions()
 	loans, _ := services.GetAllLoans()
+	loanPolicy, _ := services.GetLoanEligibilityPolicy()
 
 	data := struct {
 		AdminUsername       string
@@ -148,6 +149,7 @@ func AdminDashboardHandler(w http.ResponseWriter, r *http.Request) {
 		Stats               *models.DashboardStats
 		FlaggedTransactions []models.Transaction
 		Loans               []models.Loan
+		LoanPolicy          *models.LoanEligibilityPolicy
 	}{
 		AdminUsername:       username,
 		Users:               users,
@@ -155,6 +157,7 @@ func AdminDashboardHandler(w http.ResponseWriter, r *http.Request) {
 		Stats:               stats,
 		FlaggedTransactions: flagged,
 		Loans:               loans,
+		LoanPolicy:          loanPolicy,
 	}
 
 	if err := tmpl.Execute(w, data); err != nil {

@@ -116,6 +116,12 @@
 
 		<div class="card" style="margin-bottom:1.5rem;">
 			<h3>Loan Management</h3>
+			<form action="/admin/loans/eligibility-policy" method="POST" style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:1rem;align-items:end;margin-bottom:1.5rem;">
+				<div class="form-group"><label>Savings multiple</label><input type="number" name="savings_multiple" min="0" step="0.01" value="{{if .LoanPolicy}}{{.LoanPolicy.SavingsMultiple}}{{else}}0{{end}}" required></div>
+				<div class="form-group"><label>Share capital multiple</label><input type="number" name="share_multiple" min="0" step="0.01" value="{{if .LoanPolicy}}{{.LoanPolicy.ShareCapitalMultiple}}{{else}}0{{end}}" required></div>
+				<div class="form-group"><label>Minimum share capital</label><input type="number" name="minimum_share_capital" min="0" value="{{if .LoanPolicy}}{{.LoanPolicy.MinimumShareCapital}}{{else}}0{{end}}" required></div>
+				<button type="submit">Save Policy</button>
+			</form>
 			<p style="color:var(--text-muted);">Approval requires an explicit total repayable amount. No interest formula or automatic collection is assumed.</p>
 			<table><thead><tr><th>Loan</th><th>Member</th><th>Request</th><th>Term</th><th>Status</th><th>Outstanding</th><th>Action</th></tr></thead><tbody>
 			{{range .Loans}}

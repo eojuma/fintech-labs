@@ -83,3 +83,14 @@ type LoanRepayment struct {
 	ReferenceNumber string         `gorm:"uniqueIndex;not null" json:"reference_number"`
 	RecordedBy      string         `gorm:"index;not null" json:"recorded_by"`
 }
+
+type LoanEligibilityPolicy struct {
+	ID                   uint      `gorm:"primaryKey" json:"id"`
+	CreatedAt            time.Time `json:"created_at"`
+	UpdatedAt            time.Time `json:"updated_at"`
+	SavingsMultiple      float64   `gorm:"not null;default:0" json:"savings_multiple"`
+	ShareCapitalMultiple float64   `gorm:"not null;default:0" json:"share_capital_multiple"`
+	MinimumShareCapital  int64     `gorm:"not null;default:0" json:"minimum_share_capital"`
+	Active               bool      `gorm:"not null;default:true" json:"active"`
+	UpdatedBy            string    `gorm:"not null" json:"updated_by"`
+}

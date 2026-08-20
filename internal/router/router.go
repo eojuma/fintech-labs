@@ -35,6 +35,7 @@ func Setup() {
 	http.HandleFunc("/admin/loans/decision", handlers.AdminAuthMiddleware(handlers.AdminLoanDecisionHandler))
 	http.HandleFunc("/admin/loans/disburse", handlers.AdminAuthMiddleware(handlers.AdminLoanDisbursementHandler))
 	http.HandleFunc("/admin/loans/repayment", handlers.AdminAuthMiddleware(handlers.AdminLoanRepaymentHandler))
+	http.HandleFunc("/admin/loans/eligibility-policy", handlers.AdminAuthMiddleware(handlers.AdminLoanEligibilityPolicyHandler))
 	http.HandleFunc("/session/refresh", handlers.AuthMiddleware(handlers.RefreshSession))
 	http.HandleFunc("/admin/toggle", handlers.AdminAuthMiddleware(handlers.AdminToggleAccount))
 
