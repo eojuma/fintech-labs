@@ -1,0 +1,189 @@
+package services
+
+import (
+	"errors"
+	"fmt"
+	"strings"
+	"time"
+
+	"fintech-labs/internal/db"
+	"fintech-labs/internal/models"
+
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+)
+
+func ApplyForLoan(username, purpose string, principal int64, termMonths int) (*models.Loan, error) {
+	username = strings.ToLower(strings.TrimSpace(username))
+	purpose = strings.TrimSpace(purpose)
+	if principal <= 0 || termMonths < 1 || termMonths > 60 || purpose == "" {
+		return nil, errors.New("principal, purpose, and a term of 1 to 60 months are required")
+	}
+	var member models.User
+	if err := db.DB.Where("username = ?", username).First(&member).Error; err != nil || member.Role != "customer" {
+		return nil, errors.New("member not found")
+	}
+	var open int64
+	db.DB.Model(&models.Loan{}).Where("user_id = ? AND status IN ?", member.ID, []string{"pending", "approved", "disbursed"}).Count(&open)
+	if open > 0 {
+		return nil, errors.New("you already have an open loan application or loan")
+	}
+	var count int64
+	db.DB.Model(&models.Loan{}).Count(&count)
+	loan := &models.Loan{UserID: member.ID, ReferenceNumber: fmt.Sprintf("LN-%08d", count+1), Purpose: purpose, RequestedPrincipal: principal, TermMonths: termMonths, Status: "pending"}
+	return loan, db.DB.Create(loan).Error
+}
+
+func GetMemberLoans(username string) ([]models.Loan, error) {
+	var loans []models.Loan
+	err := db.DB.Joins("JOIN users ON users.id = loans.user_id").Where("users.username = ?", strings.ToLower(strings.TrimSpace(username))).Preload("Installments", func(tx *gorm.DB) *gorm.DB { return tx.Order("installment_no asc") }).Order("loans.created_at desc").Find(&loans).Error
+	return loans, err
+}
+
+func GetAllLoans() ([]models.Loan, error) {
+	var loans []models.Loan
+	err := db.DB.Preload("User").Preload("Installments", func(tx *gorm.DB) *gorm.DB { return tx.Order("installment_no asc") }).Order("created_at desc").Find(&loans).Error
+	return loans, err
+}
+
+func DecideLoan(adminUsername string, loanID uint, action string, approvedPrincipal, totalRepayable int64, note string) error {
+	action = strings.ToLower(strings.TrimSpace(action))
+	return db.DB.Transaction(func(tx *gorm.DB) error {
+		var loan models.Loan
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&loan, loanID).Error; err != nil {
+			return errors.New("loan not found")
+		}
+		if loan.Status != "pending" {
+			return errors.New("only pending loans can be decided")
+		}
+		now := time.Now()
+		loan.DecidedBy, loan.DecidedAt, loan.DecisionNote = adminUsername, &now, strings.TrimSpace(note)
+		switch action {
+		case "reject":
+			loan.Status = "rejected"
+		case "approve":
+			if approvedPrincipal <= 0 || approvedPrincipal > loan.RequestedPrincipal || totalRepayable < approvedPrincipal {
+				return errors.New("approved principal must be positive and total repayable cannot be below principal")
+			}
+			loan.Status, loan.ApprovedPrincipal, loan.TotalRepayable = "approved", approvedPrincipal, totalRepayable
+		default:
+			return errors.New("invalid loan decision")
+		}
+		return tx.Save(&loan).Error
+	})
+}
+
+func DisburseLoan(adminUsername string, loanID uint) error {
+	return db.DB.Transaction(func(tx *gorm.DB) error {
+		var loan models.Loan
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&loan, loanID).Error; err != nil {
+			return errors.New("loan not found")
+		}
+		if loan.Status != "approved" {
+			return errors.New("only approved loans can be disbursed")
+		}
+		var account models.Account
+		if err := tx.Where("user_id = ? AND account_type = ? AND active = ?", loan.UserID, "current", true).First(&account).Error; err != nil {
+			return errors.New("member current account not found or inactive")
+		}
+		var member models.User
+		if err := tx.First(&member, loan.UserID).Error; err != nil {
+			return err
+		}
+		account.Balance += loan.ApprovedPrincipal
+		if err := tx.Save(&account).Error; err != nil {
+			return err
+		}
+		if err := tx.Create(&models.Transaction{Username: member.Username, AccountNumber: account.Number, Type: "loan_disbursement", Amount: loan.ApprovedPrincipal, Balance: account.Balance, ReferenceNumber: GenerateReferenceNumber(), Status: "completed"}).Error; err != nil {
+			return err
+		}
+		now := time.Now()
+		loan.Status, loan.DisbursedBy, loan.DisbursedAt = "disbursed", adminUsername, &now
+		loan.OutstandingPrincipal = loan.ApprovedPrincipal
+		loan.OutstandingInterest = loan.TotalRepayable - loan.ApprovedPrincipal
+		if err := tx.Save(&loan).Error; err != nil {
+			return err
+		}
+		principalBase, principalRemainder := loan.ApprovedPrincipal/int64(loan.TermMonths), loan.ApprovedPrincipal%int64(loan.TermMonths)
+		interestTotal := loan.TotalRepayable - loan.ApprovedPrincipal
+		interestBase, interestRemainder := interestTotal/int64(loan.TermMonths), interestTotal%int64(loan.TermMonths)
+		for i := 1; i <= loan.TermMonths; i++ {
+			principalDue, interestDue := principalBase, interestBase
+			if int64(i) <= principalRemainder {
+				principalDue++
+			}
+			if int64(i) <= interestRemainder {
+				interestDue++
+			}
+			installment := models.LoanInstallment{LoanID: loan.ID, InstallmentNo: i, DueDate: now.AddDate(0, i, 0), PrincipalDue: principalDue, InterestDue: interestDue, Status: "pending"}
+			if err := tx.Create(&installment).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+func RecordLoanRepayment(adminUsername string, loanID uint, amount int64) error {
+	if amount <= 0 {
+		return errors.New("repayment must be greater than zero")
+	}
+	return db.DB.Transaction(func(tx *gorm.DB) error {
+		var loan models.Loan
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&loan, loanID).Error; err != nil {
+			return errors.New("loan not found")
+		}
+		if loan.Status != "disbursed" {
+			return errors.New("only disbursed loans accept repayments")
+		}
+		outstanding := loan.OutstandingPrincipal + loan.OutstandingInterest
+		if amount > outstanding {
+			return errors.New("repayment exceeds outstanding balance")
+		}
+		remaining, interestPaid := amount, amount
+		if interestPaid > loan.OutstandingInterest {
+			interestPaid = loan.OutstandingInterest
+		}
+		loan.OutstandingInterest -= interestPaid
+		remaining -= interestPaid
+		principalPaid := remaining
+		loan.OutstandingPrincipal -= principalPaid
+		var installments []models.LoanInstallment
+		if err := tx.Where("loan_id = ? AND status != ?", loan.ID, "paid").Order("installment_no asc").Find(&installments).Error; err != nil {
+			return err
+		}
+		allocation := amount
+		for i := range installments {
+			due := installments[i].PrincipalDue + installments[i].InterestDue - installments[i].AmountPaid
+			if due <= 0 {
+				continue
+			}
+			paid := allocation
+			if paid > due {
+				paid = due
+			}
+			installments[i].AmountPaid += paid
+			allocation -= paid
+			if installments[i].AmountPaid == installments[i].PrincipalDue+installments[i].InterestDue {
+				installments[i].Status = "paid"
+			} else {
+				installments[i].Status = "partial"
+			}
+			if err := tx.Save(&installments[i]).Error; err != nil {
+				return err
+			}
+			if allocation == 0 {
+				break
+			}
+		}
+		var count int64
+		tx.Model(&models.LoanRepayment{}).Count(&count)
+		if err := tx.Create(&models.LoanRepayment{LoanID: loan.ID, Amount: amount, PrincipalPaid: principalPaid, InterestPaid: interestPaid, ReferenceNumber: fmt.Sprintf("LR-%08d", count+1), RecordedBy: adminUsername}).Error; err != nil {
+			return err
+		}
+		if loan.OutstandingPrincipal+loan.OutstandingInterest == 0 {
+			loan.Status = "completed"
+		}
+		return tx.Save(&loan).Error
+	})
+}

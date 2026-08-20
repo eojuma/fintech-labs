@@ -1232,6 +1232,13 @@ func CloseUserAccount(username, currentPassword string) error {
 		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return err
 		}
+		var openLoans int64
+		if err := tx.Model(&models.Loan{}).Where("user_id = ? AND status IN ?", user.ID, []string{"pending", "approved", "disbursed"}).Count(&openLoans).Error; err != nil {
+			return err
+		}
+		if openLoans > 0 {
+			return errors.New("open loans must be resolved before closure")
+		}
 		if err := tx.Model(&models.Account{}).Where("user_id = ?", user.ID).Update("active", false).Error; err != nil {
 			return err
 		}

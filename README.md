@@ -96,6 +96,7 @@ SACCO features are delivered as separate tickets and commits. Features are not d
 | 45 | WebAuthn credential boundary and explicit provider gate |
 | 46 | Minor-unit KES amount parsing utility |
 | 47 | Member share-capital balance and contribution ledger |
+| 48 | Loan application, approval, disbursement, schedules, and repayment tracking |
 
 ---
 
@@ -294,6 +295,10 @@ Visit `http://localhost:8080` to access the app.
 | `/admin/deposit` | POST | Admin | Deposit to user account |
 | `/admin/withdraw` | POST | Admin | Withdraw from user account |
 | `/admin/share-contribution` | POST | Admin | Record a member share-capital contribution |
+| `/loans/apply` | POST | Session | Submit a member loan application |
+| `/admin/loans/decision` | POST | Admin | Approve or reject a pending loan |
+| `/admin/loans/disburse` | POST | Admin | Disburse an approved loan to the current account |
+| `/admin/loans/repayment` | POST | Admin | Record an explicit loan repayment |
 | `/admin/toggle` | POST | Admin | Block or unblock account |
 | `/admin/audit-log` | GET | Admin | View full audit log |
 | `/admin/flagged` | GET | Admin | View flagged transactions |

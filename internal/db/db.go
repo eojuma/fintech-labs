@@ -38,6 +38,9 @@ func InitDB() {
 		&models.Device{},
 		&models.ShareCapital{},
 		&models.ShareContribution{},
+		&models.Loan{},
+		&models.LoanInstallment{},
+		&models.LoanRepayment{},
 	)
 	if err != nil {
 		log.Fatal("Migration failed:", err)

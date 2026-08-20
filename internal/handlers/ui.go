@@ -42,6 +42,10 @@ func DashboardHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		shareCapital = &models.ShareCapital{}
 	}
+	loans, err := services.GetMemberLoans(username)
+	if err != nil {
+		loans = []models.Loan{}
+	}
 
 	// FIXED: Correct path to find the template
 	tmpl, err := template.New("dashboard.html").Funcs(template.FuncMap{
@@ -64,6 +68,7 @@ func DashboardHandler(w http.ResponseWriter, r *http.Request) {
 		Transactions  []models.Transaction
 		Accounts      []models.Account
 		ShareCapital  int64
+		Loans         []models.Loan
 	}{
 		Username:      username,
 		FullName:      user.FullName,
@@ -73,6 +78,7 @@ func DashboardHandler(w http.ResponseWriter, r *http.Request) {
 		Transactions:  transactions,
 		Accounts:      accounts,
 		ShareCapital:  shareCapital.Balance,
+		Loans:         loans,
 	}
 
 	if err := tmpl.Execute(w, data); err != nil {

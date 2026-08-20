@@ -139,6 +139,7 @@ func AdminDashboardHandler(w http.ResponseWriter, r *http.Request) {
 	// Fetch recent audit logs
 	auditLogs, _ := services.GetAuditLogs()
 	flagged, _ := services.GetFlaggedTransactions()
+	loans, _ := services.GetAllLoans()
 
 	data := struct {
 		AdminUsername       string
@@ -146,12 +147,14 @@ func AdminDashboardHandler(w http.ResponseWriter, r *http.Request) {
 		AuditLogs           []models.AuditLog
 		Stats               *models.DashboardStats
 		FlaggedTransactions []models.Transaction
+		Loans               []models.Loan
 	}{
 		AdminUsername:       username,
 		Users:               users,
 		AuditLogs:           auditLogs,
 		Stats:               stats,
 		FlaggedTransactions: flagged,
+		Loans:               loans,
 	}
 
 	if err := tmpl.Execute(w, data); err != nil {

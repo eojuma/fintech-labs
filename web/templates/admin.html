@@ -114,6 +114,24 @@
             </table>
         </div>
 
+		<div class="card" style="margin-bottom:1.5rem;">
+			<h3>Loan Management</h3>
+			<p style="color:var(--text-muted);">Approval requires an explicit total repayable amount. No interest formula or automatic collection is assumed.</p>
+			<table><thead><tr><th>Loan</th><th>Member</th><th>Request</th><th>Term</th><th>Status</th><th>Outstanding</th><th>Action</th></tr></thead><tbody>
+			{{range .Loans}}
+			<tr><td>{{.ReferenceNumber}}</td><td>{{.User.Username}}</td><td>KES {{.RequestedPrincipal}}<br>{{.Purpose}}</td><td>{{.TermMonths}} months</td><td>{{.Status}}</td><td>KES {{.OutstandingPrincipal}} + KES {{.OutstandingInterest}}</td><td>
+			{{if eq .Status "pending"}}
+			<form action="/admin/loans/decision" method="POST"><input type="hidden" name="loan_id" value="{{.ID}}"><input type="number" name="approved_principal" placeholder="Approved principal"><input type="number" name="total_repayable" placeholder="Total repayable"><input type="text" name="note" placeholder="Decision note"><button name="action" value="approve">Approve</button><button name="action" value="reject">Reject</button></form>
+			{{else if eq .Status "approved"}}
+			<form action="/admin/loans/disburse" method="POST"><input type="hidden" name="loan_id" value="{{.ID}}"><button type="submit">Disburse</button></form>
+			{{else if eq .Status "disbursed"}}
+			<form action="/admin/loans/repayment" method="POST"><input type="hidden" name="loan_id" value="{{.ID}}"><input type="number" name="amount" min="1" placeholder="Repayment" required><button type="submit">Record</button></form>
+			{{else}}—{{end}}
+			</td></tr>
+			{{else}}<tr><td colspan="7">No loan applications.</td></tr>{{end}}
+			</tbody></table>
+		</div>
+
         <!-- Teller Management -->
         <div class="card" style="margin-bottom: 1.5rem;">
             <h3>👤 Teller Management</h3>
