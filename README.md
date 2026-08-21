@@ -101,6 +101,7 @@ SACCO features are delivered as separate tickets and commits. Features are not d
 | 50 | Configurable annual savings interest and share dividend distributions |
 | 51 | Monthly-average distributions, withholding, governance approval, and scheduled previews |
 | 52 | Administrator share-capital redemption and member-exit integration |
+| 53 | Scheduled loan collection, overdue tracking, and 90-day default classification |
 
 ---
 

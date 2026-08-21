@@ -87,16 +87,29 @@ type LoanInstallment struct {
 }
 
 type LoanRepayment struct {
-	ID              uint           `gorm:"primaryKey" json:"id"`
-	CreatedAt       time.Time      `json:"created_at"`
-	UpdatedAt       time.Time      `json:"updated_at"`
-	DeletedAt       gorm.DeletedAt `gorm:"index" json:"-"`
-	LoanID          uint           `gorm:"index;not null" json:"loan_id"`
-	Amount          int64          `gorm:"not null" json:"amount"`
-	PrincipalPaid   int64          `gorm:"not null" json:"principal_paid"`
-	InterestPaid    int64          `gorm:"not null" json:"interest_paid"`
-	ReferenceNumber string         `gorm:"uniqueIndex;not null" json:"reference_number"`
-	RecordedBy      string         `gorm:"index;not null" json:"recorded_by"`
+	ID                  uint           `gorm:"primaryKey" json:"id"`
+	CreatedAt           time.Time      `json:"created_at"`
+	UpdatedAt           time.Time      `json:"updated_at"`
+	DeletedAt           gorm.DeletedAt `gorm:"index" json:"-"`
+	LoanID              uint           `gorm:"index;not null" json:"loan_id"`
+	Amount              int64          `gorm:"not null" json:"amount"`
+	PrincipalPaid       int64          `gorm:"not null" json:"principal_paid"`
+	InterestPaid        int64          `gorm:"not null" json:"interest_paid"`
+	ReferenceNumber     string         `gorm:"uniqueIndex;not null" json:"reference_number"`
+	RecordedBy          string         `gorm:"index;not null" json:"recorded_by"`
+	SourceAccountNumber string         `json:"source_account_number"`
+	Method              string         `gorm:"not null;default:'manual'" json:"method"`
+}
+
+type LoanCollectionAttempt struct {
+	ID              uint      `gorm:"primaryKey" json:"id"`
+	CreatedAt       time.Time `json:"created_at"`
+	LoanID          uint      `gorm:"index;not null" json:"loan_id"`
+	InstallmentID   uint      `gorm:"index;not null" json:"installment_id"`
+	AmountRequested int64     `gorm:"not null" json:"amount_requested"`
+	AmountCollected int64     `gorm:"not null;default:0" json:"amount_collected"`
+	Status          string    `gorm:"index;not null" json:"status"`
+	Details         string    `json:"details"`
 }
 
 type LoanEligibilityPolicy struct {

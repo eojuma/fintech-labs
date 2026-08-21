@@ -262,3 +262,103 @@ func RecordLoanRepayment(adminUsername string, loanID uint, amount int64) error 
 		return tx.Save(&loan).Error
 	})
 }
+
+func ProcessDueLoanCollections(now time.Time) error {
+	var installments []models.LoanInstallment
+	if err := db.DB.Where("due_date < ? AND status != ?", now, "paid").Order("due_date asc").Find(&installments).Error; err != nil {
+		return err
+	}
+	for _, installment := range installments {
+		_ = collectInstallment(installment, now)
+	}
+	return nil
+}
+
+func collectInstallment(installment models.LoanInstallment, now time.Time) error {
+	return db.DB.Transaction(func(tx *gorm.DB) error {
+		var loan models.Loan
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&loan, installment.LoanID).Error; err != nil || loan.Status != "disbursed" {
+			return err
+		}
+		due := installment.PrincipalDue + installment.InterestDue - installment.AmountPaid
+		if due <= 0 {
+			return nil
+		}
+		var accounts []models.Account
+		if err := tx.Where("user_id = ? AND active = ? AND account_type IN ?", loan.UserID, true, []string{"savings", "current"}).Order("CASE account_type WHEN 'savings' THEN 0 ELSE 1 END").Find(&accounts).Error; err != nil {
+			return err
+		}
+		available := int64(0)
+		for _, account := range accounts {
+			available += account.Balance
+		}
+		if available < due {
+			installment.Status = "overdue"
+			if now.Sub(installment.DueDate) >= 90*24*time.Hour {
+				installment.Status, loan.Status = "defaulted", "defaulted"
+			}
+			if err := tx.Save(&installment).Error; err != nil {
+				return err
+			}
+			if err := tx.Save(&loan).Error; err != nil {
+				return err
+			}
+			return tx.Create(&models.LoanCollectionAttempt{LoanID: loan.ID, InstallmentID: installment.ID, AmountRequested: due, Status: "failed", Details: "insufficient savings and current account balances"}).Error
+		}
+		remaining := due
+		var sources []string
+		for i := range accounts {
+			debit := remaining
+			if debit > accounts[i].Balance {
+				debit = accounts[i].Balance
+			}
+			if debit == 0 {
+				continue
+			}
+			accounts[i].Balance -= debit
+			remaining -= debit
+			if err := tx.Save(&accounts[i]).Error; err != nil {
+				return err
+			}
+			sources = append(sources, accounts[i].Number)
+			if remaining == 0 {
+				break
+			}
+		}
+		interestPaid := due
+		if interestPaid > loan.OutstandingInterest {
+			interestPaid = loan.OutstandingInterest
+		}
+		principalPaid := due - interestPaid
+		loan.OutstandingInterest -= interestPaid
+		loan.OutstandingPrincipal -= principalPaid
+		installment.AmountPaid += due
+		installment.Status = "paid"
+		if loan.OutstandingInterest+loan.OutstandingPrincipal == 0 {
+			loan.Status = "completed"
+		}
+		var count int64
+		tx.Model(&models.LoanRepayment{}).Count(&count)
+		if err := tx.Create(&models.LoanRepayment{LoanID: loan.ID, Amount: due, PrincipalPaid: principalPaid, InterestPaid: interestPaid, ReferenceNumber: fmt.Sprintf("LR-%08d", count+1), RecordedBy: "system_scheduler", SourceAccountNumber: strings.Join(sources, ","), Method: "automatic_debit"}).Error; err != nil {
+			return err
+		}
+		if err := tx.Save(&installment).Error; err != nil {
+			return err
+		}
+		if err := tx.Save(&loan).Error; err != nil {
+			return err
+		}
+		return tx.Create(&models.LoanCollectionAttempt{LoanID: loan.ID, InstallmentID: installment.ID, AmountRequested: due, AmountCollected: due, Status: "completed", Details: "collected from " + strings.Join(sources, ",")}).Error
+	})
+}
+
+func StartLoanCollectionScheduler() {
+	go func() {
+		_ = ProcessDueLoanCollections(time.Now())
+		ticker := time.NewTicker(24 * time.Hour)
+		defer ticker.Stop()
+		for now := range ticker.C {
+			_ = ProcessDueLoanCollections(now)
+		}
+	}()
+}

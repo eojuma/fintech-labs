@@ -23,6 +23,7 @@ func httpsRedirect(next http.Handler) http.Handler {
 func main() {
 	db.InitDB()
 	services.StartDistributionScheduler()
+	services.StartLoanCollectionScheduler()
 	router.Setup()
 	log.Println("🚀 Server running on http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", httpsRedirect(http.DefaultServeMux)))
