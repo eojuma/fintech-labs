@@ -102,6 +102,7 @@ SACCO features are delivered as separate tickets and commits. Features are not d
 | 51 | Monthly-average distributions, withholding, governance approval, and scheduled previews |
 | 52 | Administrator share-capital redemption and member-exit integration |
 | 53 | Scheduled loan collection, overdue tracking, and 90-day default classification |
+| 54 | SACCO loan, share-capital, and distribution CSV reports |
 
 ---
 
@@ -310,6 +311,7 @@ Visit `http://localhost:8080` to access the app.
 | `/admin/distributions/preview` | POST | Admin | Preview a period distribution |
 | `/admin/distributions/post` | POST | Admin | Explicitly post a previewed distribution |
 | `/admin/distributions/approve` | POST | Super admin | Record board or AGM approval for a distribution |
+| `/admin/reports/sacco` | GET | Admin | Download SACCO management CSV reports |
 | `/admin/toggle` | POST | Admin | Block or unblock account |
 | `/admin/audit-log` | GET | Admin | View full audit log |
 | `/admin/flagged` | GET | Admin | View flagged transactions |
