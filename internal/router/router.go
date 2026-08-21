@@ -32,6 +32,7 @@ func Setup() {
 	http.HandleFunc("/admin/deposit", handlers.AdminAuthMiddleware(handlers.AdminDepositHandler))
 	http.HandleFunc("/admin/withdraw", handlers.AdminAuthMiddleware(handlers.AdminWithdrawHandler))
 	http.HandleFunc("/admin/share-contribution", handlers.AdminAuthMiddleware(handlers.AdminShareContributionHandler))
+	http.HandleFunc("/admin/share-redemption", handlers.AdminAuthMiddleware(handlers.AdminShareRedemptionHandler))
 	http.HandleFunc("/admin/loans/decision", handlers.AdminAuthMiddleware(handlers.AdminLoanDecisionHandler))
 	http.HandleFunc("/admin/loans/disburse", handlers.AdminAuthMiddleware(handlers.AdminLoanDisbursementHandler))
 	http.HandleFunc("/admin/loans/repayment", handlers.AdminAuthMiddleware(handlers.AdminLoanRepaymentHandler))

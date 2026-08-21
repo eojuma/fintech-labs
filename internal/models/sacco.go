@@ -33,6 +33,21 @@ type ShareContribution struct {
 	Note            string         `json:"note"`
 }
 
+type ShareRedemption struct {
+	ID                       uint           `gorm:"primaryKey" json:"id"`
+	CreatedAt                time.Time      `json:"created_at"`
+	UpdatedAt                time.Time      `json:"updated_at"`
+	DeletedAt                gorm.DeletedAt `gorm:"index" json:"-"`
+	ShareCapitalID           uint           `gorm:"index;not null" json:"share_capital_id"`
+	UserID                   uint           `gorm:"index;not null" json:"user_id"`
+	Amount                   int64          `gorm:"not null" json:"amount"`
+	Balance                  int64          `gorm:"not null" json:"balance"`
+	ReferenceNumber          string         `gorm:"uniqueIndex;not null" json:"reference_number"`
+	DestinationAccountNumber string         `gorm:"not null" json:"destination_account_number"`
+	RecordedBy               string         `gorm:"index;not null" json:"recorded_by"`
+	Reason                   string         `gorm:"not null" json:"reason"`
+}
+
 type Loan struct {
 	ID                   uint              `gorm:"primaryKey" json:"id"`
 	CreatedAt            time.Time         `json:"created_at"`

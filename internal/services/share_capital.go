@@ -86,3 +86,64 @@ func GetShareCapitalByUsername(username string) (*models.ShareCapital, error) {
 	}
 	return &capital, err
 }
+
+func RedeemShareCapital(adminUsername, memberUsername string, amount int64, reason string) (*models.ShareRedemption, error) {
+	adminUsername = strings.ToLower(strings.TrimSpace(adminUsername))
+	memberUsername = strings.ToLower(strings.TrimSpace(memberUsername))
+	reason = strings.TrimSpace(reason)
+	if amount <= 0 || reason == "" {
+		return nil, errors.New("redemption amount and reason are required")
+	}
+	var redemption models.ShareRedemption
+	err := db.DB.Transaction(func(tx *gorm.DB) error {
+		var member models.User
+		if err := tx.Where("username = ? AND role = ?", memberUsername, "customer").First(&member).Error; err != nil {
+			return errors.New("member not found")
+		}
+		var openLoans int64
+		if err := tx.Model(&models.Loan{}).Where("user_id = ? AND status IN ?", member.ID, []string{"pending", "approved", "disbursed"}).Count(&openLoans).Error; err != nil {
+			return err
+		}
+		if openLoans > 0 {
+			return errors.New("share capital cannot be redeemed while the member has an open loan")
+		}
+		var capital models.ShareCapital
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("user_id = ? AND active = ?", member.ID, true).First(&capital).Error; err != nil {
+			return errors.New("active share capital not found")
+		}
+		if amount > capital.Balance {
+			return errors.New("redemption exceeds available share capital")
+		}
+		var account models.Account
+		if err := tx.Where("user_id = ? AND account_type = ? AND active = ?", member.ID, "current", true).First(&account).Error; err != nil {
+			return errors.New("active current account not found")
+		}
+		capital.Balance -= amount
+		if capital.Balance == 0 {
+			capital.Active = false
+		}
+		if err := tx.Save(&capital).Error; err != nil {
+			return err
+		}
+		account.Balance += amount
+		if err := tx.Save(&account).Error; err != nil {
+			return err
+		}
+		var count int64
+		if err := tx.Model(&models.ShareRedemption{}).Count(&count).Error; err != nil {
+			return err
+		}
+		ref := fmt.Sprintf("SR-%08d", count+1)
+		redemption = models.ShareRedemption{ShareCapitalID: capital.ID, UserID: member.ID, Amount: amount, Balance: capital.Balance, ReferenceNumber: ref, DestinationAccountNumber: account.Number, RecordedBy: adminUsername, Reason: reason}
+		if err := tx.Create(&redemption).Error; err != nil {
+			return err
+		}
+		return tx.Create(&models.Transaction{Username: member.Username, AccountNumber: account.Number, Type: "share_redemption", Amount: amount, Balance: account.Balance, ReferenceNumber: GenerateReferenceNumber(), Status: "completed"}).Error
+	})
+	if err != nil {
+		CreateAuditLog(adminUsername, "share_redemption", memberUsername, err.Error(), amount, "failed")
+		return nil, err
+	}
+	CreateAuditLog(adminUsername, "share_redemption", memberUsername, reason, amount, "success")
+	return &redemption, nil
+}

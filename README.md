@@ -100,6 +100,7 @@ SACCO features are delivered as separate tickets and commits. Features are not d
 | 49 | Configurable savings and share-capital loan eligibility policy |
 | 50 | Configurable annual savings interest and share dividend distributions |
 | 51 | Monthly-average distributions, withholding, governance approval, and scheduled previews |
+| 52 | Administrator share-capital redemption and member-exit integration |
 
 ---
 
@@ -298,6 +299,7 @@ Visit `http://localhost:8080` to access the app.
 | `/admin/deposit` | POST | Admin | Deposit to user account |
 | `/admin/withdraw` | POST | Admin | Withdraw from user account |
 | `/admin/share-contribution` | POST | Admin | Record a member share-capital contribution |
+| `/admin/share-redemption` | POST | Admin | Redeem share capital to a member current account |
 | `/loans/apply` | POST | Session | Submit a member loan application |
 | `/admin/loans/decision` | POST | Admin | Approve or reject a pending loan |
 | `/admin/loans/disburse` | POST | Admin | Disburse an approved loan to the current account |

@@ -38,6 +38,7 @@ func InitDB() {
 		&models.Device{},
 		&models.ShareCapital{},
 		&models.ShareContribution{},
+		&models.ShareRedemption{},
 		&models.Loan{},
 		&models.LoanInstallment{},
 		&models.LoanRepayment{},
