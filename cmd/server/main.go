@@ -8,6 +8,8 @@ import (
 	"fintech-labs/internal/db"
 	"fintech-labs/internal/router"
 	"fintech-labs/internal/services"
+
+	"github.com/joho/godotenv"
 )
 
 func httpsRedirect(next http.Handler) http.Handler {
@@ -21,6 +23,13 @@ func httpsRedirect(next http.Handler) http.Handler {
 }
 
 func main() {
+	// Load .env for local development. In production (Render, etc.),
+	// real environment variables are injected by the platform, so a
+	// missing .env file there is expected and not fatal.
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file found — relying on system environment variables")
+	}
+
 	db.InitDB()
 	services.StartDistributionScheduler()
 	services.StartLoanCollectionScheduler()
