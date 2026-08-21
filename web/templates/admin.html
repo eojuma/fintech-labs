@@ -29,6 +29,7 @@
         </div>
 
         <!-- Stats Cards -->
+		<div class="dashboard-tools"><span class="eyebrow">SACCO REPORTS</span><div class="quick-actions"><a href="/admin/reports/sacco?type=loans" class="quick-action">Loan portfolio CSV</a><a href="/admin/reports/sacco?type=shares" class="quick-action">Share register CSV</a><a href="/admin/reports/sacco?type=distributions" class="quick-action">Distribution register CSV</a></div></div>
         <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
             <div class="card" style="text-align: center; padding: 1.5rem;">
                 <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 8px;">Deposits Today</p>
@@ -55,6 +56,18 @@
         </div>
 
         <!-- User Management -->
+		<div class="card" style="margin-bottom: 1.5rem;">
+			<h3>Record Share Capital Contribution</h3>
+			<p style="color: var(--text-muted);">Credits a member's non-spendable ownership capital and creates an audit record.</p>
+			<form action="/admin/share-contribution" method="POST" style="display: grid; grid-template-columns: 1fr 1fr 2fr auto; gap: 1rem; align-items: end;">
+				<div class="form-group"><label>Member username</label><input type="text" name="username" required></div>
+				<div class="form-group"><label>Amount (KES)</label><input type="number" name="amount" min="1" required></div>
+				<div class="form-group"><label>Note</label><input type="text" name="note" placeholder="Optional contribution note"></div>
+				<button type="submit" class="btn-action btn-deposit-trigger">Record Contribution</button>
+			</form>
+		</div>
+		<div class="card" style="margin-bottom:1.5rem;"><h3>Redeem Share Capital</h3><p style="color:var(--text-muted);">Credits the member's current account. Open loans block redemption.</p><form action="/admin/share-redemption" method="POST" style="display:grid;grid-template-columns:1fr 1fr 2fr auto;gap:1rem;align-items:end;"><div class="form-group"><label>Member username</label><input name="username" required></div><div class="form-group"><label>Amount</label><input type="number" name="amount" min="1" required></div><div class="form-group"><label>Reason</label><input name="reason" required></div><button type="submit">Redeem</button></form></div>
+
         <div class="card" style="margin-bottom: 1.5rem;">
             <h3>User Management</h3>
             <table>
@@ -102,6 +115,50 @@
                 </tbody>
             </table>
         </div>
+
+		<div class="card" style="margin-bottom:1.5rem;">
+			<h3>Loan Management</h3>
+			<form action="/admin/loans/eligibility-policy" method="POST" style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:1rem;align-items:end;margin-bottom:1.5rem;">
+				<div class="form-group"><label>Savings multiple</label><input type="number" name="savings_multiple" min="0" step="0.01" value="{{if .LoanPolicy}}{{.LoanPolicy.SavingsMultiple}}{{else}}0{{end}}" required></div>
+				<div class="form-group"><label>Share capital multiple</label><input type="number" name="share_multiple" min="0" step="0.01" value="{{if .LoanPolicy}}{{.LoanPolicy.ShareCapitalMultiple}}{{else}}0{{end}}" required></div>
+				<div class="form-group"><label>Minimum share capital</label><input type="number" name="minimum_share_capital" min="0" value="{{if .LoanPolicy}}{{.LoanPolicy.MinimumShareCapital}}{{else}}0{{end}}" required></div>
+				<button type="submit">Save Policy</button>
+			</form>
+			<p style="color:var(--text-muted);">Approval requires an explicit total repayable amount. No interest formula or automatic collection is assumed.</p>
+			<table><thead><tr><th>Loan</th><th>Member</th><th>Request</th><th>Term</th><th>Status</th><th>Outstanding</th><th>Action</th></tr></thead><tbody>
+			{{range .Loans}}
+			<tr><td>{{.ReferenceNumber}}</td><td>{{.User.Username}}</td><td>KES {{.RequestedPrincipal}}<br>{{.Purpose}}</td><td>{{.TermMonths}} months</td><td>{{.Status}}</td><td>KES {{.OutstandingPrincipal}} + KES {{.OutstandingInterest}}</td><td>
+			{{if eq .Status "pending"}}
+			<form action="/admin/loans/decision" method="POST"><input type="hidden" name="loan_id" value="{{.ID}}"><input type="number" name="approved_principal" placeholder="Approved principal"><input type="number" name="total_repayable" placeholder="Total repayable"><input type="text" name="note" placeholder="Decision note"><button name="action" value="approve">Approve</button><button name="action" value="reject">Reject</button></form>
+			{{else if eq .Status "approved"}}
+			<form action="/admin/loans/disburse" method="POST"><input type="hidden" name="loan_id" value="{{.ID}}"><button type="submit">Disburse</button></form>
+			{{else if eq .Status "disbursed"}}
+			<form action="/admin/loans/repayment" method="POST"><input type="hidden" name="loan_id" value="{{.ID}}"><input type="number" name="amount" min="1" placeholder="Repayment" required><button type="submit">Record</button></form>
+			{{else}}—{{end}}
+			</td></tr>
+			{{else}}<tr><td colspan="7">No loan applications.</td></tr>{{end}}
+			</tbody></table>
+		</div>
+
+		<div class="card" style="margin-bottom:1.5rem;">
+			<h3>Interest and Dividend Distributions</h3>
+			<p style="color:var(--text-muted);">Baseline defaults: 6% annual savings interest and 10% annual share dividend. Rates remain configurable. Preview before posting.</p>
+			<form action="/admin/distributions/policy" method="POST" style="display:grid;grid-template-columns:repeat(5,1fr);gap:1rem;align-items:end;">
+				<div class="form-group"><label>Savings interest rate (%)</label><input type="number" name="savings_interest_rate" min="0" max="100" step="0.01" value="{{.DistributionPolicy.SavingsInterestRate}}" required></div>
+				<div class="form-group"><label>Share dividend rate (%)</label><input type="number" name="share_dividend_rate" min="0" max="100" step="0.01" value="{{.DistributionPolicy.ShareDividendRate}}" required></div>
+				<div class="form-group"><label>Savings withholding (%)</label><input type="number" name="savings_withholding_rate" min="0" max="100" step="0.01" value="{{.DistributionPolicy.SavingsWithholdingRate}}" required></div>
+				<div class="form-group"><label>Dividend withholding (%)</label><input type="number" name="dividend_withholding_rate" min="0" max="100" step="0.01" value="{{.DistributionPolicy.DividendWithholdingRate}}" required></div>
+				<div class="form-group"><label><input type="checkbox" name="auto_preview" {{if .DistributionPolicy.AutoPreviewEnabled}}checked{{end}}> Create prior-year previews in January</label></div>
+				<button type="submit">Save Rates</button>
+			</form>
+			<form action="/admin/distributions/preview" method="POST" style="display:flex;gap:1rem;align-items:end;margin-top:1rem;">
+				<div class="form-group"><label>Type</label><select name="type"><option value="savings_interest">Savings interest</option><option value="share_dividend">Share dividend</option></select></div>
+				<div class="form-group"><label>Period (year)</label><input type="number" name="period" min="2000" max="2100" value="2026" required></div><button type="submit">Create Preview</button>
+			</form>
+			<table><thead><tr><th>Type</th><th>Period</th><th>Rate</th><th>Net total</th><th>Status</th><th>Governance</th><th>Action</th></tr></thead><tbody>
+			{{range .DistributionRuns}}<tr><td>{{.Type}}</td><td>{{.Period}}</td><td>{{.Rate}}%</td><td>KES {{.TotalAmount}}</td><td>{{.Status}}</td><td>{{if .ApprovalReference}}{{.ApprovalReference}} by {{.ApprovedBy}}{{else}}Pending approval{{end}}</td><td>{{if eq .Status "preview"}}<form action="/admin/distributions/approve" method="POST"><input type="hidden" name="run_id" value="{{.ID}}"><input type="text" name="approval_reference" placeholder="Board/AGM resolution" required><button type="submit">Approve</button></form>{{else if eq .Status "approved"}}<form action="/admin/distributions/post" method="POST"><input type="hidden" name="run_id" value="{{.ID}}"><button type="submit">Post</button></form>{{else}}—{{end}}</td></tr>{{else}}<tr><td colspan="7">No distribution runs.</td></tr>{{end}}
+			</tbody></table>
+		</div>
 
         <!-- Teller Management -->
         <div class="card" style="margin-bottom: 1.5rem;">

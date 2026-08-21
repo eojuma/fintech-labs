@@ -1224,6 +1224,21 @@ func CloseUserAccount(username, currentPassword string) error {
 				return errors.New("all account balances must be zero before closure")
 			}
 		}
+		var shareCapital models.ShareCapital
+		err := tx.Where("user_id = ?", user.ID).First(&shareCapital).Error
+		if err == nil && shareCapital.Balance != 0 {
+			return errors.New("share capital must be redeemed by an administrator before closure")
+		}
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
+		}
+		var openLoans int64
+		if err := tx.Model(&models.Loan{}).Where("user_id = ? AND status IN ?", user.ID, []string{"pending", "approved", "disbursed"}).Count(&openLoans).Error; err != nil {
+			return err
+		}
+		if openLoans > 0 {
+			return errors.New("open loans must be resolved before closure")
+		}
 		if err := tx.Model(&models.Account{}).Where("user_id = ?", user.ID).Update("active", false).Error; err != nil {
 			return err
 		}

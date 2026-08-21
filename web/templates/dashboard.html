@@ -47,6 +47,7 @@
             <p>Account Number: <span class="account-number-display">{{.AccountNumber}}</span></p>
         </div>
         <div class="card security-card"><span class="eyebrow">ACCOUNT STATUS</span><h3>You're in control</h3><p>Your account is protected with transaction PIN verification and secure sessions.</p><div class="status-line"><span class="status-dot"></span> Account active <span class="status-check">✓</span></div></div>
+		<div class="card"><span class="eyebrow">MEMBER OWNERSHIP</span><h3>Share Capital</h3><div class="balance-amount">KES {{.ShareCapital}}</div><p>Non-spendable ownership capital recorded by the SACCO.</p></div>
         </div>
 
         <!-- My Accounts -->
@@ -88,6 +89,23 @@
             {{end}}
         </div>
         {{end}}
+
+		<div class="card" style="margin-bottom: 1.5rem;">
+			<h3>Member Loans</h3>
+			<form action="/loans/apply" method="POST" style="display:grid; grid-template-columns:1fr 1fr 2fr auto; gap:1rem; align-items:end;">
+				<div class="form-group"><label>Principal (KES)</label><input type="number" name="principal" min="1" required></div>
+				<div class="form-group"><label>Term (months)</label><input type="number" name="term_months" min="1" max="60" required></div>
+				<div class="form-group"><label>Purpose</label><input type="text" name="purpose" required></div>
+				<button type="submit" class="btn-auth">Apply</button>
+			</form>
+			{{if .Loans}}
+			<table><thead><tr><th>Reference</th><th>Requested</th><th>Approved</th><th>Outstanding</th><th>Term</th><th>Status</th></tr></thead><tbody>
+			{{range .Loans}}<tr><td>{{.ReferenceNumber}}</td><td>KES {{.RequestedPrincipal}}</td><td>KES {{.ApprovedPrincipal}}</td><td>KES {{.OutstandingPrincipal}} principal + KES {{.OutstandingInterest}} interest</td><td>{{.TermMonths}} months</td><td>{{.Status}}</td></tr>{{end}}
+			</tbody></table>
+			{{end}}
+			<p style="color:var(--text-muted);">Eligibility rules are not applied yet. Submission creates a pending application for administrator review.</p>
+		</div>
+		{{if .Notifications}}<div class="card" style="margin-bottom:1.5rem;"><h3>Notices</h3>{{range .Notifications}}<div style="padding:0.75rem;border-bottom:1px solid var(--border);"><strong>{{.Title}}</strong><p>{{.Message}}</p><small>{{.CreatedAt.Format "02 Jan 2006 15:04"}}</small></div>{{end}}</div>{{end}}
 
         <!-- Transaction Cards -->
         <div class="grid-3" id="money-actions">

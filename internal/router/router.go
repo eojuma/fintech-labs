@@ -25,11 +25,23 @@ func Setup() {
 	http.HandleFunc("/deposit", handlers.AuthMiddleware(handlers.Deposit))
 	http.HandleFunc("/transfer", handlers.AuthMiddleware(handlers.SendMoneyHandler))
 	http.HandleFunc("/withdraw", handlers.AuthMiddleware(handlers.Withdraw))
+	http.HandleFunc("/loans/apply", handlers.AuthMiddleware(handlers.ApplyForLoanHandler))
 
 	// 4. PROTECTED ADMIN ROUTES
 	http.HandleFunc("/admin", handlers.AdminAuthMiddleware(handlers.AdminDashboardHandler))
 	http.HandleFunc("/admin/deposit", handlers.AdminAuthMiddleware(handlers.AdminDepositHandler))
 	http.HandleFunc("/admin/withdraw", handlers.AdminAuthMiddleware(handlers.AdminWithdrawHandler))
+	http.HandleFunc("/admin/share-contribution", handlers.AdminAuthMiddleware(handlers.AdminShareContributionHandler))
+	http.HandleFunc("/admin/share-redemption", handlers.AdminAuthMiddleware(handlers.AdminShareRedemptionHandler))
+	http.HandleFunc("/admin/loans/decision", handlers.AdminAuthMiddleware(handlers.AdminLoanDecisionHandler))
+	http.HandleFunc("/admin/loans/disburse", handlers.AdminAuthMiddleware(handlers.AdminLoanDisbursementHandler))
+	http.HandleFunc("/admin/loans/repayment", handlers.AdminAuthMiddleware(handlers.AdminLoanRepaymentHandler))
+	http.HandleFunc("/admin/loans/eligibility-policy", handlers.AdminAuthMiddleware(handlers.AdminLoanEligibilityPolicyHandler))
+	http.HandleFunc("/admin/distributions/policy", handlers.AdminAuthMiddleware(handlers.AdminDistributionPolicyHandler))
+	http.HandleFunc("/admin/distributions/preview", handlers.AdminAuthMiddleware(handlers.AdminDistributionPreviewHandler))
+	http.HandleFunc("/admin/distributions/post", handlers.AdminAuthMiddleware(handlers.AdminDistributionPostHandler))
+	http.HandleFunc("/admin/distributions/approve", handlers.SuperAdminAuthMiddleware(handlers.AdminDistributionApprovalHandler))
+	http.HandleFunc("/admin/reports/sacco", handlers.AdminAuthMiddleware(handlers.SaccoReportHandler))
 	http.HandleFunc("/session/refresh", handlers.AuthMiddleware(handlers.RefreshSession))
 	http.HandleFunc("/admin/toggle", handlers.AdminAuthMiddleware(handlers.AdminToggleAccount))
 

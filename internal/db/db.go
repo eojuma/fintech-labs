@@ -28,7 +28,27 @@ func InitDB() {
 		log.Fatal("Failed to connect to database:", err)
 	}
 
-	err = DB.AutoMigrate(&models.User{}, &models.Account{}, &models.Transaction{}, &models.Session{}, &models.AuditLog{}, &models.RecurringTransfer{}, &models.Device{})
+	err = DB.AutoMigrate(
+		&models.User{},
+		&models.Account{},
+		&models.Transaction{},
+		&models.Session{},
+		&models.AuditLog{},
+		&models.RecurringTransfer{},
+		&models.Device{},
+		&models.ShareCapital{},
+		&models.ShareContribution{},
+		&models.ShareRedemption{},
+		&models.Loan{},
+		&models.LoanInstallment{},
+		&models.LoanRepayment{},
+		&models.LoanCollectionAttempt{},
+		&models.MemberNotification{},
+		&models.LoanEligibilityPolicy{},
+		&models.DistributionPolicy{},
+		&models.DistributionRun{},
+		&models.DistributionAllocation{},
+	)
 	if err != nil {
 		log.Fatal("Migration failed:", err)
 	}

@@ -1,6 +1,8 @@
-# 🏦 African Vault — Mobile Banking System
+# 🏦 African Vault — Digital SACCO Management System
 
-A production-grade mobile banking backend built from scratch in Go. African Vault is a learning project that teaches the internals of modern banking systems — ledger design, atomic transactions, session management, payment integrations, and security engineering.
+A Go, GORM, and SQLite system evolving from a personal banking application into a digital SACCO management platform for Kenyan SACCOs, chamas, microfinance groups, and other member-owned savings organizations.
+
+The existing account, transaction, role, M-Pesa, statement, and audit capabilities remain the foundation. SACCO-specific features are being added incrementally so that member ownership, loans, eligibility rules, and future distributions have explicit ledgers and audit trails.
 
 > Built at Zone01 Kisumu — where we understand the *why* before writing the code.
 
@@ -30,7 +32,7 @@ A production-grade mobile banking backend built from scratch in Go. African Vaul
 - Suspended accounts blocked at login with session invalidation
 - Admin cannot block their own account
 
-### Phase 4 — Banking Features (Current)
+### Phase 4 — Banking Foundation
 - Multi-account support — current and savings accounts per user
 - Transfer by phone number or account number
 - Account statements — PDF and CSV download with date range selection
@@ -43,6 +45,15 @@ A production-grade mobile banking backend built from scratch in Go. African Vaul
 - Admin audit log tracking every admin action
 - Transaction reports and analytics with 7-day chart
 - Automated suspicious transaction flagging
+
+### Phase 5 — Digital SACCO Management (Current)
+- Member share capital tracked separately from spendable savings
+- Administrator-recorded share contributions with an audit trail
+- Loan application, approval, disbursement, repayment schedules, and balances
+- Configurable loan eligibility rules tied to savings and/or share capital
+- Savings interest and share dividend calculation and posting
+
+SACCO features are delivered as separate tickets and commits. Features are not described as complete while migrations, posting operations, or required policy configuration remain outstanding.
 
 ---
 
@@ -84,6 +95,15 @@ A production-grade mobile banking backend built from scratch in Go. African Vaul
 | 44 | Production SMTP configuration validation |
 | 45 | WebAuthn credential boundary and explicit provider gate |
 | 46 | Minor-unit KES amount parsing utility |
+| 47 | Member share-capital balance and contribution ledger |
+| 48 | Loan application, approval, disbursement, schedules, and repayment tracking |
+| 49 | Configurable savings and share-capital loan eligibility policy |
+| 50 | Configurable annual savings interest and share dividend distributions |
+| 51 | Monthly-average distributions, withholding, governance approval, and scheduled previews |
+| 52 | Administrator share-capital redemption and member-exit integration |
+| 53 | Scheduled loan collection, overdue tracking, and 90-day default classification |
+| 54 | SACCO loan, share-capital, and distribution CSV reports |
+| 55 | Persistent member loan arrears and default notifications |
 
 ---
 
@@ -99,6 +119,46 @@ The following features are implemented but require production credentials and op
 - M-Pesa B2C payout callbacks and settlement reconciliation.
 - Verified custom-domain SMTP sender configuration.
 - JWT mobile API endpoints built on the token service.
+
+---
+
+## 🧭 SACCO Delivery Roadmap
+
+### Ticket 1 — Member share capital
+
+- Add a dedicated share-capital balance and contribution ledger rather than treating ownership capital as a spendable account.
+- Allow administrators to record contributions atomically.
+- Display share capital separately on the member dashboard.
+- Integrate non-zero share capital explicitly into member exit checks.
+- Schema migration: new GORM tables are required.
+
+### Ticket 2 — Loan lifecycle
+
+- Add loan applications with pending, approved, rejected, disbursed, and completed states.
+- Record administrator decisions and disbursement.
+- Generate scheduled repayments and track principal paid, interest paid, and outstanding balance.
+- Schema migration: loan and repayment tables are required.
+
+Automated collection from member accounts is not assumed; repayment posting is an explicit operation until a scheduler or payment mandate is implemented.
+
+### Ticket 3 — Loan eligibility
+
+- Store eligibility policy as SACCO configuration rather than hard-coding a common industry rule.
+- Support a configurable multiple of savings, share capital, or both.
+- Explain eligibility results before an application is accepted.
+- Schema migration: SACCO configuration fields or a configuration table are required.
+
+No default such as “three times savings” is treated as the SACCO's policy without administrator configuration.
+
+### Ticket 4 — Interest and dividends
+
+- Configure savings interest and share dividend rates and calculation periods.
+- Calculate proposed allocations from ledger balances.
+- Require an explicit administrator posting action before balances change.
+- Record every posted allocation for audit and idempotency.
+- Schema migration: distribution runs and member allocation records are required.
+
+Rates, balance basis, pro-rating rules, and posting destinations vary by SACCO and must be configured. Earlier tickets do not assume interest or dividends already exist.
 
 ---
 
@@ -241,6 +301,18 @@ Visit `http://localhost:8080` to access the app.
 | `/admin` | GET | Admin | Admin dashboard |
 | `/admin/deposit` | POST | Admin | Deposit to user account |
 | `/admin/withdraw` | POST | Admin | Withdraw from user account |
+| `/admin/share-contribution` | POST | Admin | Record a member share-capital contribution |
+| `/admin/share-redemption` | POST | Admin | Redeem share capital to a member current account |
+| `/loans/apply` | POST | Session | Submit a member loan application |
+| `/admin/loans/decision` | POST | Admin | Approve or reject a pending loan |
+| `/admin/loans/disburse` | POST | Admin | Disburse an approved loan to the current account |
+| `/admin/loans/repayment` | POST | Admin | Record an explicit loan repayment |
+| `/admin/loans/eligibility-policy` | POST | Admin | Configure loan eligibility rules |
+| `/admin/distributions/policy` | POST | Admin | Configure interest and dividend rates |
+| `/admin/distributions/preview` | POST | Admin | Preview a period distribution |
+| `/admin/distributions/post` | POST | Admin | Explicitly post a previewed distribution |
+| `/admin/distributions/approve` | POST | Super admin | Record board or AGM approval for a distribution |
+| `/admin/reports/sacco` | GET | Admin | Download SACCO management CSV reports |
 | `/admin/toggle` | POST | Admin | Block or unblock account |
 | `/admin/audit-log` | GET | Admin | View full audit log |
 | `/admin/flagged` | GET | Admin | View flagged transactions |
