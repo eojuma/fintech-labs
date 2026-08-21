@@ -43,6 +43,7 @@ func InitDB() {
 		&models.LoanInstallment{},
 		&models.LoanRepayment{},
 		&models.LoanCollectionAttempt{},
+		&models.MemberNotification{},
 		&models.LoanEligibilityPolicy{},
 		&models.DistributionPolicy{},
 		&models.DistributionRun{},

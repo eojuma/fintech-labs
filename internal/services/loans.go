@@ -303,6 +303,14 @@ func collectInstallment(installment models.LoanInstallment, now time.Time) error
 			if err := tx.Save(&loan).Error; err != nil {
 				return err
 			}
+			noticeType, title := "loan_overdue", "Loan installment overdue"
+			if loan.Status == "defaulted" {
+				noticeType, title = "loan_defaulted", "Loan classified as defaulted"
+			}
+			notification := models.MemberNotification{UserID: loan.UserID, Type: noticeType, Title: title, Message: fmt.Sprintf("KES %d remains due on loan installment %d.", due, installment.InstallmentNo), DedupKey: fmt.Sprintf("%s-%d-%s", noticeType, installment.ID, now.Format("2006-01-02"))}
+			if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&notification).Error; err != nil {
+				return err
+			}
 			return tx.Create(&models.LoanCollectionAttempt{LoanID: loan.ID, InstallmentID: installment.ID, AmountRequested: due, Status: "failed", Details: "insufficient savings and current account balances"}).Error
 		}
 		remaining := due
@@ -350,6 +358,12 @@ func collectInstallment(installment models.LoanInstallment, now time.Time) error
 		}
 		return tx.Create(&models.LoanCollectionAttempt{LoanID: loan.ID, InstallmentID: installment.ID, AmountRequested: due, AmountCollected: due, Status: "completed", Details: "collected from " + strings.Join(sources, ",")}).Error
 	})
+}
+
+func GetMemberNotifications(username string) ([]models.MemberNotification, error) {
+	var notifications []models.MemberNotification
+	err := db.DB.Joins("JOIN users ON users.id = member_notifications.user_id").Where("users.username = ?", strings.ToLower(strings.TrimSpace(username))).Order("member_notifications.created_at desc").Limit(20).Find(&notifications).Error
+	return notifications, err
 }
 
 func StartLoanCollectionScheduler() {

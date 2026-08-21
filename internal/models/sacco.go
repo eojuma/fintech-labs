@@ -112,6 +112,17 @@ type LoanCollectionAttempt struct {
 	Details         string    `json:"details"`
 }
 
+type MemberNotification struct {
+	ID        uint      `gorm:"primaryKey" json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	UserID    uint      `gorm:"index;not null" json:"user_id"`
+	Type      string    `gorm:"index;not null" json:"type"`
+	Title     string    `gorm:"not null" json:"title"`
+	Message   string    `gorm:"not null" json:"message"`
+	Read      bool      `gorm:"index;not null;default:false" json:"read"`
+	DedupKey  string    `gorm:"uniqueIndex;not null" json:"dedup_key"`
+}
+
 type LoanEligibilityPolicy struct {
 	ID                   uint      `gorm:"primaryKey" json:"id"`
 	CreatedAt            time.Time `json:"created_at"`

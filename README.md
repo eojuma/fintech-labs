@@ -103,6 +103,7 @@ SACCO features are delivered as separate tickets and commits. Features are not d
 | 52 | Administrator share-capital redemption and member-exit integration |
 | 53 | Scheduled loan collection, overdue tracking, and 90-day default classification |
 | 54 | SACCO loan, share-capital, and distribution CSV reports |
+| 55 | Persistent member loan arrears and default notifications |
 
 ---
 

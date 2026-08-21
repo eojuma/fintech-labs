@@ -105,6 +105,7 @@
 			{{end}}
 			<p style="color:var(--text-muted);">Eligibility rules are not applied yet. Submission creates a pending application for administrator review.</p>
 		</div>
+		{{if .Notifications}}<div class="card" style="margin-bottom:1.5rem;"><h3>Notices</h3>{{range .Notifications}}<div style="padding:0.75rem;border-bottom:1px solid var(--border);"><strong>{{.Title}}</strong><p>{{.Message}}</p><small>{{.CreatedAt.Format "02 Jan 2006 15:04"}}</small></div>{{end}}</div>{{end}}
 
         <!-- Transaction Cards -->
         <div class="grid-3" id="money-actions">
