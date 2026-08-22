@@ -34,6 +34,10 @@ func main() {
 	services.StartDistributionScheduler()
 	services.StartLoanCollectionScheduler()
 	router.Setup()
-	log.Println("🚀 Server running on http://localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", httpsRedirect(http.DefaultServeMux)))
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	log.Printf("🚀 Server running on http://localhost:%s", port)
+	log.Fatal(http.ListenAndServe(":"+port, httpsRedirect(http.DefaultServeMux)))
 }

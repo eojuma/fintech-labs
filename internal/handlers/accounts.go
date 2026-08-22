@@ -3,8 +3,8 @@ package handlers
 import (
 	"net/http"
 
-	"fintech-labs/internal/utils"
 	"fintech-labs/internal/services"
+	"fintech-labs/internal/utils"
 )
 
 func OpenSavingsAccountHandler(w http.ResponseWriter, r *http.Request) {

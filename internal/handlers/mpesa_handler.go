@@ -101,10 +101,10 @@ func MpesaCallbackHandler(w http.ResponseWriter, r *http.Request) {
 	receiptCode := mpesa.GetCallbackValue(callback.CallbackMetadata.Item, "MpesaReceiptNumber")
 	phoneNumber := mpesa.GetCallbackValue(callback.CallbackMetadata.Item, "PhoneNumber")
 
-// Convert phone from float scientific notation to clean integer string
-phoneStr := fmt.Sprintf("%.0f", phoneNumber)
+	// Convert phone from float scientific notation to clean integer string
+	phoneStr := fmt.Sprintf("%.0f", phoneNumber)
 
-log.Printf("✅ M-Pesa payment confirmed — Receipt: %v | Amount: %v | Phone: %s", receiptCode, amount, phoneStr)
+	log.Printf("✅ M-Pesa payment confirmed — Receipt: %v | Amount: %v | Phone: %s", receiptCode, amount, phoneStr)
 
 	// Process the confirmed payment
 	if err := services.ProcessMpesaDeposit(
