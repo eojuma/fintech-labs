@@ -22,6 +22,8 @@ type User struct {
 	FailedLoginAttempts int            `gorm:"default:0" json:"failed_login_attempts"`
 	LockedUntil         *time.Time     `gorm:"default:null" json:"locked_until"`
 	TransactionPin      string         `gorm:"default:''" json:"-"`
+	PinFailedAttempts   int            `gorm:"default:0" json:"-"`
+	PinLockedUntil      *time.Time     `gorm:"default:null" json:"-"`
 	SMSOptOut           bool           `gorm:"default:false" json:"sms_opt_out"`
 }
 
@@ -57,30 +59,6 @@ type Transaction struct {
 	Status            string `gorm:"default:'pending'" json:"status"`                               // "pending", "completed", "failed"
 	Flagged           bool   `gorm:"default:false" json:"flagged"`                                  // For suspicious transactions
 	FlaggedReason     string `gorm:"default:''" json:"flagged_reason,omitempty"`                    // Reason for flagging
-}
-
-type DepositRequest struct {
-	Amount int64 `json:"amount"`
-}
-
-type WithdrawRequest struct {
-	Amount int64 `json:"amount"`
-}
-
-type TransferRecipient struct {
-	AccountNumber string `json:"account_number"`
-	Amount        int64  `json:"amount"`
-}
-
-type MultiTransferRequest struct {
-	SenderIdentifier string              `json:"sender_identifier"`
-	Recipients       []TransferRecipient `json:"recipients"`
-}
-
-type MpesaDepositRequest struct {
-	Amount        int64  `json:"amount" binding:"required"`
-	PhoneNumber   string `json:"phone_number" binding:"required"`
-	AccountNumber string `json:"account_number" binding:"required"`
 }
 
 type Session struct {

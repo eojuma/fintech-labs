@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -58,7 +57,7 @@ func Deposit(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("💰 Processing deposit for %s to account %s: KES %d", username, accountNumber, amount)
 
-	refNum, err := services.Deposit(accountNumber, amount)
+	refNum, err := services.Deposit(username, accountNumber, amount)
 	if err != nil {
 		log.Printf("Deposit error for %s: %v", username, err)
 		errorMsg := strings.ReplaceAll(err.Error(), " ", "+")
@@ -114,7 +113,7 @@ func Withdraw(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("💸 Processing withdrawal for %s from account %s: KES %d", username, accountNumber, amount)
 
-	refNum, err := services.Withdraw(accountNumber, amount)
+	refNum, err := services.Withdraw(username, accountNumber, amount)
 	if err != nil {
 		log.Printf("Withdrawal error for %s: %v", username, err)
 		errorMsg := strings.ReplaceAll(err.Error(), " ", "+")
@@ -124,58 +123,6 @@ func Withdraw(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Withdrawal successful for %s: KES %d", username, amount)
 	http.Redirect(w, r, "/receipt/"+refNum, http.StatusSeeOther)
-}
-
-func GetBalance(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	username := utils.GetSessionUser(w, r)
-	if username == "" {
-		http.Error(w, "Not authenticated", http.StatusUnauthorized)
-		return
-	}
-
-	account, err := services.GetAccountByUsername(username)
-	if err != nil {
-		http.Error(w, "Account not found", http.StatusNotFound)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"balance":   account.Balance,
-		"formatted": fmt.Sprintf("KES %d", account.Balance),
-		"number":    account.Number,
-		"active":    account.Active,
-	})
-}
-
-func GetTransactionsAPI(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	username := utils.GetSessionUser(w, r)
-	if username == "" {
-		http.Error(w, "Not authenticated", http.StatusUnauthorized)
-		return
-	}
-
-	transactions, err := services.GetTransactions(username)
-	if err != nil {
-		log.Printf("Error fetching transactions for %s: %v", username, err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	log.Printf("📊 Returning %d transactions for %s", len(transactions), username)
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(transactions)
 }
 
 func SendMoneyHandler(w http.ResponseWriter, r *http.Request) {
@@ -234,34 +181,16 @@ func SendMoneyHandler(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("💸 Processing transfer from %s (account %s) to account %s: KES %d", username, fromAccountNumber, toAccountNumber, amount)
 
-	refNum, err := services.SendMoney(fromAccountNumber, toAccountNumber, amount)
-if err != nil {
-    log.Printf("Transfer error from %s to %s: %v", username, toAccountNumber, err)
-    errorMsg := strings.ReplaceAll(err.Error(), " ", "+")
-    http.Redirect(w, r, "/dashboard?error="+errorMsg, http.StatusSeeOther)
-    return
-}
-
-log.Printf("Transfer successful from %s to account %s: KES %d", username, toAccountNumber, amount)
-http.Redirect(w, r, "/receipt/"+refNum, http.StatusSeeOther)
-}
-
-func MultiTransferHandler(w http.ResponseWriter, r *http.Request) {
-	var req models.MultiTransferRequest
-
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request payload", http.StatusBadRequest)
-		return
-	}
-
-	err := services.MultiTransfer(req.SenderIdentifier, req.Recipients)
+	refNum, err := services.SendMoney(username, fromAccountNumber, toAccountNumber, amount)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		log.Printf("Transfer error from %s to %s: %v", username, toAccountNumber, err)
+		errorMsg := strings.ReplaceAll(err.Error(), " ", "+")
+		http.Redirect(w, r, "/dashboard?error="+errorMsg, http.StatusSeeOther)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message": "Batch transfer completed successfully"})
+	log.Printf("Transfer successful from %s to account %s: KES %d", username, toAccountNumber, amount)
+	http.Redirect(w, r, "/receipt/"+refNum, http.StatusSeeOther)
 }
 
 func FilterTransactionsHandler(w http.ResponseWriter, r *http.Request) {

@@ -1,6 +1,7 @@
 package services
 
 import (
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"log"
@@ -78,6 +79,10 @@ func CreateUser(fullname, username, email, phone, Id, password, role string) (*m
 
 	if !utils.ValidNationalID(cleanId) {
 		return nil, fmt.Errorf("invalid National ID Number")
+	}
+
+	if len(password) < 6 {
+		return nil, fmt.Errorf("password must be at least 6 characters")
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -216,7 +221,8 @@ func VerifyDevice(userID uint, fingerprint, userAgent string) error {
 	return errors.New("new device recorded and is pending administrator approval")
 }
 
-func Deposit(accountNumber string, amount int64) (string, error) {
+func Deposit(username, accountNumber string, amount int64) (string, error) {
+	username = strings.ToLower(strings.TrimSpace(username))
 	accountNumber = strings.TrimSpace(accountNumber)
 
 	var refNum string
@@ -230,9 +236,18 @@ func Deposit(accountNumber string, amount int64) (string, error) {
 	}
 
 	err := db.DB.Transaction(func(tx *gorm.DB) error {
+		var user models.User
+		if err := tx.Where("username = ?", username).First(&user).Error; err != nil {
+			return errors.New("user not found")
+		}
+
 		var account models.Account
 		if err := tx.Where("number = ?", accountNumber).First(&account).Error; err != nil {
 			return errors.New("account not found")
+		}
+
+		if account.UserID != user.ID {
+			return errors.New("you can only operate on your own account")
 		}
 
 		if !account.Active {
@@ -240,11 +255,6 @@ func Deposit(accountNumber string, amount int64) (string, error) {
 		}
 		if err := enforceDailyLimit(tx, account.Number, "deposit", amount, DailyDepositLimit); err != nil {
 			return err
-		}
-
-		var user models.User
-		if err := tx.First(&user, account.UserID).Error; err != nil {
-			return errors.New("user not found")
 		}
 
 		oldBalance := account.Balance
@@ -260,6 +270,7 @@ func Deposit(accountNumber string, amount int64) (string, error) {
 			Type:            "deposit",
 			Amount:          amount,
 			Balance:         account.Balance,
+			Status:          "completed",
 		}
 
 		if err := tx.Create(&transaction).Error; err != nil {
@@ -394,7 +405,8 @@ func AdminDeposit(adminUsername, accountNumber string, amount int64) error {
 	return nil
 }
 
-func Withdraw(accountNumber string, amount int64) (string, error) {
+func Withdraw(username, accountNumber string, amount int64) (string, error) {
+	username = strings.ToLower(strings.TrimSpace(username))
 	accountNumber = strings.TrimSpace(accountNumber)
 
 	var refNum string
@@ -408,9 +420,18 @@ func Withdraw(accountNumber string, amount int64) (string, error) {
 	}
 
 	err := db.DB.Transaction(func(tx *gorm.DB) error {
+		var user models.User
+		if err := tx.Where("username = ?", username).First(&user).Error; err != nil {
+			return errors.New("user not found")
+		}
+
 		var account models.Account
 		if err := tx.Where("number = ?", accountNumber).First(&account).Error; err != nil {
 			return errors.New("account not found")
+		}
+
+		if account.UserID != user.ID {
+			return errors.New("you can only operate on your own account")
 		}
 
 		if !account.Active {
@@ -418,11 +439,6 @@ func Withdraw(accountNumber string, amount int64) (string, error) {
 		}
 		if err := enforceDailyLimit(tx, account.Number, "withdrawal", amount, DailyWithdrawalLimit); err != nil {
 			return err
-		}
-
-		var user models.User
-		if err := tx.First(&user, account.UserID).Error; err != nil {
-			return errors.New("user not found")
 		}
 
 		if account.Balance < amount {
@@ -442,6 +458,7 @@ func Withdraw(accountNumber string, amount int64) (string, error) {
 			Type:            "withdrawal",
 			Amount:          amount,
 			Balance:         account.Balance,
+			Status:          "completed",
 		}
 
 		if err := tx.Create(&transaction).Error; err != nil {
@@ -617,7 +634,8 @@ func ResolveRecipientAccount(tx *gorm.DB, identifier string) (*models.Account, e
 	return &account, nil
 }
 
-func SendMoney(fromAccountNumber, toIdentifier string, amount int64) (string, error) {
+func SendMoney(username, fromAccountNumber, toIdentifier string, amount int64) (string, error) {
+	username = strings.ToLower(strings.TrimSpace(username))
 	fromAccountNumber = strings.TrimSpace(fromAccountNumber)
 	toIdentifier = strings.TrimSpace(toIdentifier)
 	var refNum string
@@ -627,9 +645,18 @@ func SendMoney(fromAccountNumber, toIdentifier string, amount int64) (string, er
 	}
 
 	err := db.DB.Transaction(func(tx *gorm.DB) error {
+		var fromUser models.User
+		if err := tx.Where("username = ?", username).First(&fromUser).Error; err != nil {
+			return errors.New("sender not found")
+		}
+
 		var fromAccount models.Account
 		if err := tx.Where("number = ?", fromAccountNumber).First(&fromAccount).Error; err != nil {
 			return errors.New("sender account not found")
+		}
+
+		if fromAccount.UserID != fromUser.ID {
+			return errors.New("you can only transfer from your own account")
 		}
 
 		if !fromAccount.Active {
@@ -637,11 +664,6 @@ func SendMoney(fromAccountNumber, toIdentifier string, amount int64) (string, er
 		}
 		if err := enforceDailyLimit(tx, fromAccount.Number, "transfer_out", amount, DailyTransferLimit); err != nil {
 			return err
-		}
-
-		var fromUser models.User
-		if err := tx.First(&fromUser, fromAccount.UserID).Error; err != nil {
-			return errors.New("sender not found")
 		}
 
 		if fromAccount.Balance < amount {
@@ -683,6 +705,7 @@ func SendMoney(fromAccountNumber, toIdentifier string, amount int64) (string, er
 			Type:            "transfer_out",
 			Amount:          amount,
 			Balance:         fromAccount.Balance,
+			Status:          "completed",
 		}
 		if err := tx.Create(&outTransaction).Error; err != nil {
 			return err
@@ -694,6 +717,7 @@ func SendMoney(fromAccountNumber, toIdentifier string, amount int64) (string, er
 			Type:            "transfer_in",
 			Amount:          amount,
 			Balance:         toAccount.Balance,
+			Status:          "completed",
 		}).Error; err != nil {
 			return err
 		}
@@ -805,7 +829,7 @@ func ProcessDueRecurringTransfers(now time.Time) (int, error) {
 	}
 	processed := 0
 	for _, job := range jobs {
-		_, err := SendMoney(job.SenderAccount, job.Recipient, job.Amount)
+		_, err := SendMoney(job.Username, job.SenderAccount, job.Recipient, job.Amount)
 		updates := map[string]interface{}{}
 		if err != nil {
 			updates["last_error"] = err.Error()
@@ -958,88 +982,6 @@ func ToggleAccountStatus(adminUsername string, accountID uint, active bool) erro
 	return nil
 }
 
-func MultiTransfer(senderIdentifier string, recipients []models.TransferRecipient) error {
-	senderIdentifier = strings.ToLower(strings.TrimSpace(senderIdentifier))
-
-	return db.DB.Transaction(func(tx *gorm.DB) error {
-		// 1. Validate Sender
-		var sender models.User
-		query := "email = ? OR phone_number = ? OR username = ?"
-		if err := tx.Where(query, senderIdentifier, senderIdentifier, senderIdentifier).First(&sender).Error; err != nil {
-			return errors.New("sender not found")
-		}
-
-		var senderAcc models.Account
-		if err := tx.Where("user_id = ?", sender.ID).First(&senderAcc).Error; err != nil {
-			return errors.New("sender account not found")
-		}
-
-		// 2. Calculate Total needed
-		var totalAmount int64
-		for _, r := range recipients {
-			if r.Amount < MinTransfer {
-				return fmt.Errorf("transfer to %s is below minimum", r.AccountNumber)
-			}
-			totalAmount += r.Amount
-		}
-
-		if senderAcc.Balance < totalAmount {
-			return fmt.Errorf("insufficient funds for batch: need KES %d", totalAmount)
-		}
-
-		// 3. Process each recipient
-		for _, r := range recipients {
-			var recAcc models.Account
-			if err := tx.Where("number = ?", r.AccountNumber).First(&recAcc).Error; err != nil {
-				return fmt.Errorf("recipient %s not found", r.AccountNumber)
-			}
-
-			if !recAcc.Active || recAcc.ID == senderAcc.ID {
-				return fmt.Errorf("invalid recipient: %s", r.AccountNumber)
-			}
-
-			// Update Balances
-			senderAcc.Balance -= r.Amount
-			recAcc.Balance += r.Amount
-
-			if err := tx.Save(&senderAcc).Error; err != nil {
-				return err
-			}
-			if err := tx.Save(&recAcc).Error; err != nil {
-				return err
-			}
-
-			// Record Log for Recipient
-			var recUser models.User
-			tx.Where("id = ?", recAcc.UserID).First(&recUser)
-			if err := tx.Create(&models.Transaction{
-				Username:        recUser.Username,
-				AccountNumber:   recAcc.Number,
-				ReferenceNumber: GenerateReferenceNumber(),
-				Type:            "transfer_in",
-				Amount:          r.Amount,
-				Balance:         recAcc.Balance,
-			}).Error; err != nil {
-				return err
-			}
-		}
-
-		// 4. Record one final log for Sender's total exit
-		if err := tx.Create(&models.Transaction{
-			Username:        sender.Username,
-			AccountNumber:   senderAcc.Number,
-			ReferenceNumber: GenerateReferenceNumber(),
-			Type:            "batch_transfer_out",
-			Amount:          totalAmount,
-			Balance:         senderAcc.Balance,
-		}).Error; err != nil {
-			return err
-		}
-
-		return nil
-	})
-}
-
 // GetAllUsers - Fetches all users and their associated accounts for the Admin Dashboard
 func GetAllUsers() ([]models.User, error) {
 	var users []models.User
@@ -1084,6 +1026,7 @@ func SetTransactionPin(username, pin string) error {
 
 // VerifyTransactionPin — checks the provided PIN against the stored hash
 func VerifyTransactionPin(username, pin string) error {
+	username = strings.ToLower(strings.TrimSpace(username))
 	pin = strings.TrimSpace(pin)
 
 	var user models.User
@@ -1091,13 +1034,32 @@ func VerifyTransactionPin(username, pin string) error {
 		return errors.New("user not found")
 	}
 
+	if user.PinLockedUntil != nil && time.Now().Before(*user.PinLockedUntil) {
+		remaining := time.Until(*user.PinLockedUntil).Round(time.Second)
+		return fmt.Errorf("PIN entry locked. Try again in %v", remaining)
+	}
+
 	if user.TransactionPin == "" {
 		return errors.New("transaction PIN not set. Please set your PIN first")
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.TransactionPin), []byte(pin)); err != nil {
-		return errors.New("incorrect PIN")
+		user.PinFailedAttempts++
+		if user.PinFailedAttempts >= 5 {
+			lockUntil := time.Now().Add(15 * time.Minute)
+			user.PinLockedUntil = &lockUntil
+			user.PinFailedAttempts = 0
+			db.DB.Save(&user)
+			return errors.New("PIN locked for 15 minutes due to too many failed attempts")
+		}
+		db.DB.Save(&user)
+		attemptsLeft := 5 - user.PinFailedAttempts
+		return fmt.Errorf("incorrect PIN. %d attempt(s) remaining before lockout", attemptsLeft)
 	}
+
+	user.PinFailedAttempts = 0
+	user.PinLockedUntil = nil
+	db.DB.Save(&user)
 
 	return nil
 }
@@ -1352,9 +1314,12 @@ func GenerateStatement(username, accountNumber string, from, to time.Time) (*mod
 
 // GenerateReferenceNumber — creates a unique transaction reference number
 func GenerateReferenceNumber() string {
-	var count int64
-	db.DB.Model(&models.Transaction{}).Count(&count)
-	return fmt.Sprintf("AV-%d-%08d", time.Now().Year(), count+1)
+	b := make([]byte, 8)
+	if _, err := rand.Read(b); err != nil {
+		// Practically unreachable; fall back to a time-based value.
+		return fmt.Sprintf("AV-%d-%d", time.Now().Year(), time.Now().UnixNano())
+	}
+	return fmt.Sprintf("AV-%d-%X", time.Now().Year(), b)
 }
 
 // GetTransactionByReference — fetches a transaction by its reference number
@@ -1453,30 +1418,6 @@ func FilterTransactions(username string, f models.TransactionFilter) (*models.Fi
 		Limit:            f.Limit,
 		TotalPages:       totalPages,
 	}, nil
-}
-
-func CreateTransaction(userEmail string, amount int64, tx models.Transaction, newBalance float64) error {
-	// 1. Process your DB logic here (saving the transaction, updating balance)...
-	// err := s.db.SaveTransaction(...)
-
-	// 2. Once DB transaction succeeds, fire off the email in a goroutine
-	// Inside your service function...
-	emailData := models.TransactionEmailData{
-		Type:      tx.Type,
-		Amount:    amount,
-		Balance:   int64(newBalance),
-		Timestamp: time.Now().Format("2006-01-02 15:04:05 MST"),
-	}
-
-	// Spin up a concurrent routine so the user doesn't wait on SMTP network delays
-	go func(email string, data models.TransactionEmailData) {
-		if err := notifications.SendTransactionEmail(email, data); err != nil {
-			// Log the error but don't crash the app or block the transaction response
-			log.Printf("ERROR: Failed to send transaction email to %s: %v", email, err)
-		}
-	}(userEmail, emailData)
-
-	return nil
 }
 
 func CreateAuditLog(adminUsername, action, targetAccount, details string, amount int64, result string) {
@@ -1673,9 +1614,20 @@ func RevokeTellerRole(adminUsername, targetUsername string) error {
 
 // CreatePendingMpesaTransaction — saves a pending M-Pesa transaction while waiting for callback
 func CreatePendingMpesaTransaction(username, accountNumber, phoneNumber string, amount int64, checkoutRequestID, merchantRequestID string) error {
+	username = strings.ToLower(strings.TrimSpace(username))
+
+	var user models.User
+	if err := db.DB.Where("username = ?", username).First(&user).Error; err != nil {
+		return errors.New("user not found")
+	}
+
 	var account models.Account
 	if err := db.DB.Where("number = ?", accountNumber).First(&account).Error; err != nil {
 		return errors.New("account not found")
+	}
+
+	if account.UserID != user.ID {
+		return errors.New("you can only deposit into your own account")
 	}
 
 	transaction := models.Transaction{
